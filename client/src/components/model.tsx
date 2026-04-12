@@ -16,40 +16,111 @@ export interface TutorScriptProps {
     script: TutorAction[];
     autoPlay?: boolean;
     onComplete?: () => void;
+    /** External pause control. When true, script execution halts. */
+    isPaused?: boolean;
 }
 
 // --- Helper for Speech ---
 let currentUtterance: SpeechSynthesisUtterance | null = null;
+let voicesLoaded: SpeechSynthesisVoice[] = [];
+let voicesReady = false;
+
+const loadVoices = () => {
+    if (!window.speechSynthesis) return;
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        voicesLoaded = voices;
+        voicesReady = true;
+    }
+    return voices;
+};
+
+// Pre-load voices if available
+if (typeof window !== 'undefined') {
+    // Chromium needs this hack to kick-start voice loading
+    window.speechSynthesis?.getVoices();
+    window.speechSynthesis?.addEventListener('voiceschanged', () => {
+        loadVoices();
+    }, { once: true });
+}
 
 const speakText = (text: string, onEnd: () => void) => {
     if (!window.speechSynthesis) {
+        console.warn("SpeechSynthesis not available");
         setTimeout(onEnd, 2000);
         return;
     }
 
-    // Do NOT cancel here. It clears the queue and can cause race conditions.
-    // We assume the previous step finished before this is called.
+    // Chromium bug: speech synthesis can get stuck in a paused state.
+    // Calling pause() then resume() "unsticks" it.
+    if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+    }
+    // Also check if it's speaking but stuck
+    if (window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+    }
+
+    // Ensure voices are loaded
+    if (!voicesReady) {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+            voicesLoaded = voices;
+            voicesReady = true;
+        } else {
+            // Voices not ready yet, wait a bit and retry
+            console.warn("Voices not loaded, retrying in 100ms...");
+            setTimeout(() => speakText(text, onEnd), 100);
+            return;
+        }
+    }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    currentUtterance = utterance; // Prevent GC
+    currentUtterance = utterance;
+
+    // Select a voice - must happen AFTER cancel() in Chromium
+    if (voicesLoaded.length > 0) {
+        const preferredVoice = voicesLoaded.find(
+            v => v.name.includes('Google US English')
+        ) || voicesLoaded.find(
+            v => v.name.includes('Google') && v.lang.startsWith('en')
+        ) || voicesLoaded.find(
+            v => v.lang === 'en-US'
+        ) || voicesLoaded.find(
+            v => v.lang.startsWith('en')
+        );
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
+        }
+    }
+
+    utterance.rate = 1.2;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
 
     utterance.onend = () => {
         currentUtterance = null;
         onEnd();
     };
+
     utterance.onerror = (e) => {
-        console.error("Speech error", e);
+        if (e.error !== 'canceled') {
+            console.warn("Speech synthesis error:", e.error, e);
+        }
         currentUtterance = null;
         onEnd();
     };
 
-    // Try to find a robotic or crisp voice
-    const voices = window.speechSynthesis.getVoices();
-    const robotVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Daniel'));
-    if (robotVoice) utterance.voice = robotVoice;
-    utterance.rate = 1.2;
-    utterance.pitch = 1.0;
-    window.speechSynthesis.speak(utterance);
+    try {
+        window.speechSynthesis.speak(utterance);
+    } catch (err) {
+        console.error("SpeechSynthesis.speak failed:", err);
+        currentUtterance = null;
+        setTimeout(onEnd, 1000);
+    }
 };
 
 // --- Procedural Robot Component ---
@@ -472,6 +543,18 @@ const CogniBot: React.FC<TutorScriptProps> = ({
         }
     }, [autoPlay, script, isPlaying, isPaused]);
 
+    // Cleanup speech on unmount or script change
+    useEffect(() => {
+        return () => {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
+        };
+    }, [script]);
+
     const togglePause = () => {
         if (isPaused) {
             setIsPaused(false);
@@ -516,23 +599,6 @@ const CogniBot: React.FC<TutorScriptProps> = ({
                     {isPaused ? '▶ Resume' : '⏸ Pause'}
                 </button>
             </div>
-
-            {/* Dialogue Box */}
-            {speechText && (
-                <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-[95%] max-w-3xl z-20">
-                    <div className="bg-black/80 backdrop-blur-md border border-cyan-500/50 p-4 rounded-xl shadow-[0_0_30px_rgba(0,255,255,0.15)] relative overflow-hidden">
-                        {/* Tech decorations */}
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
-                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-500"></div>
-                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-500"></div>
-
-                        <p className="text-cyan-100 text-sm md:text-base font-mono leading-relaxed text-center relative z-10">
-                            {speechText}
-                            <span className="inline-block w-2 h-4 bg-cyan-400 ml-1 animate-pulse align-middle" />
-                        </p>
-                    </div>
-                </div>
-            )}
 
             <div className="absolute bottom-4 right-4 pointer-events-none">
                 <div className="bg-black/60 backdrop-blur-md p-2 rounded-lg border border-cyan-500/30 text-cyan-400/60 text-[10px] font-mono text-right">

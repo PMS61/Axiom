@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useApp } from "@/lib/store";
 import { generateContentAction, completeNodeAction } from "@/app/actions/roadmap";
 import { getCourseAction, saveCourseAction } from "@/app/actions/courses";
 import { getTasks } from "@/app/actions/tasks";
 import Header from "@/components/Header";
 import SlideViewer from "@/components/SlideViewer";
+import CogniBot, { TutorAction } from "@/components/model";
+import { determineAnimation } from "@/lib/tutor-utils";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 
@@ -23,7 +25,45 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
   const [error, setError] = useState<string | null>(null);
   const [hasSavedCourse, setHasSavedCourse] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
+  const currentSlide = result?.slides?.[currentSlideIndex];
+  const totalSlides = result?.slides?.length || 0;
+  const isLastSlide = currentSlideIndex >= Math.max(0, totalSlides - 1);
+
+  // Build the tutor script for the current slide
+  // When isPlaying is true and muted is false, the bot speaks and drives advancement
+  const tutorScript = useMemo(() => {
+    if (!currentSlide || isMuted) return [];
+    const scriptText = currentSlide.script || "";
+    if (!scriptText) return [];
+
+    return [
+      { type: 'animation', name: determineAnimation(scriptText), duration: 1000 },
+      { type: 'speak', text: scriptText },
+      { type: 'animation', name: 'Teacher_Listening', loop: true }
+    ] as TutorAction[];
+  }, [currentSlide, isMuted]);
+
+  // Advance to next slide when auto-play is active
+  const advanceSlide = React.useCallback(() => {
+    if (isLastSlide) {
+      setIsPlaying(false);
+      addToast("Presentation complete. All slides shown.", "success");
+    } else {
+      setCurrentSlideIndex((prev) => prev + 1);
+    }
+  }, [isLastSlide, addToast]);
+
+  // When the bot's script completes and we're playing, advance
+  const handleBotComplete = React.useCallback(() => {
+    if (isPlaying) {
+      advanceSlide();
+    }
+  }, [isPlaying, advanceSlide]);
+
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!result?.slides) return;
@@ -38,6 +78,21 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [result, currentSlideIndex]);
+
+  // Start: go to slide 0 if at end, enable playing
+  const handleStartPlay = () => {
+    if (!result?.slides || totalSlides <= 1) return;
+    if (isLastSlide) setCurrentSlideIndex(0);
+    setIsPlaying(true);
+  };
+
+  // Stop: halt playback, stop speech synthesis
+  const handleStopPlay = () => {
+    setIsPlaying(false);
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  };
 
   const handleDownloadPDF = () => {
     window.print();
@@ -254,12 +309,79 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
               <div className="meta-text" style={{ marginBottom: 16 }}>
                 01. PRESENTATION (SLIDE {currentSlideIndex + 1} OF {result.slides?.length || 0})
               </div>
-              
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
+
+              {/* TOP ROW: CogniBot + Script Panel */}
+              <div style={{ display: "flex", width: "100%", gap: "32px", alignItems: "flex-start", justifyContent: "center", flexWrap: "wrap", marginBottom: "32px" }}>
+                {/* LEFT: CogniBot */}
                 <div style={{
-                  width: "min(96vw, 1600px)",
+                  flex: "0 0 400px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div className="meta-text" style={{ color: "var(--ink)" }}>02. AI INSTRUCTOR</div>
+                    <button
+                      onClick={() => setIsMuted(!isMuted)}
+                      style={{
+                        background: "none",
+                        border: "0.5px solid var(--rule)",
+                        color: isMuted ? "var(--vermillion)" : "var(--ink)",
+                        fontSize: "9px",
+                        fontFamily: "var(--mono)",
+                        padding: "4px 8px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {isMuted ? "UNMUTE" : "MUTE"}
+                    </button>
+                  </div>
+                  <div style={{ height: "400px", width: "100%", position: "relative", border: "0.5px solid var(--rule)", backgroundColor: "var(--card-bg)" }}>
+                    <CogniBot
+                      key={`tutor-${currentSlideIndex}-${isMuted}`}
+                      script={tutorScript}
+                      autoPlay={true}
+                      onComplete={handleBotComplete}
+                    />
+                  </div>
+                  <div className="meta-text" style={{ color: "var(--muted)", fontSize: "10px" }}>
+                    AUTO-PLAYING SCRIPT FOR SLIDE {currentSlideIndex + 1}
+                  </div>
+                </div>
+
+                {/* RIGHT: Script Panel */}
+                <div style={{
+                  flex: "1 1 500px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                  border: "0.5px solid var(--rule)",
+                  backgroundColor: "var(--card-bg)",
+                  padding: "24px",
+                  maxHeight: "450px",
+                  overflow: "auto"
+                }}>
+                  <div className="meta-text" style={{ color: "var(--ink)", flexShrink: 0 }}>03. SLIDE SCRIPT</div>
+                  <div style={{
+                    fontFamily: "var(--mono)",
+                    fontSize: "13px",
+                    lineHeight: "1.6",
+                    color: "var(--ink)",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word"
+                  }}>
+                    {currentSlide?.script || (
+                      <span style={{ color: "var(--muted)" }}>No script available for this slide.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTTOM ROW: Slide Viewer (full width, 16:9) */}
+              <div style={{ width: "100%", maxWidth: "1400px", margin: "0 auto" }}>
+                <div style={{
+                  width: "100%",
                   aspectRatio: "16 / 9",
-                  maxHeight: "78vh",
                   border: "0.5px solid var(--rule)",
                   backgroundColor: "var(--card-bg)",
                   padding: "24px",
@@ -277,7 +399,79 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                     <SlideViewer slide={result.slides[currentSlideIndex]} />
                   </div>
                 </div>
+              </div>
 
+              {/* Navigation Controls - centered beneath viewer */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, marginTop: 32, marginBottom: 16 }}>
+                {/* Row 1: Play/Pause controls */}
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  {!isPlaying ? (
+                    <button
+                      onClick={handleStartPlay}
+                      disabled={!result?.slides || totalSlides <= 1 || completing}
+                      style={{
+                        background: "#00b4d8",
+                        border: "none",
+                        cursor: !result?.slides || totalSlides <= 1 ? "not-allowed" : "pointer",
+                        color: "#FFFFFF",
+                        fontSize: 13,
+                        fontFamily: "var(--mono)",
+                        letterSpacing: "0.1em",
+                        padding: "10px 28px",
+                        borderRadius: "4px",
+                        fontWeight: "bold",
+                        opacity: !result?.slides || totalSlides <= 1 ? 0.5 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8
+                      }}
+                    >
+                      ▶ PLAY PRESENTATION
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStopPlay}
+                      style={{
+                        background: "#e63946",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#FFFFFF",
+                        fontSize: 13,
+                        fontFamily: "var(--mono)",
+                        letterSpacing: "0.1em",
+                        padding: "10px 28px",
+                        borderRadius: "4px",
+                        fontWeight: "bold",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        animation: "pulse 1.5s infinite"
+                      }}
+                    >
+                      ■ PAUSE
+                    </button>
+                  )}
+
+                  {/* Status indicator */}
+                  {isPlaying && (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "4px 12px",
+                      border: "0.5px solid #00b4d8",
+                      borderRadius: "2px",
+                      fontSize: 10,
+                      fontFamily: "var(--mono)",
+                      color: "#00b4d8"
+                    }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#00b4d8", animation: "pulse 1s infinite" }} />
+                      ADVANCING ON SCRIPT COMPLETE
+                    </div>
+                  )}
+                </div>
+
+                {/* Row 2: Manual navigation */}
                 <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
                   <button
                     onClick={() => setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))}
@@ -288,22 +482,22 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                   </button>
 
                   <div className="meta-text" style={{ color: "var(--muted)", minWidth: 120, textAlign: "center", fontFamily: "var(--mono)", fontSize: 11 }}>
-                    {currentSlideIndex + 1} / {result.slides?.length || 0}
+                    {currentSlideIndex + 1} / {totalSlides}
                   </div>
 
-                  {currentSlideIndex >= Math.max(0, (result.slides?.length || 1) - 1) ? (
+                  {isLastSlide ? (
                     <button
                       onClick={handleComplete}
                       disabled={completing}
-                      style={{ 
-                        background: "#10b981", // Emerald Green for high visibility
-                        border: "none", 
-                        cursor: "pointer", 
-                        color: "#FFFFFF", 
-                        fontSize: 13, 
+                      style={{
+                        background: "#10b981",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#FFFFFF",
+                        fontSize: 13,
                         fontFamily: "var(--mono)",
                         letterSpacing: "0.15em",
-                        padding: "12px 32px", 
+                        padding: "12px 32px",
                         borderRadius: "4px",
                         fontWeight: "bold",
                         transition: "all 0.3s ease",
@@ -318,7 +512,7 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                     </button>
                   ) : (
                     <button
-                      onClick={() => setCurrentSlideIndex(Math.min(Math.max(0, (result.slides?.length || 1) - 1), currentSlideIndex + 1))}
+                      onClick={() => setCurrentSlideIndex(Math.min(Math.max(0, totalSlides - 1), currentSlideIndex + 1))}
                       style={{ background: "none", border: "1px solid var(--rule)", cursor: "pointer", color: "var(--ink)", fontSize: 13, fontFamily: "var(--mono)", letterSpacing: "0.1em", padding: "12px 24px", borderRadius: "0px" }}
                     >
                       NEXT →
