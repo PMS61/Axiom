@@ -196,7 +196,7 @@ export default function TaskStoryPage({
       const response = await generateStoryForTask({
         title: task.name,
         description: task.subject || task.name,
-        storyPreference: "Keep narrative educational and concise.",
+        storyPreference: "User like cultivation novels.",
       });
 
       if (!response.success || !response.data) {
