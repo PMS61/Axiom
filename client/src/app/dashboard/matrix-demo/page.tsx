@@ -76,9 +76,9 @@ export default async function MatrixDemoPage() {
                 if (slot.isFixedCommitment) bg = "rgba(100,100,255,0.2)";
                 if (slot.isHardExclusion) bg = "rgba(255,100,100,0.2)";
                 
-                if (slot.cl > 0) {
+                if (slot.etask > 0) {
                    bg = "var(--vermillion)";
-                   label = `CL ${slot.cl}`;
+                   label = `Etask ${slot.etask.toFixed(1)}`;
                 } else if (slot.isPeak) {
                    bg = "rgba(100,255,100,0.15)";
                 } else if (slot.isLow) {
@@ -153,5 +153,4 @@ function LegendItem({ color, text }: { color: string, text: string }) {
     </div>
   );
 }
-
 

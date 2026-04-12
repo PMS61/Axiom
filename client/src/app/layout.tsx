@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -34,7 +35,7 @@ export default function RootLayout({
     >
       <body>
         <AppProvider>
-          {children}
+          <ToastProvider>{children}</ToastProvider>
         </AppProvider>
       </body>
     </html>

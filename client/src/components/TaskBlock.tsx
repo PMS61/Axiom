@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { useApp } from "@/lib/store";
-import { slotToTime, formatDuration, clToBorderClass } from "@/lib/engine";
+import { slotToTime, formatDuration } from "@/lib/engine";
 import type { Task } from "@/lib/types";
 
 interface TaskBlockProps {
@@ -20,7 +20,11 @@ export default function TaskBlock({ task, isCompact = false }: TaskBlockProps) {
   const { state, dispatch } = useApp();
   const isHighlighted = state.highlightedTaskId === task.id;
   const isRecreational = task.type === "recreational";
-  const borderClass = clToBorderClass(task.cl);
+  const borderColor = isRecreational
+    ? "var(--safe)"
+    : Math.abs(task.etask) > 7
+      ? "var(--vermillion)"
+      : "var(--ink)";
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -43,9 +47,16 @@ export default function TaskBlock({ task, isCompact = false }: TaskBlockProps) {
     ? `${slotToTime(task.scheduledSlot.startSlot)}–${slotToTime(task.scheduledSlot.endSlot)}`
     : "—";
 
+  const isCompleted = task.state === "completed";
+
   return (
     <div
-      className={`task-block ${borderClass}`}
+      className="task-block"
+      style={{ 
+        borderLeft: `3px solid ${borderColor}`,
+        opacity: isCompleted ? 0.6 : 1,
+        background: isCompleted ? "var(--bg)" : undefined
+      }}
       onMouseEnter={() => dispatch({ type: "HIGHLIGHT_TASK", payload: task.id })}
       onMouseLeave={() => dispatch({ type: "HIGHLIGHT_TASK", payload: null })}
     >
@@ -61,20 +72,27 @@ export default function TaskBlock({ task, isCompact = false }: TaskBlockProps) {
               minWidth: 48,
               color: isRecreational
                 ? "var(--safe)"
-                : Math.abs(task.cl) > 7
+                : Math.abs(task.etask) > 7
                   ? "var(--vermillion)"
                   : "var(--ink)",
+              textDecoration: isCompleted ? "line-through" : "none"
             }}
           >
-            {task.cl.toFixed(1)}
+            {task.etask.toFixed(1)}
           </span>
           <div>
-            <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 4 }}>
+            <div style={{ 
+              fontWeight: 500, 
+              fontSize: 13, 
+              marginBottom: 4,
+              textDecoration: isCompleted ? "line-through" : "none",
+              color: isCompleted ? "var(--muted)" : "inherit"
+            }}>
               {task.name}
             </div>
             {!isCompact && (
               <div className="meta-text">
-                {timeRange} · {formatDuration(task.duration)}
+                {timeRange} · {formatDuration(task.completionTime)}
                 {task.subject && ` · ${task.subject}`}
               </div>
             )}
@@ -100,31 +118,45 @@ export default function TaskBlock({ task, isCompact = false }: TaskBlockProps) {
       {isHighlighted && !isCompact && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "0.5px solid var(--rule)" }}>
           {/* CL breakdown as a trace-log line */}
-          <div className="log-line" style={{ fontSize: 11, padding: "0 0 0 16px", marginLeft: 8, lineHeight: 2 }}>
-            CL = {task.clBreakdown.baseDifficulty} × {task.clBreakdown.durationWeight} × {task.clBreakdown.deadlineUrgency} × {task.clBreakdown.typeMultiplier} × {task.clBreakdown.priorityWeight} = {task.cl}
-          </div>
+          {task.etaskBreakdown && (
+            <div className="log-line" style={{ fontSize: 11, padding: "0 0 0 16px", marginLeft: 8, lineHeight: 2 }}>
+              Etask = {task.etaskBreakdown.baseDifficulty} × {task.etaskBreakdown.durationWeight} × {task.etaskBreakdown.deadlineUrgency} × {task.etaskBreakdown.typeMultiplier} × {task.etaskBreakdown.priorityWeight} = {task.etask}
+            </div>
+          )}
 
           {/* Actions */}
-          {(task.state === "scheduled" || task.state === "in_progress") && (
+          {(task.state === "scheduled" || task.state === "in_progress" || task.state === "unscheduled") && (
             <div style={{ display: "flex", gap: 8, marginTop: 12, marginLeft: 24 }}>
-              {task.state === "scheduled" && (
+              {(task.state === "scheduled" || task.state === "unscheduled") && (
                 <button
                   className="btn btn-sm"
-                  onClick={() => dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: task.id, state: "in_progress" } })}
+                  onClick={async () => {
+                    dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: task.id, state: "in_progress" } });
+                    const { updateTaskStateAndSlot } = await import("@/app/actions/tasks");
+                    await updateTaskStateAndSlot(task.id, "in_progress", task.scheduledSlot ?? undefined);
+                  }}
                 >
                   START
                 </button>
               )}
               <button
                 className="btn btn-sm"
-                onClick={() => dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: task.id, state: "completed" } })}
+                onClick={async () => {
+                  dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: task.id, state: "completed" } });
+                  const { updateTaskStateAndSlot } = await import("@/app/actions/tasks");
+                  await updateTaskStateAndSlot(task.id, "completed", task.scheduledSlot ?? undefined);
+                }}
               >
                 COMPLETE
               </button>
               {task.state === "scheduled" && (
                 <button
                   className="btn btn-sm"
-                  onClick={() => dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: task.id, state: "skipped" } })}
+                  onClick={async () => {
+                    dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: task.id, state: "skipped" } });
+                    const { updateTaskStateAndSlot } = await import("@/app/actions/tasks");
+                    await updateTaskStateAndSlot(task.id, "skipped", task.scheduledSlot ?? undefined);
+                  }}
                 >
                   SKIP
                 </button>

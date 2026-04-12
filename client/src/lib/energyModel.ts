@@ -8,7 +8,7 @@
 
    Formulas:
      E_task = 0.6 * difficulty² + 0.8 * priority_num
-     E_gain  = 0.25 * duration (minutes)
+     E_gain  = 0.25 * completionTime (minutes)
      new_weight = old_weight * (1 + α * (R − 1)), α = 0.2
    ═══════════════════════════════════════════════════════════ */
 
@@ -88,7 +88,7 @@ export function computeAxiomCost(
 }
 
 /**
- * E_gain = 0.25 × duration (minutes)
+ * E_gain = 0.25 × completionTime (minutes)
  * Used for recreational tasks that RESTORE axioms.
  */
 export function computeAxiomGain(durationMinutes: number): number {

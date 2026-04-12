@@ -1,12 +1,12 @@
-import { sql } from '@vercel/postgres';
-import fs from 'fs';
-import bcrypt from 'bcrypt';
-import path from 'path';
+import { sql } from "@vercel/postgres";
+import fs from "fs";
+import bcrypt from "bcrypt";
+import path from "path";
 
 async function seed() {
   console.log("Loading demoData.json...");
   const dataPath = path.resolve("./demoData.json");
-  const rawData = fs.readFileSync(dataPath, 'utf-8');
+  const rawData = fs.readFileSync(dataPath, "utf-8");
   const { user, tasks } = JSON.parse(rawData);
 
   console.log("Creating/Ensuring users and tasks tables exist...");
@@ -55,7 +55,7 @@ async function seed() {
   try {
     await sql`ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_user_id_fkey;`;
     await sql`ALTER TABLE tasks ADD CONSTRAINT tasks_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;`;
-  } catch(e) {}
+  } catch (e) {}
 
   console.log("Deleting existing demo user and their tasks...");
   await sql`DELETE FROM users WHERE email = ${user.email}`;
@@ -104,7 +104,7 @@ async function seed() {
   process.exit(0);
 }
 
-seed().catch(err => {
+seed().catch((err) => {
   console.error(err);
   process.exit(1);
 });

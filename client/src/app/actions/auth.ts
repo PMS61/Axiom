@@ -118,16 +118,26 @@ export async function createUsersTable(): Promise<ActionResult> {
         name VARCHAR(255) NOT NULL,
         type VARCHAR(50) NOT NULL,
         difficulty INTEGER NOT NULL,
-        duration INTEGER NOT NULL,
+        completion_time INTEGER NOT NULL,
         priority VARCHAR(20) NOT NULL,
         state VARCHAR(50) NOT NULL,
         subject VARCHAR(255),
         deadline TIMESTAMPTZ,
         energy_recovery FLOAT,
-        cl FLOAT NOT NULL,
+        etask FLOAT NOT NULL,
         cl_breakdown JSONB NOT NULL,
         scheduled_slot JSONB,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS section_weights (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        morning DOUBLE PRECISION NOT NULL DEFAULT 0.40,
+        afternoon DOUBLE PRECISION NOT NULL DEFAULT 0.35,
+        evening DOUBLE PRECISION NOT NULL DEFAULT 0.25,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `;
     // Add columns if they don't exist (for existing tables)
@@ -180,7 +190,7 @@ export async function registerUser(userData: RegisterUserInput): Promise<ActionR
     const exclusionsJson = JSON.stringify(hard_exclusions);
     const recoveryJson = JSON.stringify(recovery_activities);
 
-    await sql`
+    const inserted = await sql`
       INSERT INTO users (
         name,
         email,
@@ -214,7 +224,19 @@ export async function registerUser(userData: RegisterUserInput): Promise<ActionR
         ${fixedJson}::jsonb,
         ${exclusionsJson}::jsonb,
         ${recoveryJson}::jsonb
-      );
+      )
+      RETURNING id;
+    `;
+
+    const newUserId = inserted.rows[0]?.id as number | undefined;
+    if (!newUserId) {
+      return { error: "Registration failed while creating user profile." };
+    }
+
+    await sql`
+      INSERT INTO section_weights (user_id, morning, afternoon, evening)
+      VALUES (${newUserId}, 0.40, 0.35, 0.25)
+      ON CONFLICT (user_id) DO NOTHING;
     `;
 
   } catch (error) {

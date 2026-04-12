@@ -23,11 +23,13 @@ import {
   saveSource, 
   clearSources, 
   clearUnscheduledTasks,
-  runSchedulerAction 
+  triggerReschedule,
+  getLatestSchedule,
+  generateTasksFromRoadmapGoal,
 } from "@/app/actions/tasks";
 import { getUserProfile } from "@/app/actions/auth";
-import { isSlotBlocked, runSchedulingAlgorithm, computeCL } from "@/lib/engine";
-import { chunkText, topK, buildTasksFromContext, extractTextFromFile } from "@/lib/rag-engine";
+import { isSlotBlocked } from "@/lib/engine";
+import { enrichTask } from "@/lib/scoring";
 import { DndContext, DragEndEvent, useDraggable, useSensors, useSensor, PointerSensor } from "@dnd-kit/core";
 
 function DraggablePoolTask({ task, onClick }: { task: Task; onClick: () => void }) {
@@ -62,12 +64,14 @@ function DraggablePoolTask({ task, onClick }: { task: Task; onClick: () => void 
         <div className="meta-text" style={{ color: "var(--muted)" }}>
           {TASK_TYPE_LABELS[task.type] || task.type.toUpperCase()}
         </div>
-        <span className="meta-text" style={{ fontSize: 10 }}>#{task.order ?? "?"}</span>
+        {/* sequence replaces the old .order field */}
+        <span className="meta-text" style={{ fontSize: 10 }}>#{task.sequence ?? "?"}</span>
       </div>
       <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{task.name}</div>
       <div style={{ fontSize: 13, color: "var(--muted)", display: "flex", justifyContent: "space-between" }}>
-        <span>CL: {task.cl.toFixed(1)}</span>
-        <span>{task.duration}m</span>
+        {/* etask replaces the old .cl field; completionTime replaces .duration */}
+        <span>Etask: {task.etask.toFixed(1)}</span>
+        <span>{task.completionTime}m</span>
       </div>
     </div>
   );
@@ -89,7 +93,7 @@ function SchedulerContent() {
     })
   );
   
-  // ── RAG Extraction State ──
+  // ── RAG / Goal Input State ──
   const [ragInput, setRagInput] = useState("");
   const [ragTopic, setRagTopic] = useState("");
   const [ragDeadline, setRagDeadline] = useState("in 2 weeks");
@@ -100,102 +104,147 @@ function SchedulerContent() {
 
   useEffect(() => {
     async function load() {
+      // ── 1. Load tasks from DB ──
       const { tasks, error } = await getTasks();
       if (!error && tasks) {
         dispatch({ type: "SET_TASKS", payload: tasks });
       }
 
+      // ── 2. Load user profile ──
       const { user, error: profileErr } = await getUserProfile();
       if (!profileErr && user) {
         dispatch({ type: "SET_USER_PROFILE", payload: user });
       }
 
-      // ── Populate Matrix on Load ──
-      if (tasks && tasks.length > 0) {
-        const todayStr = new Date().toISOString().split("T")[0];
-        const { days, updatedWeights, reasoningLog } = await runSchedulerAction(tasks, todayStr);
-        if (days) {
-          dispatch({ type: "SET_SECTIONS", payload: { days, weights: updatedWeights || { morning: 0.4, afternoon: 0.35, evening: 0.25 }, log: reasoningLog || [] } });
-        }
+      // ── 3. Populate Matrix from stored schedule (no re-computation) ──
+      // In the new system the schedule is persisted in the `schedules` table by
+      // the server action after every task creation / reschedule.  We just read
+      // what is already there instead of re-running the scheduler client-side.
+      const { days, unscheduled, error: schedErr } = await getLatestSchedule();
+      if (!schedErr && days && days.length > 0) {
+        dispatch({
+          type: "SET_SECTIONS",
+          payload: {
+            days,
+            weights: { morning: 0.4, afternoon: 0.35, evening: 0.25 },
+            log: [],
+          },
+        });
       }
     }
     load();
   }, [dispatch]);
 
+  // ── Auto-schedule: delegates to the server-side deterministic scheduler ──
+  // triggerReschedule reads ALL tasks from the DB, re-runs the scheduler, and
+  // upserts the schedules table.  We then fetch the result and push to the store.
   const handleAutoSchedule = async () => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    const { days, updatedWeights, reasoningLog } = await runSchedulerAction(state.tasks, todayStr);
-    if (days) {
-      dispatch({ type: "SET_SECTIONS", payload: { days, weights: updatedWeights || { morning: 0.4, afternoon: 0.35, evening: 0.25 }, log: reasoningLog || [] } });
+    const today = new Date().toISOString().split("T")[0]!;
+    const rescoredPool = state.tasks
+      .filter((t) => t.state === "unscheduled")
+      .map((t) => {
+        const scored = enrichTask(t, today);
+        return {
+          ...t,
+          etask: scored.eTask,
+          urgency: scored.urgency,
+          score: scored.score,
+          daysRemaining: scored.daysRemaining,
+        } as Task;
+      });
+
+    if (rescoredPool.length > 0) {
+      const mergedTasks = state.tasks.map((t) => {
+        const rescored = rescoredPool.find((p) => p.id === t.id);
+        return rescored ?? t;
+      });
+      dispatch({ type: "SET_TASKS", payload: mergedTasks });
+      await syncTasks(rescoredPool);
+    }
+
+    const { error } = await triggerReschedule();
+    if (error) {
+      console.error("[TasksView] triggerReschedule failed:", error);
+      return;
+    }
+    const [{ days, error: schedErr }, { tasks, error: tasksErr }] = await Promise.all([
+      getLatestSchedule(),
+      getTasks(),
+    ]);
+
+    if (!schedErr) {
+      dispatch({
+        type: "SET_SECTIONS",
+        payload: {
+          days: days ?? [],
+          weights: { morning: 0.4, afternoon: 0.35, evening: 0.25 },
+          log: [],
+        },
+      });
+    }
+
+    if (!tasksErr && tasks) {
+      dispatch({ type: "SET_TASKS", payload: tasks });
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setRagStatus("loading");
-    setRagProgress(`Reading ${file.name}...`);
-    try {
-      const text = await extractTextFromFile(file, (msg) => setRagProgress(msg));
-      setRagInput(text);
-      setRagStatus("idle");
-    } catch (err: any) {
-      setRagError(err.message || "Failed to read file.");
-      setRagStatus("error");
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+  const handleMatrixTaskClick = async (taskFromMatrix: any) => {
+    const taskId = taskFromMatrix?.originalTaskId ?? taskFromMatrix?.id;
+    if (!taskId) return;
+    const task = state.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    setSelectedTask(task);
   };
 
+  // ── "Generate Plan" button in the RAG/Syllabus panel ──
+  // Previously this ran buildTasksFromContext (old RAG engine).  Now it feeds the
+  // topic (and optional syllabus pasted into the textarea) through the full AI
+  // pipeline: Gemini → DAG nodes → scoring → INSERT tasks → scheduler.
   const handleExtractTasks = async () => {
-    if (!ragInput.trim()) return setRagError("Please provide some context text first.");
     if (!ragTopic.trim()) return setRagError("Please enter a topic or learning goal.");
-    
+
     setRagStatus("loading");
     setRagError("");
-    setRagProgress("Analyzing content...");
-    
+    setRagProgress("Generating roadmap with AI...");
+
     try {
-      setRagProgress("Applying extraction rules...");
-      const fullContent = ragInput;
-      const generated = buildTasksFromContext(fullContent, ragTopic, ragDeadline);
-      
-      setRagProgress("Syncing tasks...");
-      for (const t of generated) {
-        const id = crypto.randomUUID();
-        await addTask({
-          id,
-          name: t.name,
-          subject: t.subject,
-          type: t.type as any,
-          difficulty: t.difficulty,
-          duration: t.duration,
-          priority: t.priority as any,
-          state: "unscheduled",
-          deadline: t.deadline,
-          cl: t.cl,
-          order: t.order,
-          clBreakdown: {
-            baseDifficulty: t.difficulty,
-            durationWeight: t.duration / 30,
-            deadlineUrgency: 1.0,
-            typeMultiplier: (t as any).multiplier || (t.type === 'learning' ? 1.4 : t.type === 'problem_solving' ? 1.3 : 1.0),
-            priorityWeight: t.priority === "high" ? 1.5 : 1.0,
-            total: t.cl
-          },
-          createdAt: new Date().toISOString()
-        });
+      // The syllabus textarea content is passed as the optional `syllabus` hint
+      // so Gemini can use it to tailor the generated DAG nodes.
+      const result = await generateTasksFromRoadmapGoal(
+        ragTopic.trim(),
+        ragDeadline || undefined,
+        ragInput.trim() || undefined,   // syllabus text from the textarea
+      );
+
+      if (result.error) {
+        setRagError(result.error);
+        setRagStatus("error");
+        return;
       }
 
+      setRagProgress(`Generated ${result.count} tasks! Refreshing...`);
+
+      // Refresh store from DB so the task list and matrix are up to date
       const { tasks, error: fetchErr } = await getTasks();
       if (!fetchErr && tasks) {
         dispatch({ type: "SET_TASKS", payload: tasks });
       }
 
+      const { days, error: schedErr } = await getLatestSchedule();
+      if (!schedErr && days && days.length > 0) {
+        dispatch({
+          type: "SET_SECTIONS",
+          payload: {
+            days,
+            weights: { morning: 0.4, afternoon: 0.35, evening: 0.25 },
+            log: [],
+          },
+        });
+      }
+
       setRagStatus("done");
-      setRagProgress("Tasks generated!");
-      setRagInput(""); 
+      setRagInput("");
     } catch (err: any) {
       console.error("Extraction error:", err);
       setRagError(err.message || "Failed to generate tasks.");
@@ -212,7 +261,10 @@ function SchedulerContent() {
         const day = parseInt(parts[1], 10);
         const slot = parseInt(parts[2], 10);
         
-        const taskId = String(active.id);
+        const draggedTask = active.data.current?.task as
+          | { originalTaskId?: string }
+          | undefined;
+        const taskId = draggedTask?.originalTaskId ?? String(active.id);
         const task = state.tasks.find((t) => t.id === taskId);
         
         // Correctly map the day index (0-6) into the actual day of the week (Sun-Sat)
@@ -233,7 +285,8 @@ function SchedulerContent() {
         });
 
         if (task) {
-           const slotsNeeded = Math.ceil(task.duration / 15);
+           // completionTime replaces the old .duration field
+           const slotsNeeded = Math.ceil(task.completionTime / 15);
            const newSlot = {
              startSlot: slot,
              endSlot: slot + slotsNeeded,
@@ -310,7 +363,7 @@ function SchedulerContent() {
                 </div>
               </div>
               <textarea 
-                placeholder="Paste syllabus segments or course modules here. Axiom will extract tasks and assign appropriate CL scores based on document structure..."
+                placeholder="Paste syllabus segments or course modules here. Axiom will use this as context when generating your learning roadmap..."
                 value={ragInput}
                 onChange={(e) => setRagInput(e.target.value)}
                 style={{ 
@@ -327,21 +380,7 @@ function SchedulerContent() {
               />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "0.5px solid var(--rule)", paddingTop: 16 }}>
                 <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                  <span className="meta-text" style={{ color: "var(--muted)" }}>Direct Content Analysis (Max 5 Pages)</span>
-                  <button 
-                    className="btn btn-secondary" 
-                    style={{ padding: "4px 8px", fontSize: 11 }}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Upload Context (PDF/Img)
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    style={{ display: "none" }} 
-                    accept=".pdf,image/*,.txt"
-                    onChange={handleFileUpload}
-                  />
+                  <span className="meta-text" style={{ color: "var(--muted)" }}>AI-Powered Roadmap Generation (Gemini)</span>
                 </div>
                 <div style={{ display: "flex", gap: 12 }}>
                   <button 
@@ -371,7 +410,7 @@ function SchedulerContent() {
               <button className="btn btn-sm btn-primary" onClick={handleAutoSchedule}>Auto Schedule</button>
             </div>
           </div>
-          <MatrixView onTaskClick={setSelectedTask} />
+          <MatrixView onTaskClick={handleMatrixTaskClick} />
         </main>
 
         {/* Unscheduled Pool Modal */}
@@ -425,13 +464,14 @@ function SchedulerContent() {
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {state.tasks
                   .filter(t => t.state === "unscheduled")
-                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                  // sequence replaces the old .order sort key
+                  .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
                   .length === 0 ? (
                   <p style={{ color: "var(--muted)" }}>No tasks in the pool. Paste a syllabus to generate a study plan!</p>
                 ) : (
                   state.tasks
                     .filter(t => t.state === "unscheduled")
-                    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                    .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
                     .map(task => (
                       <DraggablePoolTask 
                         key={task.id} 
@@ -502,8 +542,8 @@ function SchedulerContent() {
                     <div className="meta-text" style={{ marginBottom: 12 }}>Duration (min)</div>
                     <input 
                       type="number"
-                      value={editTaskData.duration} 
-                      onChange={e => setEditTaskData({...editTaskData, duration: parseInt(e.target.value)})}
+                      value={editTaskData.completionTime} 
+                      onChange={e => setEditTaskData({...editTaskData, completionTime: parseInt(e.target.value)})}
                       style={{ width: "100%", padding: 12, border: "0.5px solid var(--rule)", background: "var(--bg)", color: "var(--ink)" }}
                     />
                   </div>
@@ -540,13 +580,21 @@ function SchedulerContent() {
                 <div className="trace-log" style={{ padding: 24, marginBottom: 32 }}>
                   <div className="log-line rule">State: {selectedTask.state.toUpperCase()}</div>
                   <div className="log-line rule">Type: {selectedTask.type}</div>
-                  <div className="log-line rule">Duration: {selectedTask.duration}m</div>
+                  {/* completionTime replaces .duration */}
+                  <div className="log-line rule">Duration: {selectedTask.completionTime}m</div>
                   <div className="log-line rule">Priority: {selectedTask.priority}</div>
                   <div className="log-line rule">Difficulty: {selectedTask.difficulty}/10</div>
+                  {selectedTask.urgency != null && (
+                    <div className="log-line rule">Urgency: {selectedTask.urgency.toFixed(3)}</div>
+                  )}
+                  {selectedTask.score != null && (
+                    <div className="log-line rule">Score: {selectedTask.score.toFixed(3)}</div>
+                  )}
                 </div>
-                <div className="meta-text" style={{ marginBottom: 16 }}>Cognitive Load Score</div>
+                <div className="meta-text" style={{ marginBottom: 16 }}>Axiom Cost (Etask)</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 20 }}>
-                  <span style={{ fontSize: 32, fontWeight: 700 }}>{selectedTask.cl.toFixed(2)}</span>
+                  {/* etask replaces .cl */}
+                  <span style={{ fontSize: 32, fontWeight: 700 }}>{selectedTask.etask.toFixed(2)}</span>
                 </div>
               </>
             )}
@@ -562,6 +610,19 @@ function SchedulerContent() {
                   }}
                 >
                   Mark as Complete ✓
+                </button>
+              )}
+              {selectedTask.state === "scheduled" && (
+                <button 
+                  className="btn" 
+                  style={{ flex: 1 }}
+                  onClick={async () => {
+                    dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: selectedTask.id, state: "unscheduled" } });
+                    await updateTaskStateAndSlot(selectedTask.id, "unscheduled", undefined);
+                    setSelectedTask(null);
+                  }}
+                >
+                  Unschedule [U]
                 </button>
               )}
               <button 

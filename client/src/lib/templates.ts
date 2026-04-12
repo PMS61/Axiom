@@ -5,7 +5,7 @@
 
 export interface DailyReportData {
   adherencePercentage: number;
-  totalCL: number;
+  totalEtask: number;
   highCLTasksPlacedInPeakCount: number;
   unresolvedConflictsCount: number;
   contextSwitchPenalty: number;
@@ -39,11 +39,11 @@ export function generateDailyInsight(data: DailyReportData): string {
     templates.push(`Severe schedule deviation (${data.adherencePercentage}% adherence).`);
   }
 
-  // 2. High CL & Peak Bandwidth Mapping
+  // 2. High Etask & Peak Bandwidth Mapping
   if (data.highCLTasksPlacedInPeakCount > 0) {
-    templates.push(`Successfully mapped ${data.highCLTasksPlacedInPeakCount} high-CL tasks to peak bandwidth windows.`);
-  } else if (data.totalCL > 15) {
-    templates.push(`Warning: High cumulative CL (${data.totalCL.toFixed(1)}) without alignment to peak energy windows.`);
+    templates.push(`Successfully mapped ${data.highCLTasksPlacedInPeakCount} high-Etask tasks to peak bandwidth windows.`);
+  } else if (data.totalEtask > 15) {
+    templates.push(`Warning: High cumulative Etask (${data.totalEtask.toFixed(1)}) without alignment to peak energy windows.`);
   }
 
   // 3. Penalty & Conflicts
@@ -79,10 +79,10 @@ export function generateWeeklyInsight(data: WeeklyReportData): string {
 
   // 2. Volatility Tracking
   if (data.maxCLSpikeValue > 35) {
-    templates.push(`Spike volatility detected: ${data.maxCLSpikeDay} CL exceeded threshold (${data.maxCLSpikeValue}).`);
+    templates.push(`Spike volatility detected: ${data.maxCLSpikeDay} Etask exceeded threshold (${data.maxCLSpikeValue}).`);
     templates.push(`Recommendation: Distribute deep work toward ${data.recommendedFocusShift}.`);
   } else {
-    templates.push(`CL variance remained within stable systemic thresholds (Avg: ${data.averageCLBalance.toFixed(1)}).`);
+    templates.push(`Etask variance remained within stable systemic thresholds (Avg: ${data.averageCLBalance.toFixed(1)}).`);
   }
 
   // 3. Systemic Burnout Prevention

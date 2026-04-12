@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axiom — Time is fixed. Capacity is variable.</title>
+    <title>Axiom — The Personalised Learning OS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -109,17 +109,17 @@
 
         /* --- HERO --- */
         .hero {
-            padding-top: 120px;
-            padding-bottom: 60px;
+            padding-top: 140px;
+            padding-bottom: 80px;
             display: grid;
-            grid-template-columns: 1fr 1.5fr;
+            grid-template-columns: 1.2fr 1fr;
             gap: 60px;
-            align-items: start;
+            align-items: center;
         }
 
         .hero-text h1 {
-            font-size: 58px;
-            line-height: 1.1;
+            font-size: 64px;
+            line-height: 1.05;
             margin-bottom: 32px;
         }
 
@@ -130,7 +130,46 @@
         }
 
         .hero-visual {
-            padding-top: 20px;
+            padding: 40px;
+            border: 0.5px solid var(--ink);
+            background: #FDFCFA;
+            position: relative;
+        }
+
+        .hero-visual::before {
+            content: "COGNITIVE STATE: MEASURED";
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--bg);
+            padding: 0 10px;
+            font-size: 9px;
+            letter-spacing: 0.1em;
+        }
+
+        /* --- THE CRISIS --- */
+        .crisis {
+            padding: 80px 0;
+            background: var(--ink);
+            color: var(--bg);
+        }
+
+        .crisis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .crisis-item h3 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: var(--rule);
+        }
+
+        .crisis-item p {
+            font-size: 12px;
+            opacity: 0.8;
         }
 
         /* --- ENERGY CHART --- */
@@ -183,12 +222,9 @@
             fill: #E8E0D4;
         }
 
-        /* Light ink for available energy */
         .chart-fill-danger {
             fill: var(--vermillion);
         }
-
-        /* Red for breached limits */
 
         .chart-legend {
             display: flex;
@@ -196,161 +232,120 @@
             font-size: 10px;
             color: #5A5A5A;
             padding-top: 8px;
-            border-bottom: 0.5px solid var(--rule);
-            padding-bottom: 8px;
         }
 
-        /* --- METHODOLOGY --- */
-        .methodology {
-            padding-top: 60px;
-            padding-bottom: 60px;
+        /* --- PILLARS --- */
+        .pillars {
+            padding-top: 100px;
+            padding-bottom: 100px;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 0;
         }
 
-        .method-step {
-            padding: 0 24px;
+        .pillar-item {
+            padding: 0 40px;
             border-right: 0.5px solid var(--rule);
         }
 
-        .method-step:last-child {
+        .pillar-item:last-child {
             border-right: none;
         }
 
-        .step-num {
-            font-size: 48px;
-            font-weight: 700;
-            line-height: 1;
+        .pillar-meta {
+            font-size: 9px;
+            color: var(--vermillion);
             margin-bottom: 16px;
-            color: var(--rule);
-        }
-
-        .step-title {
-            font-family: var(--mono);
-            font-size: 12px;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 12px;
         }
 
-        .step-desc {
-            font-size: 12px;
+        .pillar-title {
+            font-size: 28px;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .pillar-desc {
+            font-size: 13px;
             color: #5A5A5A;
         }
 
-        /* --- TRACE EVIDENCE --- */
-        .trace-section {
-            padding-top: 80px;
-            padding-bottom: 80px;
+        /* --- TRANSFORMATION --- */
+        .transform-section {
+            padding: 100px 0;
+            background: #FDFCFA;
+            border-top: 0.5px solid var(--rule);
+            border-bottom: 0.5px solid var(--rule);
+        }
+
+        .transform-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 80px;
+            align-items: center;
         }
 
-        .trace-context {
-            padding-top: 20px;
-        }
-
-        .trace-context h2 {
-            font-size: 36px;
-            margin-bottom: 24px;
-        }
-
-        .trace-log {
-            font-size: 12px;
-            line-height: 2.2;
+        .format-card {
             padding: 32px;
-            border: 0.5px solid var(--rule);
-            background: #FDFCFA;
+            border: 0.5px solid var(--ink);
+            margin-bottom: 20px;
+            background: var(--bg);
         }
 
-        .log-line {
-            border-left: 0.5px solid var(--rule);
-            padding-left: 16px;
-            margin-left: 8px;
-        }
-
-        .log-line.rule {
-            font-weight: 700;
-            border-left: 1px solid var(--ink);
-        }
-
-        .log-line.conflict {
-            color: var(--vermillion);
-            border-left: 1px solid var(--vermillion);
-        }
-
-        .log-line.action {
-            font-weight: 700;
-            border-left: 2px solid var(--ink);
-            margin-top: 8px;
+        .format-tag {
+            font-size: 9px;
+            background: var(--ink);
+            color: var(--bg);
+            padding: 4px 8px;
+            display: inline-block;
+            margin-bottom: 16px;
         }
 
         /* --- CTA --- */
         .cta-section {
-            padding: 60px 0;
+            padding: 100px 0;
             text-align: center;
-            border-top: 0.5px solid var(--ink);
         }
 
         .cta-btn {
             display: inline-block;
             font-family: var(--mono);
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.15em;
             text-decoration: none;
-            color: var(--ink);
-            border: 1px solid var(--ink);
-            padding: 20px 40px;
-            margin-top: 24px;
+            color: var(--bg);
+            background: var(--ink);
+            padding: 24px 48px;
+            margin-top: 40px;
+            transition: all 0.2s ease;
         }
 
         .cta-btn:hover {
-            background: var(--ink);
-            color: var(--bg);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
 
         /* --- RESPONSIVE --- */
         @media (max-width: 900px) {
             .hero {
                 grid-template-columns: 1fr;
-                gap: 40px;
+                padding-top: 100px;
             }
 
             .hero-text h1 {
-                font-size: 42px;
+                font-size: 48px;
             }
 
-            .methodology {
-                grid-template-columns: 1fr 1fr;
-                gap: 40px 0;
+            .crisis-grid, .pillars, .transform-grid {
+                grid-template-columns: 1fr;
             }
 
-            .method-step {
+            .pillar-item {
                 border-right: none;
                 border-bottom: 0.5px solid var(--rule);
-                padding-bottom: 24px;
-                margin-bottom: 24px;
-            }
-
-            .trace-section {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .methodology {
-                grid-template-columns: 1fr;
-            }
-
-            .chart-label,
-            .chart-label-danger {
-                font-size: 7px;
+                padding: 40px 0;
             }
         }
     </style>
@@ -361,110 +356,67 @@
     <header>
         <div class="nav-inner">
             <a href="#" class="logo">Axiom</a>
-            <a href="#initialize" class="nav-cta">Get Started</a>
+            <a href="#initialize" class="nav-cta">Initialize OS</a>
         </div>
     </header>
 
     <main>
         <!-- HERO -->
-        <section class="container hero section-rule">
+        <section class="container hero">
             <div class="hero-text">
-                <div class="meta-text" style="margin-bottom: 24px;">A New Approach to Scheduling</div>
-                <h1>Time is fixed.<br><em>Capacity is variable.</em></h1>
-                <p style="max-width: 400px; color: #5A5A5A; margin-bottom: 32px;">
-                    Normal calendars assume you have the same energy at 9 AM as you do at 4 PM. Axiom measures your
-                    actual mental focus throughout the day and builds your schedule strictly around those limits.
+                <div class="meta-text" style="margin-bottom: 24px; color: var(--vermillion);">Version 1.0 — Cognitive Learning OS</div>
+                <h1>The first system that knows <em>how you learn.</em></h1>
+                <p style="max-width: 480px; color: #5A5A5A; margin-bottom: 40px; font-size: 16px;">
+                    Most platforms tell you what to study. Most calendars tell you when you're free. Axiom is the first system that models your brain to know what to teach, how to format it, and exactly when you're ready to absorb it.
                 </p>
-                <div class="meta-text"
-                    style="border-top: 0.5px solid var(--rule); padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div>
-                        <div style="font-size: 10px; color: #5A5A5A;">Precision</div>
-                        <div style="font-weight: 700; font-size: 14px; margin-top: 4px;">15-Minute Blocks</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 10px; color: #5A5A5A;">Logic</div>
-                        <div style="font-weight: 700; font-size: 14px; margin-top: 4px;">Rule-Based</div>
-                    </div>
+                <div style="display: flex; gap: 24px;">
+                    <a href="#initialize" class="nav-cta" style="font-size: 13px; border-width: 1.5px;">Start Learning</a>
+                    <a href="#pillars" class="nav-cta" style="font-size: 13px; border: none; color: #5A5A5A;">See Methodology</a>
                 </div>
             </div>
 
             <div class="hero-visual">
-                <div class="meta-text" style="margin-bottom: 12px; display: flex; justify-content: space-between;">
-                    <span>Your Mental Energy / 24-Hour Cycle</span>
-                    <span style="color: var(--vermillion);">Burnout Limit</span>
-                </div>
-
-                <!-- REPLACED: Understandable Stepped Area Chart -->
                 <div class="chart-wrapper">
-                    <!-- Direct Labels overlaid via HTML to avoid SVG stretch -->
-                    <div class="chart-label-danger" style="position: absolute; top: -15px; left: 40%;">[!] OVERLOADED</div>
-                    <div class="chart-label-danger" style="position: absolute; top: -15px; left: 57%;">[!] OVERLOADED</div>
-                    <div class="chart-label" style="position: absolute; top: 60px; left: 33.5%;">HIGH FOCUS</div>
-                    <div class="chart-label" style="position: absolute; top: 40px; left: 50%;">SLUMP</div>
-
+                    <div class="chart-label-danger" style="position: absolute; top: -15px; left: 40%;">[!] COGNITIVE PEAK</div>
+                    <div class="chart-label" style="position: absolute; top: 60px; left: 33.5%;">DEEP WORK</div>
+                    
                     <svg class="energy-chart" viewBox="0 0 1000 140" preserveAspectRatio="none">
-                        <!-- Background Grid (Time) -->
                         <line x1="333" y1="0" x2="333" y2="120" class="chart-grid" />
                         <line x1="666" y1="0" x2="666" y2="120" class="chart-grid" />
-
-                        <!-- Burnout Limit Line (Red Dashed) -->
-                        <line x1="0" y1="15" x2="1000" y2="15" stroke="#C0392B" stroke-width="1"
-                            stroke-dasharray="6 4" />
-
-                        <!-- Normal Energy Area (Gray Fill) -->
-                        <path d="
-                            M0,120 
-                            L0,120 L166,120 L250,100 L333,80 L375,50 L416,25 
-                            L437,15 L458,25 L500,60 L541,70 
-                            L583,40 L604,15 L625,50 L666,80 L708,100 L750,110 L1000,120 
-                            Z" class="chart-fill" />
-
-                        <!-- Overload Areas (Red Fill - Breaching the limit exactly at intersections) -->
+                        <line x1="0" y1="15" x2="1000" y2="15" stroke="#C0392B" stroke-width="1" stroke-dasharray="6 4" />
+                        <path d="M0,120 L166,120 L250,100 L333,80 L375,50 L416,25 L437,15 L458,25 L500,60 L541,70 L583,40 L604,15 L625,50 L666,80 L708,100 L750,110 L1000,120 Z" class="chart-fill" />
                         <path d="M424.4,15 L437,0 L449.6,15 Z" class="chart-fill-danger" />
-                        <path d="M596.1,15 L604,0 L610.3,15 Z" class="chart-fill-danger" />
-
-                        <!-- Raw Data Line (Black Top Border) -->
-                        <path d="
-                            M0,120 L166,120 L250,100 L333,80 L375,50 L416,25 
-                            L437,0 L458,25 L500,60 L541,70 
-                            L583,40 L604,0 L625,50 L666,80 L708,100 L750,110 L1000,120" class="chart-line" />
+                        <path d="M0,120 L166,120 L250,100 L333,80 L375,50 L416,25 L437,0 L458,25 L500,60 L541,70 L583,40 L604,0 L625,50 L666,80 L708,100 L750,110 L1000,120" class="chart-line" />
                     </svg>
                 </div>
-
                 <div class="chart-legend">
-                    <span>00:00</span>
-                    <span>LOW ENERGY</span>
-                    <span style="color: var(--vermillion);">OVERLOADED (Tasks Blocked)</span>
-                    <span>24:00</span>
+                    <span>08:00</span>
+                    <span style="color: var(--vermillion);">IDEAL WINDOW: HARD CONCEPTS</span>
+                    <span>20:00</span>
                 </div>
             </div>
         </section>
 
-        <!-- METHODOLOGY -->
-        <section class="container methodology section-rule">
-            <div class="method-step">
-                <div class="step-num">01</div>
-                <div class="step-title">Measure</div>
-                <div class="step-desc">Every task is given a simple "energy cost" from 1 to 10 based on how much focus
-                    it actually requires.</div>
-            </div>
-            <div class="method-step">
-                <div class="step-num">02</div>
-                <div class="step-title">Track</div>
-                <div class="step-desc">Your day is broken into 96 fifteen-minute blocks. Your natural morning or evening
-                    rhythm sets the baseline energy for each block.</div>
-            </div>
-            <div class="method-step">
-                <div class="step-num">03</div>
-                <div class="step-title">Schedule</div>
-                <div class="step-desc">A rule-based engine compares the task's energy cost against your available
-                    energy. Hard tasks are blocked from low-energy times.</div>
-            </div>
-            <div class="method-step">
-                <div class="step-num">04</div>
-                <div class="step-title">Explain</div>
-                <div class="step-desc">You never have to guess why a task was moved. Axiom prints out the exact
-                    step-by-step logic behind every schedule change.</div>
+        <!-- THE CRISIS -->
+        <section class="crisis">
+            <div class="container">
+                <div class="meta-text" style="color: var(--rule); margin-bottom: 24px;">The Structural Failure</div>
+                <h2 style="font-size: 42px; max-width: 800px; line-height: 1.1;">The problem isn't access to content. It's the mismatch between <em>demand and availability.</em></h2>
+                
+                <div class="crisis-grid">
+                    <div class="crisis-item">
+                        <h3>01. Fixed Formats</h3>
+                        <p>Textbooks and videos treat every learner identically. If the format doesn't match your brain's absorption pattern, you don't fail—the system does.</p>
+                    </div>
+                    <div class="crisis-item">
+                        <h3>02. Blind Scheduling</h3>
+                        <p>Calendars ask when you are free, not when you are ready. Learning Dynamic Programming at 11PM after a full day isn't a discipline problem—it's a system design error.</p>
+                    </div>
+                    <div class="crisis-item">
+                        <h3>03. The Disconnect</h3>
+                        <p>Your learning roadmap and your daily schedule don't talk. Your scheduler doesn't know the cognitive cost of a new concept, and your course doesn't know you just hit a 4PM trough.</p>
+                    </div>
+                </div>
             </div>
         </section>
 

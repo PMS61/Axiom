@@ -70,7 +70,7 @@ export function isSlotBlocked(slot: number, dayIdx: number, profile: any): boole
   return false;
 }
 
-/** Format duration for display */
+/** Format completionTime for display */
 export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes}min`;
   const h = Math.floor(minutes / 60);
@@ -96,9 +96,9 @@ const PRIO_WEIGHTS: Record<TaskPriority, number> = {
   low: 0.7,
 };
 
-/** Map Cognitive Load (CL) total to a specific border class weighting for the UI. */
-export function clToBorderClass(cl: number | undefined | null): string {
-  const absoluteCl = Math.abs(cl || 0);
+/** Map Cognitive Load (Etask) total to a specific border class weighting for the UI. */
+export function etaskToBorderClass(etask: number | undefined | null): string {
+  const absoluteCl = Math.abs(etask || 0);
   const weight = Math.max(1, Math.min(10, Math.round(absoluteCl)));
   return `task-block-border-${weight}`;
 }
@@ -237,9 +237,9 @@ export function computeSacrificeImpact(
   return { reducedCL, impactPercent };
 }
 
-// ── CL Border Weight ──────────────────────────────────────
+// ── Etask Border Weight ──────────────────────────────────────
 
-/** Determine burnout risk based on last 72h + next 48h of planned CL */
+/** Determine burnout risk based on last 72h + next 48h of planned Etask */
 export function calculateBurnoutRisk(tasks: Task[], scheduledDays: DaySchedule[] = []): "safe" | "watch" | "warning" | "critical" {
   // 1. Axiom-based calculation (First source of truth)
   if (scheduledDays.length > 0) {
@@ -257,15 +257,15 @@ export function calculateBurnoutRisk(tasks: Task[], scheduledDays: DaySchedule[]
   const scheduled = tasks.filter(t => t.scheduledSlot && (t.state === "scheduled" || t.state === "completed"));
   if (scheduled.length === 0) return "safe";
 
-  const dailyCL: Record<number, number> = {};
+  const dailyEtask: Record<number, number> = {};
   for (const t of scheduled) {
     const d = t.scheduledSlot!.day;
     if (d >= 0 && d <= 2) {
-      dailyCL[d] = (dailyCL[d] || 0) + Math.abs(t.cl);
+      dailyEtask[d] = (dailyEtask[d] || 0) + Math.abs(t.etask);
     }
   }
 
-  const values = Object.values(dailyCL);
+  const values = Object.values(dailyEtask);
   const maxCL = Math.max(...values, 0);
   const avgCL = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 
@@ -304,12 +304,12 @@ export function runSchedulingAlgorithm(
     if (priOrder[a.priority] !== priOrder[b.priority])
       return priOrder[a.priority] - priOrder[b.priority];
     
-    // Syllabus-First: use original document order as final tie-breaker
-    if (a.order !== undefined && b.order !== undefined && a.order !== b.order) {
-      return a.order - b.order;
+    // Syllabus-First: use original document sequence as final tie-breaker
+    if (a.sequence !== undefined && b.sequence !== undefined && a.sequence !== b.sequence) {
+      return a.sequence - b.sequence;
     }
     
-    return Math.abs(b.cl) - Math.abs(a.cl);
+    return Math.abs(b.etask) - Math.abs(a.etask);
   });
 
   const reasoningChain: ReasoningStep[] = [
@@ -327,7 +327,7 @@ export function runSchedulingAlgorithm(
   let conflict: ScheduleConflict | null = null;
 
   for (const task of sorted) {
-    const slotsNeeded = durationToSlots(task.duration);
+    const slotsNeeded = durationToSlots(task.completionTime);
     const candidates: any[] = [];
 
     // Scan days 0-6 relative to today
@@ -366,7 +366,7 @@ export function runSchedulingAlgorithm(
         if (!slotFree) continue;
 
         const hoursToDeadline = task.deadline ? (new Date(task.deadline).getTime() - Date.now()) / 3600000 : null;
-        const candidate = computeSlotFitness(start, Math.abs(task.cl), minBW, energyBonus > 0, contextSwitchCount, dIdx, hoursToDeadline);
+        const candidate = computeSlotFitness(start, Math.abs(task.etask), minBW, energyBonus > 0, contextSwitchCount, dIdx, hoursToDeadline);
         candidate.fitnessScore += energyBonus;
         candidate.fitnessScore -= dIdx * 2.0; // Preference for earlier days
         candidate.startSlot = start;
@@ -378,8 +378,8 @@ export function runSchedulingAlgorithm(
     if (candidates.length === 0) {
       conflict = {
         taskId: task.id,
-        reason: `No available slot for "${task.name}" (CL=${task.cl}, duration=${task.duration}min)`,
-        availableResolutions: task.cl > 5 ? ["defer", "sacrifice"] : ["defer", "extend_deadline"],
+        reason: `No available slot for "${task.name}" (Etask=${task.etask}, completionTime=${task.completionTime}min)`,
+        availableResolutions: task.etask > 5 ? ["defer", "sacrifice"] : ["defer", "extend_deadline"],
         reasoningSteps: [
           {
             number: 1,
@@ -454,7 +454,7 @@ export function generatePlacementReasoning(
   const steps: ReasoningStep[] = [
     {
       number: 1,
-      text: `CL-demand("${task.name}") = ${task.cl}`,
+      text: `Etask-demand("${task.name}") = ${task.etask}`,
       relatedTaskId: task.id,
     },
   ];

@@ -2,6 +2,9 @@
    THE AXIOM — 96x7 Matrix UI Component
    Represents the 96 15-minute slots across 7 days.
    Supports drag-and-drop scheduling.
+
+   Static row sizing: all 15-minute slots render at fixed
+   30px height to keep scheduled tasks visually stable.
    ═══════════════════════════════════════════════════════════ */
 
 "use client";
@@ -12,59 +15,64 @@ import { useApp } from "@/lib/store";
 import { Task } from "@/lib/types";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 
-function DraggableMatrixTask({ task, durationSlots, onTaskClick }: { task: any, durationSlots: number, onTaskClick?: (task: any) => void }) {
+function DraggableMatrixTask({ task, durationSlots, slotHeight, onTaskClick }: { task: any, durationSlots: number, slotHeight: number, onTaskClick?: (task: any) => void }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: task.id,
     data: { task }
   });
 
+  const isCompleted = task.state === "completed";
+
   const style = {
     position: "absolute" as const,
-    top: 0,
-    left: 4,
-    right: 4,
-    height: 30 * durationSlots - 2,
-    background: "var(--bg)",
-    border: "0.5px solid var(--ink)",
-    borderTop: `3px solid ${Math.abs(task.cl) > 7 ? 'var(--vermillion)' : 'var(--ink)'}`,
+    top: 2,
+    left: 6,
+    right: 6,
+    height: slotHeight * durationSlots - 4,
+    background: isCompleted ? "var(--rule)" : "var(--bg)",
+    color: isCompleted ? "var(--muted)" : "var(--fg)",
+    border: isCompleted ? "0.5px solid var(--muted)" : "0.5px solid var(--ink)",
+    borderTop: isCompleted ? "3px solid var(--muted)" : `3px solid ${Math.abs(task.etask) > 7 ? 'var(--vermillion)' : 'var(--ink)'}`,
     zIndex: transform ? 999 : 10,
-    padding: "8px",
+    padding: "10px",
     overflow: "hidden",
     cursor: "grab",
+    opacity: isCompleted ? 0.6 : 1,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
   };
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-        <div style={{ fontWeight: 500, fontSize: 11, wordBreak: "break-word" }}>{task.name}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+        <div style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.35, wordBreak: "break-word", textDecoration: isCompleted ? "line-through" : "none" }}>{task.name}</div>
         <button
           onPointerDown={(e) => {
             e.stopPropagation();
             if (onTaskClick) onTaskClick(task);
           }}
           style={{
-            background: "var(--ink)",
+            background: isCompleted ? "var(--muted)" : "var(--ink)",
             color: "var(--bg)",
             border: "none",
             cursor: "pointer",
-            padding: "2px 4px",
-            fontSize: 9,
+            padding: "3px 6px",
+            fontSize: 10,
             fontWeight: 700,
             fontFamily: "var(--mono)",
             flexShrink: 0,
+            opacity: isCompleted ? 0.5 : 1
           }}
-          title="Preview Task Details"
+          title="View Task Details"
         >
           [i]
         </button>
       </div>
-      <div className="meta-text" style={{ marginTop: 4 }}>CL {task.cl.toFixed(1)}</div>
+      <div className="meta-text" style={{ marginTop: 6, fontSize: 10 }}>Etask {(task.etask ?? 0).toFixed(1)}</div>
     </div>
   );
 }
@@ -140,12 +148,22 @@ function DroppableSlot({ dayIdx, actualDayOfWeek, slot, tasksStartingHere, isHou
     pattern = "none";
   }
 
+  const subtleZoneLabel = isSleep
+    ? ""
+    : blocked
+      ? (blockLabel || "Reserved")
+      : isPeak
+        ? "Peak Focus"
+        : isLow
+          ? "Low Energy"
+          : "";
+
   return (
-    <div 
+    <div
       ref={setNodeRef}
       className={`rule-left ${isHour ? "hour-line" : ""}`}
       style={{
-        height: 30, // represents 15 mins
+        height: 30,
         backgroundColor: bgColor,
         backgroundImage: pattern !== "none" ? pattern : "none",
         backgroundSize: "12px 12px",
@@ -162,9 +180,33 @@ function DroppableSlot({ dayIdx, actualDayOfWeek, slot, tasksStartingHere, isHou
         }
       }}
     >
+      {subtleZoneLabel && tasksStartingHere.length === 0 && (
+        <span
+          className="meta-text"
+          style={{
+            position: "absolute",
+            left: 6,
+            right: 6,
+            top: "50%",
+            transform: "translateY(-50%)",
+            fontSize: 8,
+            letterSpacing: 0.4,
+            opacity: 0.35,
+            textTransform: "uppercase",
+            textAlign: "center",
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            zIndex: 1,
+          }}
+        >
+          {subtleZoneLabel}
+        </span>
+      )}
       {tasksStartingHere.map(task => {
         const durationSlots = task.scheduledSlot!.endSlot - task.scheduledSlot!.startSlot;
-        return <DraggableMatrixTask key={task.id} task={task} durationSlots={durationSlots} onTaskClick={onTaskClick} />;
+        return <DraggableMatrixTask key={task.id} task={task} durationSlots={durationSlots} slotHeight={30} onTaskClick={onTaskClick} />;
       })}
     </div>
   );
@@ -172,9 +214,9 @@ function DroppableSlot({ dayIdx, actualDayOfWeek, slot, tasksStartingHere, isHou
 
 export default function MatrixView({ onTaskClick }: { onTaskClick?: (task: any) => void }) {
   const { state } = useApp();
-  
+
   const today = new Date();
-  
+
   const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
@@ -185,17 +227,35 @@ export default function MatrixView({ onTaskClick }: { onTaskClick?: (task: any) 
       dayOfWeek: d.getDay()
     };
   });
-  
-  // Render full 24h grid
-  const START_HOUR = 0;
-  const END_HOUR = 24;
+
+  const totalSlots = 24 * 4;
+  const allSlots = Array.from({ length: totalSlots }, (_, slot) => slot);
+  const { wakeTime, sleepTime } = state.userProfile ?? {};
+
+  const visibleSlots = (() => {
+    if (wakeTime == null || sleepTime == null || wakeTime === sleepTime) {
+      return allSlots;
+    }
+
+    const wakeSlot = Math.max(0, Math.min(totalSlots - 1, Math.floor(wakeTime / 15)));
+    const sleepSlot = Math.max(0, Math.min(totalSlots, Math.ceil(sleepTime / 15)));
+
+    if (sleepSlot > wakeSlot) {
+      return Array.from({ length: sleepSlot - wakeSlot }, (_, i) => wakeSlot + i);
+    }
+
+    return [
+      ...Array.from({ length: totalSlots - wakeSlot }, (_, i) => wakeSlot + i),
+      ...Array.from({ length: sleepSlot }, (_, i) => i),
+    ];
+  })();
 
   return (
     <div style={{ border: "0.5px solid var(--rule)", background: "var(--card-bg)", overflowX: "auto" }}>
-      <div style={{ minWidth: 800 }}>
+      <div style={{ minWidth: 920 }}>
         {/* Header */}
-        <div style={{ 
-          display: "grid", 
+        <div style={{
+          display: "grid",
           gridTemplateColumns: "56px repeat(7, 1fr)",
           borderBottom: "0.5px solid var(--rule)",
           background: "var(--bg)"
@@ -209,29 +269,28 @@ export default function MatrixView({ onTaskClick }: { onTaskClick?: (task: any) 
         </div>
 
       {/* Grid container */}
-      <div style={{ 
-        height: "600px", 
-        overflowY: "auto",
+      <div style={{
+        height: "auto",
+        overflowY: "visible",
         position: "relative"
       }}>
-        <div style={{ 
-          display: "grid", 
+        <div style={{
+          display: "grid",
           gridTemplateColumns: "56px repeat(7, 1fr)",
           gridAutoRows: "minmax(30px, auto)"
         }}>
-          {Array.from({ length: (END_HOUR - START_HOUR) * 4 }).map((_, i) => {
-            const slot = (START_HOUR * 4) + i;
+          {visibleSlots.map((slot) => {
             const isHour = slot % 4 === 0;
-            
+
             return (
               <div key={slot} style={{ display: "contents" }}>
                 {/* Time label */}
-                <div 
+                <div
                   className={isHour ? "hour-line" : ""}
-                  style={{ 
-                    padding: "4px 8px 0 0", 
+                  style={{
+                    padding: "4px 8px 0 0",
                     textAlign: "right",
-                    borderRight: "0.5px solid var(--rule)"
+                    borderRight: "0.5px solid var(--rule)",
                   }}
                 >
                   {isHour && (
@@ -242,18 +301,18 @@ export default function MatrixView({ onTaskClick }: { onTaskClick?: (task: any) 
                 {/* Day columns */}
                 {days.map((dayInfo, dIdx) => {
                   const dayData = state.scheduledDays.find(d => d.dayOffset === dIdx);
-                  const tasksStartingHere = dayData?.sections.flatMap(sec => 
+                  const tasksStartingHere = dayData?.sections.flatMap(sec =>
                     sec.tasks.filter(st => st.startSlot === slot)
                       .map(st => {
                         const originalTask = state.tasks.find(t => t.id === st.taskId);
-                        if (!originalTask) return null;
-                        const durSlots = Math.max(1, Math.ceil(st.duration / 15));
-                        // Return composite object with pseudo-slot for UI logic
-                        return { 
-                          ...originalTask, 
-                          id: st.chunkId || st.taskId, // unique id for dnd and keys
+                        if (!originalTask || originalTask.state === "completed") return null;
+                        const durSlots = Math.max(1, Math.ceil(st.completionTime / 15));
+                        return {
+                          ...originalTask,
+                          id: st.chunkId || st.taskId,
+                          originalTaskId: st.taskId,
                           name: st.taskName,
-                          duration: st.duration,
+                          completionTime: st.completionTime,
                           scheduledSlot: {
                             startSlot: st.startSlot!,
                             endSlot: st.startSlot! + durSlots,
@@ -267,13 +326,13 @@ export default function MatrixView({ onTaskClick }: { onTaskClick?: (task: any) 
                   ) || [];
 
                   return (
-                    <DroppableSlot 
-                      key={`${dayInfo.label}-${slot}`} 
-                      dayIdx={dIdx} 
+                    <DroppableSlot
+                      key={`${dayInfo.label}-${slot}`}
+                      dayIdx={dIdx}
                       actualDayOfWeek={dayInfo.dayOfWeek}
-                      slot={slot} 
-                      tasksStartingHere={tasksStartingHere} 
-                      isHour={isHour} 
+                      slot={slot}
+                      tasksStartingHere={tasksStartingHere}
+                      isHour={isHour}
                       onTaskClick={onTaskClick}
                     />
                   );
@@ -283,10 +342,10 @@ export default function MatrixView({ onTaskClick }: { onTaskClick?: (task: any) 
           })}
         </div>
       </div>
-      
+
       </div>
       <div className="meta-text" style={{ padding: "8px 12px", borderTop: "0.5px solid var(--rule)", textAlign: "center" }}>
-        96×7 Matrix View Active
+        {visibleSlots.length}×7 Matrix View Active
       </div>
     </div>
   );

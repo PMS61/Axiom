@@ -20,13 +20,40 @@ export default function BandwidthCurve() {
   const slots = END - START;
   const maxBW = Math.max(...curve.slice(START, END), 1);
 
-  // Compute CL demand per slot
+  // Compute Etask demand per slot from section schedule (primary) with slot fallback.
   const clPerSlot = new Array(96).fill(0);
-  for (const task of state.tasks) {
-    if (task.scheduledSlot && task.state !== "completed" && task.state !== "skipped") {
-      const clPerUnit = Math.abs(task.cl) / Math.max(task.scheduledSlot.endSlot - task.scheduledSlot.startSlot, 1);
-      for (let s = task.scheduledSlot.startSlot; s < task.scheduledSlot.endSlot; s++) {
-        clPerSlot[s] += task.cl > 0 ? clPerUnit : 0;
+  const today = state.scheduledDays.find((d) => d.dayOffset === 0);
+
+  if (today) {
+    const sectionFallbackStart = (section: string): number => {
+      if (section === "morning") return 24;
+      if (section === "afternoon") return 48;
+      return 72;
+    };
+
+    for (const section of today.sections) {
+      for (const item of section.tasks) {
+        if (item.isRecreational) continue;
+
+        const task = state.tasks.find((t) => t.id === item.taskId);
+        if (!task || task.state === "completed" || task.state === "skipped") continue;
+
+        const start = item.startSlot ?? sectionFallbackStart(section.section);
+        const end = start + Math.ceil(item.completionTime / 15);
+        const clPerUnit = Math.abs(task.etask) / Math.max(end - start, 1);
+
+        for (let s = start; s < end; s++) {
+          clPerSlot[s] += task.etask > 0 ? clPerUnit : 0;
+        }
+      }
+    }
+  } else {
+    for (const task of state.tasks) {
+      if (task.scheduledSlot && task.state !== "completed" && task.state !== "skipped") {
+        const clPerUnit = Math.abs(task.etask) / Math.max(task.scheduledSlot.endSlot - task.scheduledSlot.startSlot, 1);
+        for (let s = task.scheduledSlot.startSlot; s < task.scheduledSlot.endSlot; s++) {
+          clPerSlot[s] += task.etask > 0 ? clPerUnit : 0;
+        }
       }
     }
   }

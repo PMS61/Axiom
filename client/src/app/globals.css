@@ -471,6 +471,44 @@ label {
   color: var(--bg);
 }
 
+/* ── Flashcards ────────────────────────────────────────── */
+.flip-card-container {
+  perspective: 1200px;
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.75s ease;
+}
+
+.flip-card.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(24px) scale(0.96);
+    opacity: 0;
+  }
+}
+
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 900px) {
   h1 { font-size: 28px; }
@@ -495,4 +533,87 @@ label {
   .nav-inner { flex-direction: column; height: auto; padding: 16px; gap: 12px; align-items: flex-start; }
   .nav-inner > div { flex-wrap: wrap; gap: 16px !important; justify-content: flex-start; }
   .mobile-spacer { display: none; }
+}
+
+/* ── Story Content Markdown Styling ────────────────────── */
+.story-content {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--ink);
+}
+
+.story-content h1,
+.story-content h2,
+.story-content h3 {
+  font-family: var(--serif);
+  margin-top: 2.5em;
+  margin-bottom: 1em;
+  line-height: 1.2;
+}
+
+.story-content h1 { font-size: 32px; border-bottom: 1px solid var(--ink); padding-bottom: 0.5em; }
+.story-content h2 { font-size: 24px; border-bottom: 0.5px solid var(--rule); padding-bottom: 0.3em; }
+.story-content h3 { font-size: 20px; }
+
+.story-content p {
+  margin-bottom: 1.5em;
+  text-align: justify;
+}
+
+.story-content ul,
+.story-content ol {
+  margin-bottom: 1.5em;
+  padding-left: 1.5em;
+}
+
+.story-content li {
+  margin-bottom: 0.5em;
+}
+
+.story-content blockquote {
+  border-left: 3px solid var(--vermillion);
+  padding-left: 1.5em;
+  font-style: italic;
+  margin: 2em 0;
+  color: var(--muted);
+}
+
+.story-content code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: rgba(0,0,0,0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+.story-content pre {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 2em;
+  margin: 2em 0;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.story-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.story-content hr {
+  border: none;
+  border-top: 0.5px solid var(--rule);
+  margin: 3em 0;
+}
+
+.story-content strong {
+  font-weight: 700;
+}
+
+.story-content em {
+  font-style: italic;
 }

@@ -3,8 +3,8 @@
    Splits large tasks into time-distributed fragments.
 
    Formulas:
-     chunk_size = min(90, max(30, duration / ceil(duration / 60)))
-     n          = ceil(duration / chunk_size)
+     chunk_size = min(90, max(30, completionTime / ceil(completionTime / 60)))
+     n          = ceil(completionTime / chunk_size)
      gap        = floor(D / n)          [days between chunks]
    ═══════════════════════════════════════════════════════════ */
 
@@ -13,7 +13,7 @@ import type { Task, TaskChunk, SectionName } from "./types";
 // ── Chunk Size ────────────────────────────────────────────
 
 /**
- * Computes the duration (minutes) of each chunk.
+ * Computes the completionTime (minutes) of each chunk.
  * Ensures chunks are between 30–90 minutes.
  */
 export function computeChunkSize(totalDuration: number): number {
@@ -23,7 +23,7 @@ export function computeChunkSize(totalDuration: number): number {
 }
 
 /**
- * Returns number of chunks needed for a given duration.
+ * Returns number of chunks needed for a given completionTime.
  * Always at least 1.
  */
 export function computeChunkCount(
@@ -73,19 +73,19 @@ export function fragmentTask(
   axiomCostPerMinute: number,
 ): TaskChunk[] {
   // Tasks ≤ 60 min are not fragmented
-  if (task.duration <= 60) return [];
+  if (task.completionTime <= 60) return [];
 
-  const chunkSize = computeChunkSize(task.duration);
-  const n = computeChunkCount(task.duration, chunkSize);
+  const chunkSize = computeChunkSize(task.completionTime);
+  const n = computeChunkCount(task.completionTime, chunkSize);
 
-  // Last chunk may be shorter if duration isn't evenly divisible
+  // Last chunk may be shorter if completionTime isn't evenly divisible
   const gap = computeChunkGap(daysRemaining, n);
 
   const chunks: TaskChunk[] = [];
-  let remainingMinutes = task.duration;
+  let remainingMinutes = task.completionTime;
 
   for (let i = 0; i < n; i++) {
-    const duration = i === n - 1
+    const completionTime = i === n - 1
       ? Math.max(15, remainingMinutes) // last chunk gets the remainder
       : chunkSize;
     remainingMinutes -= chunkSize;
@@ -95,10 +95,10 @@ export function fragmentTask(
       parentTaskId: task.id,
       chunkIndex: i,
       totalChunks: n,
-      duration,
+      completionTime,
       scheduledDay: i * gap,
       section: sectionForChunkIndex(i),
-      axiomCost: +(axiomCostPerMinute * duration).toFixed(4),
+      axiomCost: +(axiomCostPerMinute * completionTime).toFixed(4),
       state: "unscheduled",
     });
   }
@@ -108,8 +108,8 @@ export function fragmentTask(
 
 /**
  * Returns whether a task should be chunked.
- * Criterion: duration > 60 min AND has a deadline within 30 days.
+ * Criterion: completionTime > 60 min AND has a deadline within 30 days.
  */
 export function shouldChunk(task: Task, daysRemaining: number): boolean {
-  return task.duration > 60 && daysRemaining <= 30;
+  return task.completionTime > 60 && daysRemaining <= 30;
 }

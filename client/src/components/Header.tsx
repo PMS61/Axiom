@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { useApp } from "@/lib/store";
 import { ENERGY_LABELS } from "@/lib/types";
 import type { EnergyLevel } from "@/lib/types";
@@ -50,9 +51,9 @@ export default function Header() {
     <>
       <header className="nav">
         <div className="nav-inner">
-          <a href="/" className="logo">Axiom</a>
+          <Link href="/" className="logo">Axiom</Link>
 
-          <div className="nav-links-container" style={{ display: "flex", alignItems: "center", gap: 32 }}>
+          <div className="nav-links-container" style={{ display: "flex", alignItems: "center", gap: 24 }}>
             {/* Energy indicator — compact */}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span className="meta-text">{ENERGY_LABELS[state.energyLevel]}</span>
@@ -78,24 +79,31 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Nav links */}
-            <a href="/dashboard" className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}>Dashboard</a>
-            <a href="/dashboard/tasks" className={`nav-link ${pathname === '/dashboard/tasks' ? 'active' : ''}`}>Tasks & Matrix</a>
-            <a href="/dashboard/report" className={`nav-link ${pathname === '/dashboard/report' ? 'active' : ''}`}>Report</a>
-            <a href="/dashboard/feedback" className={`nav-link ${pathname === '/dashboard/feedback' ? 'active' : ''}`}>Feedback</a>
-            <a href="/dashboard/tutorial" className={`nav-link ${pathname === '/dashboard/tutorial' ? 'active' : ''}`}>Guide</a>
-            <a href="/dashboard/profile" className={`nav-link ${pathname === '/dashboard/profile' ? 'active' : ''}`}>Profile</a>
+            {/* Primary nav links */}
+            <Link href="/dashboard" className={`nav-link ${pathname === '/dashboard' ? 'active' : ''}`}>Dashboard</Link>
+            <Link href="/dashboard/tasks" className={`nav-link ${pathname === '/dashboard/tasks' ? 'active' : ''}`}>Tasks</Link>
+            <Link href="/dashboard/roadmap" className={`nav-link ${pathname === '/dashboard/roadmap' ? 'active' : ''}`}>Roadmap</Link>
+            <Link href="/dashboard/trends" className={`nav-link ${pathname === '/dashboard/trends' ? 'active' : ''}`}>Trends</Link>
+            <Link href="/dashboard/report" className={`nav-link ${pathname === '/dashboard/report' ? 'active' : ''}`}>Report</Link>
+            
+            {/* Secondary links in a compact group */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginLeft: 8, paddingLeft: 16, borderLeft: "1px solid var(--rule)" }}>
+              <Link href="/dashboard/feedback" className={`nav-link ${pathname === '/dashboard/feedback' ? 'active' : ''}`}>Feedback</Link>
+              <Link href="/dashboard/tutorial" className={`nav-link ${pathname === '/dashboard/tutorial' ? 'active' : ''}`}>Guide</Link>
+              <Link href="/dashboard/profile" className={`nav-link ${pathname === '/dashboard/profile' ? 'active' : ''}`}>Profile</Link>
+            </div>
+
+            {/* Action buttons */}
             <button
               className="btn btn-sm"
-              style={{ marginLeft: 8 }}
               onClick={() => dispatch({ type: "TOGGLE_ADD_TASK" })}
             >
               + Task
             </button>
-            <button 
+            <button
               onClick={toggleTheme}
               className="nav-link"
-              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", marginLeft: 8 }}
+              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}
               title="Toggle Theme"
             >
               {theme === "system" ? "🌓" : theme === "dark" ? "🌙" : "☀️"}
@@ -103,7 +111,7 @@ export default function Header() {
             <button
               onClick={() => logoutUser()}
               className="nav-link"
-              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--vermillion)", marginLeft: 16 }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--vermillion)" }}
             >
               Logout
             </button>

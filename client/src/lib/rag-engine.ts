@@ -204,7 +204,7 @@ export function extractTopics(text: string): string[] {
     }
   }
 
-  // Deduplicate (case-insensitive) while preserving document order
+  // Deduplicate (case-insensitive) while preserving document sequence
   const seen = new Set<string>();
   return topics.filter(t => {
     const key = t.toLowerCase();
@@ -285,7 +285,7 @@ export function buildTasksFromContext(fullText: string, topic: string, deadline:
   const raw = topics.map((t, i) => {
     const cls = classifyTopic(t);
     const diff = Math.min(5, Math.max(1, scoreDifficulty(t, i, topics.length) + cls.diffDelta));
-    const cl = computeCL(diff, cls.mul, cls.durMins);
+    const etask = computeCL(diff, cls.mul, cls.durMins);
     const posRatio = i / topics.length;
 
     let priority: 'high' | 'normal' | 'low' = 'low';
@@ -299,22 +299,22 @@ export function buildTasksFromContext(fullText: string, topic: string, deadline:
       name: t,
       subject: subject || topic,
       type: cls.type,
-      duration: cls.durMins,
+      completionTime: cls.durMins,
       difficulty: diff,
-      cl,
+      etask,
       multiplier: cls.mul,
       priority,
-      order: i,
+      sequence: i,
       deadline: ""
     };
   });
 
-  const totalCL = raw.reduce((s, t) => s + t.cl, 0);
+  const totalEtask = raw.reduce((s, t) => s + t.etask, 0);
   let cum = 0;
 
   return raw.map(t => {
-    cum += t.cl;
-    const offset = Math.max(1, Math.floor((cum / Math.max(totalCL, 0.1)) * totalDays));
+    cum += t.etask;
+    const offset = Math.max(1, Math.floor((cum / Math.max(totalEtask, 0.1)) * totalDays));
     const d = new Date(today);
     d.setDate(today.getDate() + Math.min(offset, totalDays));
     return { ...t, deadline: d.toISOString() };

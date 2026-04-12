@@ -15,11 +15,11 @@ export default function TaskSidebar() {
 
   // Compute stats
   const totalCL = tasks
-    .filter((t) => t.scheduledSlot && t.cl > 0)
-    .reduce((sum, t) => sum + t.cl, 0);
+    .filter((t) => t.scheduledSlot && t.etask > 0)
+    .reduce((sum, t) => sum + t.etask, 0);
   const recoveryCL = tasks
-    .filter((t) => t.cl < 0)
-    .reduce((sum, t) => sum + t.cl, 0);
+    .filter((t) => t.etask < 0)
+    .reduce((sum, t) => sum + t.etask, 0);
   const netCL = +(totalCL + recoveryCL).toFixed(1);
   const scheduledCount = tasks.filter((t) => t.state === "scheduled").length;
   const completedCount = tasks.filter((t) => t.state === "completed").length;
@@ -30,7 +30,7 @@ export default function TaskSidebar() {
   const subjectMap = new Map<string, number>();
   for (const t of tasks) {
     if (t.subject) {
-      subjectMap.set(t.subject, (subjectMap.get(t.subject) ?? 0) + Math.abs(t.cl));
+      subjectMap.set(t.subject, (subjectMap.get(t.subject) ?? 0) + Math.abs(t.etask));
     }
   }
 

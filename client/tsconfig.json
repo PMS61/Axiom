@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
-  "exclude": ["node_modules"]
+, "src/app/flashcard/page.jsx"  ],
+  "exclude": ["node_modules", "trends"]
 }

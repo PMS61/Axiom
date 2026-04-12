@@ -1,37 +1,65 @@
-import { getTasks } from "@/app/actions/tasks";
+/* ═══════════════════════════════════════════════════════════
+   THE AXIOM — Matrix Utility
+   Generates the 96×7 slot matrix for the schedule view.
+
+   Data sources (in order of application):
+     1. User profile  → sleep / peak / commitment / exclusion overlays
+     2. schedules table → task placement painted from DaySchedule[]
+
+   Day columns: dayOffset 0 (today) … 6 (today+6)
+   Row slots:   0-95 (each = 15 min, 0 = midnight, 24 = 6 am …)
+   ═══════════════════════════════════════════════════════════ */
+
+import { getLatestSchedule } from "@/app/actions/tasks";
 import { getUserProfile } from "@/app/actions/auth";
 
 export interface MatrixSlot {
-  cl: number;
+  /** Axiom cost of the task occupying this slot (0 = empty or recreational) */
+  etask: number;
+  /** ID of the task placed here, if any */
   taskId?: string;
+  /** Display name of the task placed here */
+  taskName?: string;
+  /** True if this slot falls inside the user's peak-focus window */
   isPeak: boolean;
+  /** True if this slot falls inside a low-energy window */
   isLow: boolean;
+  /** True if this slot is inside the sleep window */
   isSleep: boolean;
+  /** True if a fixed commitment occupies this slot */
   isFixedCommitment: boolean;
+  /** True if a hard exclusion blocks this slot */
   isHardExclusion: boolean;
+  /** True when none of sleep / commitment / exclusion apply */
   isAvailable: boolean;
+  /** True when the task in this slot has been completed or skipped */
   actualCompletion: boolean;
 }
 
 /**
- * Utility to fetch user data and generate a standardized 96 x 7 matrix
- * starting from Today (index 0) to Today + 6 (index 6).
+ * Builds a 7×96 matrix (7 days × 96 fifteen-minute slots) for the
+ * current authenticated user.
+ *
+ * Returns `{ error }` on auth or DB failure.
+ * Returns an empty matrix (all slots default) when no schedule exists yet.
  */
 export async function getUserMatrix(): Promise<MatrixSlot[][] | { error: string }> {
   try {
-    const tasksRes = await getTasks();
-    const profileRes = await getUserProfile();
+    // Fetch profile and latest schedule in parallel
+    const [profileRes, scheduleRes] = await Promise.all([
+      getUserProfile(),
+      getLatestSchedule(),
+    ]);
 
-    if ("error" in tasksRes) return { error: tasksRes.error as string };
     if ("error" in profileRes) return { error: profileRes.error as string };
+    if (scheduleRes.error) return { error: scheduleRes.error };
 
-    const tasks = tasksRes.tasks || [];
     const profile = profileRes.user;
 
-    // Initialize 7 days x 96 slots
+    // ── Initialise 7×96 empty matrix ─────────────────────────
     const matrix: MatrixSlot[][] = Array.from({ length: 7 }, () =>
-      Array.from({ length: 96 }, () => ({
-        cl: 0,
+      Array.from({ length: 96 }, (): MatrixSlot => ({
+        etask: 0,
         isPeak: false,
         isLow: false,
         isSleep: false,
@@ -39,70 +67,105 @@ export async function getUserMatrix(): Promise<MatrixSlot[][] | { error: string 
         isHardExclusion: false,
         isAvailable: true,
         actualCompletion: false,
-      }))
+      })),
     );
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Apply Profile Overlays
+    // ── 1. Apply profile overlays ─────────────────────────────
     for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
       const currentDay = new Date(today);
       currentDay.setDate(today.getDate() + dayIdx);
-      const actualDayOfWeek = currentDay.getDay();
-      
+      const dayOfWeek = currentDay.getDay(); // 0=Sun … 6=Sat
+
       for (let slot = 0; slot < 96; slot++) {
         const slotMins = slot * 15;
-        const currentSlot = matrix[dayIdx][slot];
-        
-        // 1. Peaks
-        if (profile.peak_focus_windows?.some((w: any) => slotMins >= w.start_min && slotMins < w.end_min)) {
-          currentSlot.isPeak = true;
+        const cell = matrix[dayIdx][slot];
+
+        // Peak focus windows
+        if (
+          profile.peak_focus_windows?.some(
+            (w: any) => slotMins >= w.start_min && slotMins < w.end_min,
+          )
+        ) {
+          cell.isPeak = true;
         }
-        
-        // 2. Lows
-        if (profile.low_energy_windows?.some((w: any) => slotMins >= w.start_min && slotMins < w.end_min)) {
-          currentSlot.isLow = true;
+
+        // Low energy windows
+        if (
+          profile.low_energy_windows?.some(
+            (w: any) => slotMins >= w.start_min && slotMins < w.end_min,
+          )
+        ) {
+          cell.isLow = true;
         }
-        
-        // 3. Sleep
+
+        // Sleep window
         const { wake_time, sleep_time } = profile;
-        if (wake_time !== null && sleep_time !== null) {
+        if (wake_time != null && sleep_time != null) {
           if (sleep_time > wake_time) {
-            if (slotMins >= sleep_time || slotMins < wake_time) currentSlot.isSleep = true;
+            // Normal: awake from wake_time to sleep_time
+            if (slotMins >= sleep_time || slotMins < wake_time) cell.isSleep = true;
           } else {
-            if (slotMins >= sleep_time && slotMins < wake_time) currentSlot.isSleep = true;
+            // Inverted (e.g. nap schedule)
+            if (slotMins >= sleep_time && slotMins < wake_time) cell.isSleep = true;
           }
         }
-        
-        // 4. Fixed Commitments
-        if (profile.fixed_commitments?.some((c: any) => c.days.includes(actualDayOfWeek) && slotMins >= c.start_min && slotMins < c.end_min)) {
-          currentSlot.isFixedCommitment = true;
+
+        // Fixed commitments (day-aware)
+        if (
+          profile.fixed_commitments?.some(
+            (c: any) =>
+              c.days.includes(dayOfWeek) &&
+              slotMins >= c.start_min &&
+              slotMins < c.end_min,
+          )
+        ) {
+          cell.isFixedCommitment = true;
         }
 
-        // 5. Hard Exclusions
-        if (profile.hard_exclusions?.some((c: any) => c.days.includes(actualDayOfWeek) && slotMins >= c.start_min && slotMins < c.end_min)) {
-          currentSlot.isHardExclusion = true;
+        // Hard exclusions (day-aware)
+        if (
+          profile.hard_exclusions?.some(
+            (c: any) =>
+              c.days.includes(dayOfWeek) &&
+              slotMins >= c.start_min &&
+              slotMins < c.end_min,
+          )
+        ) {
+          cell.isHardExclusion = true;
         }
 
-        // 6. Availability Calculation (Logical Inverse of any blocking state)
-        if (currentSlot.isSleep || currentSlot.isFixedCommitment || currentSlot.isHardExclusion) {
-          currentSlot.isAvailable = false;
+        // Availability = not blocked by any hard constraint
+        if (cell.isSleep || cell.isFixedCommitment || cell.isHardExclusion) {
+          cell.isAvailable = false;
         }
       }
     }
 
-    // 5. Map Scheduled Tasks to Matrix
-    for (const task of tasks) {
-      if (task.scheduledSlot && task.state !== "unscheduled") {
-        const { day, startSlot, endSlot } = task.scheduledSlot;
-        if (day >= 0 && day < 7) {
-          for (let s = startSlot; s < endSlot; s++) {
-            if (s >= 0 && s < 96) {
-              matrix[day][s].cl = task.cl;
-              matrix[day][s].taskId = task.id;
-              matrix[day][s].actualCompletion = task.state === "completed" || task.state === "skipped";
-            }
+    // ── 2. Paint tasks from schedule blob ─────────────────────
+    //    The schedule's dayOffset maps directly to the matrix column.
+    //    We only paint dayOffset 0–6 (the visible 7-day window).
+    const days: any[] = scheduleRes.days ?? [];
+
+    for (const day of days) {
+      const dayOffset: number = day.dayOffset;
+      if (dayOffset < 0 || dayOffset > 6) continue; // outside visible window
+
+      for (const section of day.sections ?? []) {
+        for (const item of section.tasks ?? []) {
+          if (item.startSlot == null) continue;
+
+          const startSlot: number = item.startSlot;
+          const slotsNeeded = Math.max(1, Math.ceil(item.completionTime / 15));
+
+          for (let s = startSlot; s < startSlot + slotsNeeded && s < 96; s++) {
+            const cell = matrix[dayOffset][s];
+            cell.taskId = item.taskId;
+            cell.taskName = item.taskName;
+            cell.etask = item.axiomCost;
+            cell.actualCompletion = false; // updated when task state changes
           }
         }
       }
@@ -110,7 +173,7 @@ export async function getUserMatrix(): Promise<MatrixSlot[][] | { error: string 
 
     return matrix;
   } catch (err) {
-    console.error("Matrix extraction failed:", err);
+    console.error("getUserMatrix failed:", err);
     return { error: "Matrix generation failed: " + (err as Error).message };
   }
 }

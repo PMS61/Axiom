@@ -19,13 +19,40 @@
       { "start_min": 1140, "end_min": 1200 }
     ],
     "fixed_commitments": [
-      { "title": "Daily Standup", "start_min": 600, "end_min": 630, "days": [1, 2, 3, 4, 5], "recurring": true },
-      { "title": "Capstone Meeting", "start_min": 960, "end_min": 1020, "days": [2, 4], "recurring": true }
+      {
+        "title": "Daily Standup",
+        "start_min": 600,
+        "end_min": 630,
+        "days": [1, 2, 3, 4, 5],
+        "recurring": true
+      },
+      {
+        "title": "Capstone Meeting",
+        "start_min": 960,
+        "end_min": 1020,
+        "days": [2, 4],
+        "recurring": true
+      }
     ],
     "hard_exclusions": [
-      { "label": "Morning Workout", "start_min": 480, "end_min": 540, "days": [1, 2, 3, 4, 5, 6] },
-      { "label": "Lunch", "start_min": 780, "end_min": 840, "days": [0, 1, 2, 3, 4, 5, 6] },
-      { "label": "Dinner Break", "start_min": 1200, "end_min": 1260, "days": [0, 1, 2, 3, 4, 5, 6] }
+      {
+        "label": "Morning Workout",
+        "start_min": 480,
+        "end_min": 540,
+        "days": [1, 2, 3, 4, 5, 6]
+      },
+      {
+        "label": "Lunch",
+        "start_min": 780,
+        "end_min": 840,
+        "days": [0, 1, 2, 3, 4, 5, 6]
+      },
+      {
+        "label": "Dinner Break",
+        "start_min": 1200,
+        "end_min": 1260,
+        "days": [0, 1, 2, 3, 4, 5, 6]
+      }
     ],
     "recovery_activities": [
       { "name": "Take a 30 min walk", "duration_min": 30, "energy_value": 2 },
@@ -52,7 +79,13 @@
         "priorityWeight": 1.2,
         "total": 15.2
       },
-      "scheduled_slot": { "startSlot": 40, "endSlot": 48, "day": -4, "fitnessScore": 8.5, "reasoningSteps": [] },
+      "scheduled_slot": {
+        "startSlot": 40,
+        "endSlot": 48,
+        "day": -4,
+        "fitnessScore": 8.5,
+        "reasoningSteps": []
+      },
       "created_at": "2026-03-29T08:15:00Z"
     },
     {
@@ -73,7 +106,13 @@
         "priorityWeight": 1.0,
         "total": 4.2
       },
-      "scheduled_slot": { "startSlot": 60, "endSlot": 64, "day": -3, "fitnessScore": 9.0, "reasoningSteps": [] },
+      "scheduled_slot": {
+        "startSlot": 60,
+        "endSlot": 64,
+        "day": -3,
+        "fitnessScore": 9.0,
+        "reasoningSteps": []
+      },
       "created_at": "2026-03-31T11:00:00Z"
     },
     {
@@ -94,7 +133,13 @@
         "priorityWeight": 1.5,
         "total": 7.5
       },
-      "scheduled_slot": { "startSlot": 36, "endSlot": 39, "day": -2, "fitnessScore": 7.8, "reasoningSteps": [] },
+      "scheduled_slot": {
+        "startSlot": 36,
+        "endSlot": 39,
+        "day": -2,
+        "fitnessScore": 7.8,
+        "reasoningSteps": []
+      },
       "created_at": "2026-04-01T09:30:00Z"
     },
     {
@@ -115,7 +160,13 @@
         "priorityWeight": 1.0,
         "total": 11.2
       },
-      "scheduled_slot": { "startSlot": 64, "endSlot": 70, "day": -1, "fitnessScore": 9.5, "reasoningSteps": [] },
+      "scheduled_slot": {
+        "startSlot": 64,
+        "endSlot": 70,
+        "day": -1,
+        "fitnessScore": 9.5,
+        "reasoningSteps": []
+      },
       "created_at": "2026-04-02T18:00:00Z"
     },
     {
@@ -157,7 +208,13 @@
         "priorityWeight": 1.0,
         "total": 3.9
       },
-      "scheduled_slot": { "startSlot": 42, "endSlot": 45, "day": 0, "fitnessScore": 8.0, "reasoningSteps": [] },
+      "scheduled_slot": {
+        "startSlot": 42,
+        "endSlot": 45,
+        "day": 0,
+        "fitnessScore": 8.0,
+        "reasoningSteps": []
+      },
       "created_at": "2026-04-03T20:10:00Z"
     },
     {
@@ -178,7 +235,13 @@
         "priorityWeight": 1.5,
         "total": 4.1
       },
-      "scheduled_slot": { "startSlot": 46, "endSlot": 48, "day": 0, "fitnessScore": 8.5, "reasoningSteps": [] },
+      "scheduled_slot": {
+        "startSlot": 46,
+        "endSlot": 48,
+        "day": 0,
+        "fitnessScore": 8.5,
+        "reasoningSteps": []
+      },
       "created_at": "2026-04-04T07:45:00Z"
     },
     {

@@ -100,16 +100,20 @@ export interface Task {
   name: string;
   type: TaskType;
   difficulty: number; // 1-10
-  duration: number; // minutes
+  completionTime: number; // minutes
   priority: TaskPriority;
   state: TaskState;
   subject?: string;
   deadline?: string; // ISO date string
-  energyRecovery?: number; // negative CL for recreational
-  cl: number; // computed cognitive load
-  clBreakdown: CLBreakdown;
-  order: number; // preserved sequence for subtasks
+  energyRecovery?: number; // negative Etask for recreational
+  etask: number; // computed cognitive load
+  etaskBreakdown?: CLBreakdown;
+  sequence: number; // preserved sequence for subtasks
+  urgency?: number;
+  score?: number;
+  daysRemaining?: number;
   scheduledSlot?: ScheduledSlot;
+  contentType?: "ppt" | "one-shot" | "shortbits" | "storytelling";
   createdAt: string;
 }
 
@@ -126,8 +130,18 @@ export interface CLBreakdown {
 export interface UserProfile {
   peakFocusWindows: Array<{ start_min: number; end_min: number }>;
   lowEnergyWindows: Array<{ start_min: number; end_min: number }>;
-  fixedCommitments: Array<{ name: string; days: number[]; start_min: number; end_min: number }>;
-  hardExclusions: Array<{ name: string; days: number[]; start_min: number; end_min: number }>;
+  fixedCommitments: Array<{
+    name: string;
+    days: number[];
+    start_min: number;
+    end_min: number;
+  }>;
+  hardExclusions: Array<{
+    name: string;
+    days: number[];
+    start_min: number;
+    end_min: number;
+  }>;
   wakeTime: number; // minutes from midnight
   sleepTime: number; // minutes from midnight
 }
@@ -236,18 +250,18 @@ export interface TimeSection {
   name: SectionName;
   label: string;
   startHour: number; // inclusive
-  endHour: number;   // exclusive
+  endHour: number; // exclusive
   axiomBudget: number; // fraction of BASE_AXIOMS allocated
-  weight: number;    // dynamic weight [0,1], sums to 1 across sections
+  weight: number; // dynamic weight [0,1], sums to 1 across sections
 }
 
 /** A single fragment (chunk) of a large task */
 export interface TaskChunk {
-  id: string;          // e.g. "task-101_chunk_0"
+  id: string; // e.g. "task-101_chunk_0"
   parentTaskId: string;
   chunkIndex: number;
   totalChunks: number;
-  duration: number;    // minutes for this chunk
+  completionTime: number; // minutes for this chunk
   scheduledDay: number; // 0-based offset from today
   section: SectionName;
   axiomCost: number;
@@ -261,7 +275,7 @@ export interface SectionSchedule {
     taskId: string;
     taskName: string;
     chunkId?: string;
-    duration: number;
+    completionTime: number;
     axiomCost: number;
     axiomGain: number; // for recreational
     isRecreational: boolean;
@@ -275,7 +289,7 @@ export interface SectionSchedule {
 /** Full schedule for one day */
 export interface DaySchedule {
   dayOffset: number; // 0 = today
-  date: string;      // ISO YYYY-MM-DD
+  date: string; // ISO YYYY-MM-DD
   sections: SectionSchedule[];
   totalAxiomsUsed: number;
   totalAxiomsRemaining: number;
@@ -306,4 +320,64 @@ export interface SectionPerformanceRecord {
   actualAxioms: number;
   efficiencyRatio: number; // actualAxioms / scheduledAxioms
   recordedAt: string;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ADAPTIVE ROADMAP AGENT — Types
+   ═══════════════════════════════════════════════════════════ */
+
+/** Visual/execution state of a DAG node */
+export type RoadmapNodeState =
+  | "locked" // prerequisites not yet met
+  | "available" // prerequisites met, not started
+  | "in_progress" // mastery > 0 but < 0.8
+  | "mastered"; // mastery >= 0.8
+
+/** A single node in the learning roadmap DAG */
+export interface RoadmapDAGNode {
+  id: string;
+  title: string;
+  description: string;
+  type: "course" | "assessment";
+  difficulty: number; // 1–10
+  estimatedMinutes: number; // study time in minutes
+  priority: "low" | "normal" | "high";
+  sequence: number; // logical execution order
+  prerequisites: string[]; // ids of prerequisite nodes
+  masteryScore: number; // 0.0 – 1.0 (updated by Assessment Agent)
+  subject: string; // thematic group / tag
+  nodeState: RoadmapNodeState;
+  /** Optional CogFlow task id once this node has been converted to a task */
+  taskId?: string;
+}
+
+/** User profile input for roadmap personalisation */
+export interface RoadmapUserProfile {
+  experienceLevel: "beginner" | "intermediate" | "advanced";
+  dailyMinutes: number;
+  learningStyle?: "visual" | "reading" | "practice" | "balanced";
+}
+
+/** Existing mastery record before roadmap generation */
+export interface TopicMastery {
+  topic: string;
+  score: number; // 0.0 – 1.0
+}
+
+/** Full goal specification passed to the Roadmap Agent */
+export interface RoadmapGoal {
+  goal: string; // e.g. "Master Data Structures & Algorithms for coding interviews"
+  syllabus?: string; // optional syllabus text
+  deadline?: string; // ISO date string
+  userProfile?: RoadmapUserProfile;
+  existingMastery?: TopicMastery[];
+}
+
+/** The complete adaptive roadmap (stored in AppState) */
+export interface AdaptiveRoadmap {
+  id: string;
+  goal: RoadmapGoal;
+  nodes: RoadmapDAGNode[];
+  generatedAt: string; // ISO timestamp
+  lastUpdatedAt: string;
 }

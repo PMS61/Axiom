@@ -3,7 +3,7 @@
    Cognitive load balancing + diversity enforcement.
 
    Formulas:
-     L_day = Σ(difficulty × duration)         [cognitive load]
+     L_day = Σ(difficulty × completionTime)         [cognitive load]
      H     = −Σ p_i × log₂(p_i)              [Shannon diversity entropy]
      Anti-starvation: after every 3 high-priority tasks, insert 1 lower
    ═══════════════════════════════════════════════════════════ */
@@ -13,11 +13,11 @@ import type { Task } from "./types";
 // ── Cognitive Load ────────────────────────────────────────
 
 /**
- * L_day = Σ(difficulty × duration) for a set of tasks.
+ * L_day = Σ(difficulty × completionTime) for a set of tasks.
  * Returns the aggregate cognitive load for one day.
  */
 export function computeDailyLoad(tasks: Task[]): number {
-  return tasks.reduce((sum, t) => sum + t.difficulty * t.duration, 0);
+  return tasks.reduce((sum, t) => sum + t.difficulty * t.completionTime, 0);
 }
 
 // ── Mean & Standard Deviation ─────────────────────────────
@@ -92,7 +92,7 @@ const ANTI_STARVATION_STREAK = 3;  // insert 1 low after every N high
 /**
  * Reorders a task queue so that after every ANTI_STARVATION_STREAK
  * high-priority tasks (numeric priority ≥ 7) one lower-priority task
- * is inserted. Preserves original relative order within each group.
+ * is inserted. Preserves original relative sequence within each group.
  */
 export function applyAntiStarvation<T extends { priorityNum: number }>(
   tasks: T[],

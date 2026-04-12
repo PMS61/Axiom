@@ -81,3 +81,69 @@ export function compareByScore(a: ScoredTask, b: ScoredTask): number {
   if (b.score !== a.score) return b.score - a.score;
   return a.task.id.localeCompare(b.task.id);
 }
+
+// ── Array-Based Subtask Scoring ───────────────────────────
+
+export interface SubtaskInput {
+  name: string;
+  priority: "high" | "normal" | "low";
+  difficulty: number;
+  sequence: number;
+  completion_time: number; // in minutes
+  deadline?: string;        // optional ISO date string
+}
+
+export interface SubtaskScoreOutput {
+  priorityNum: number;
+  etask: number;
+  completion_time: number;
+  days_remaining: number;
+  urgency: number;
+  score: number;
+  sequence: number; // returned so the caller can retain sequence info
+}
+
+/**
+ * Enriches an array of sequentially generated subtasks with Axiom metrics.
+ * 
+ * Schema Suggestion Added: We are keeping `sequence` in the output, and using 
+ * it to slightly boost the `score` of earlier sequence numbers (e.g. sequence 1 
+ * gets a higher score bump than sequence 5). This makes sure the algorithm 
+ * naturally favors chronological prerequisites while respecting the core math.
+ */
+export function scoreSubtaskArray(subtasks: SubtaskInput[], today: string): SubtaskScoreOutput[] {
+  return subtasks.map(subtask => {
+    const priorityNum = priorityToNum(subtask.priority);
+    const etask = computeAxiomCost(subtask.difficulty, priorityNum);
+
+    let days_remaining = 365; // Default: no deadline pressure
+    if (subtask.deadline) {
+      const deadlineMs = new Date(subtask.deadline).getTime();
+      const todayMs = new Date(today).getTime();
+      days_remaining = Math.max(0, Math.floor((deadlineMs - todayMs) / 86_400_000));
+    }
+
+    const urgency = computeUrgency(priorityNum, days_remaining);
+    
+    // Base Axiom Score
+    let baseScore = computeTaskScore(priorityNum, subtask.difficulty, urgency, etask);
+    
+    // ── Suggestion ─────────────────────────────────────
+    // To benefit the algorithm, lower sequence numbers (prerequisites) 
+    // should naturally score higher than later sequence numbers 
+    // to ensure they are handled first. We add a small sequence bonus.
+    // e.g. sequence=1 gives +1.0, sequence=5 gives +0.6
+    const sequenceBonus = Math.max(0, (11 - subtask.sequence) * 0.1); 
+    const finalScore = +(baseScore + sequenceBonus).toFixed(6);
+
+    return {
+      priorityNum,
+      etask,
+      completion_time: subtask.completion_time,
+      days_remaining,
+      urgency,
+      score: finalScore,
+      sequence: subtask.sequence
+    };
+  });
+}

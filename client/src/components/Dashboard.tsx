@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getUserProfile } from "@/app/actions/auth";
 import {
   deleteTask,
@@ -14,17 +14,21 @@ import {
   saveTask,
   updateTaskStateAndSlot,
   clearUnscheduledTasks,
+  getLatestSchedule,
+  triggerReschedule,
 } from "@/app/actions/tasks";
 import AddTaskModal from "@/components/AddTaskModal";
 import BandwidthCurve from "@/components/BandwidthCurve";
 import ConflictPanel from "@/components/ConflictPanel";
 import Header from "@/components/Header";
 import ReasoningChain from "@/components/ReasoningChain";
+import TrendsSummary from "@/components/trends/TrendsSummary";
 import { formatDateHeading, formatDuration, slotToTime, computeCalibratedMultipliers } from "@/lib/engine";
-import { runSchedulerAction, markSectionComplete } from "@/app/actions/tasks";
+import { markSectionComplete } from "@/app/actions/tasks";
 import { useApp } from "@/lib/store";
 import { TASK_TYPE_LABELS } from "@/lib/types";
 import type { Task, SectionSchedule, DaySchedule, RunSchedulerResult } from "@/lib/types";
+import type { TrendResult } from "@/lib/trend-engine/types";
 
 // ── Section View Component ─────────────────────────────────
 
@@ -54,7 +58,7 @@ function SectionView({
 
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginBottom: 12 }}>
         <div className="meta-text" style={{ color }}>{section.section.toUpperCase()}</div>
         <div className="meta-text" style={{ fontSize: 10, color: "var(--muted)" }}>
           {section.axiomUsed.toFixed(1)} / {section.axiomBudget.toFixed(1)} AXIOMS
@@ -72,7 +76,7 @@ function SectionView({
       </div>
 
       {section.tasks.length === 0 ? (
-        <div style={{ padding: "16px 0", color: "var(--muted)", fontSize: 13 }}>No tasks in this section.</div>
+        <div style={{ padding: "16px 0", color: "var(--muted)", fontSize: 13, textAlign: "center" }}>No tasks in this section.</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {section.tasks.map((item, idx) => {
@@ -101,18 +105,18 @@ function SectionView({
                     )}
                   </div>
                   <div className="meta-text" style={{ fontSize: 10, color: "var(--muted)" }}>
-                    {item.duration}m
+                    {item.completionTime}m
                     {item.isRecreational
                       ? ` · +${item.axiomGain.toFixed(1)} axiom restore`
                       : ` · ${item.axiomCost.toFixed(2)} axioms`}
                   </div>
                 </div>
                 {!item.isRecreational && !isCompleted && (
-                  <>
+                  <div style={{ display: "flex", gap: 4 }}>
                     <button
                       type="button"
                       className="btn btn-sm"
-                      style={{ fontSize: 11, padding: "4px 10px", marginRight: 4 }}
+                      style={{ fontSize: 11, padding: "4px 10px" }}
                       onClick={() => onComplete(item.taskId)}
                     >
                       ✓
@@ -128,7 +132,7 @@ function SectionView({
                         →
                       </button>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             );
@@ -156,7 +160,7 @@ import {
   writeStoredUserProfile,
 } from "@/lib/userProfileStorage";
 
-function DashboardContent() {
+function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[] }) {
   const { state, dispatch } = useApp();
   const [showReasoning, setShowReasoning] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -194,23 +198,22 @@ function DashboardContent() {
           tasks.map((t) => [t.id, JSON.stringify({
             s: t.state,
             d: t.difficulty,
-            dur: t.duration,
+            dur: t.completionTime,
             p: t.priority,
             n: t.name,
             slot: t.scheduledSlot ?? null,
           })]),
         );
 
-        // Auto-run scheduler on mount to populate scheduledDays
-        const todayStr = new Date().toISOString().split("T")[0];
-        const result = await runSchedulerAction(tasks, todayStr);
-        if (result.days) {
+        // Read the persisted schedule — no re-computation on load
+        const { days, error: schedErr } = await getLatestSchedule();
+        if (!schedErr && days && days.length > 0) {
           dispatch({
             type: "SET_SECTIONS",
             payload: {
-              days: result.days,
-              weights: result.updatedWeights || { morning: 0.40, afternoon: 0.35, evening: 0.25 },
-              log: result.reasoningLog || [],
+              days,
+              weights: { morning: 0.40, afternoon: 0.35, evening: 0.25 },
+              log: [],
             },
           });
         }
@@ -245,7 +248,7 @@ function DashboardContent() {
       const key = JSON.stringify({
         s: task.state,
         d: task.difficulty,
-        dur: task.duration,
+        dur: task.completionTime,
         p: task.priority,
         n: task.name,
         slot: task.scheduledSlot ?? null,
@@ -261,27 +264,27 @@ function DashboardContent() {
     }
   }, [state.tasks, isLoadingTasks]);
 
-  // ── Axiom-based section scheduler (server action) ─────────
+  // ── Axiom-based section scheduler ────────────────────────
+  // Delegates to the server-side deterministic scheduler via triggerReschedule,
+  // then fetches the persisted result from the `schedules` table.
   const runAxiomScheduler = useCallback(async () => {
     setIsScheduling(true);
     setScheduleError(null);
 
-    const tasksToSchedule = state.tasks.filter(
-      (t) => t.state === "unscheduled" || t.state === "rescheduled",
-    );
-
-    if (tasksToSchedule.length === 0) {
-      setScheduleError("No unscheduled tasks to place.");
-      setIsScheduling(false);
-      return;
-    }
-
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const result = await runSchedulerAction(state.tasks, today);
+      const { error } = await triggerReschedule();
+      if (error) {
+        setScheduleError(error);
+        setIsScheduling(false);
+        return;
+      }
 
-      if (result.error) {
-        setScheduleError(result.error);
+      const [{ days, error: schedErr }, { tasks, error: tasksErr }] = await Promise.all([
+        getLatestSchedule(),
+        getTasks(),
+      ]);
+      if (schedErr) {
+        setScheduleError(schedErr);
         setIsScheduling(false);
         return;
       }
@@ -289,38 +292,114 @@ function DashboardContent() {
       dispatch({
         type: "SET_SECTIONS",
         payload: {
-          days: result.days ?? [],
-          weights: result.updatedWeights ?? { morning: 0.40, afternoon: 0.35, evening: 0.25 },
-          log: result.reasoningLog ?? [],
+          days: days ?? [],
+          weights: { morning: 0.40, afternoon: 0.35, evening: 0.25 },
+          log: [],
         },
       });
-      dispatch({ type: "SET_DAY_PHASE", payload: "active" });
-
-      // Persist all tasks with updated state
-      for (const task of state.tasks) {
-        saveTask(task);
+      if (!tasksErr && tasks) {
+        dispatch({ type: "INIT_TASKS", payload: tasks });
       }
+      dispatch({ type: "SET_DAY_PHASE", payload: "active" });
     } catch (err) {
       console.error("Scheduler error:", err);
       setScheduleError("Scheduler failed. Please try again.");
     } finally {
       setIsScheduling(false);
     }
-  }, [state.tasks, dispatch]);
+  }, [dispatch]);
 
-  const scheduled = state.tasks
-    .filter((t) => t.scheduledSlot && t.scheduledSlot.day === 0 && t.state !== "unscheduled")
-    .sort((a, b) => (a.scheduledSlot?.startSlot ?? 0) - (b.scheduledSlot?.startSlot ?? 0));
+  const todaySchedule = useMemo(() => {
+    const today = state.scheduledDays.find((d) => d.dayOffset === 0);
 
-  const totalCL = state.tasks
-    .filter((t) => t.cl > 0 && t.scheduledSlot && t.scheduledSlot.day === 0)
-    .reduce((s, t) => s + t.cl, 0);
+    if (today) {
+      const sectionFallbackStart = (section: string): number => {
+        if (section === "morning") return 24;
+        if (section === "afternoon") return 48;
+        return 72;
+      };
 
-  const recoveryCL = Math.abs(
-    state.tasks
-      .filter((t) => t.cl < 0 && t.scheduledSlot && t.scheduledSlot.day === 0)
-      .reduce((s, t) => s + t.cl, 0),
-  );
+      const sectionItems = today.sections.flatMap((section) =>
+        section.tasks
+          .filter((item) => !item.isRecreational)
+          .map((item) => {
+            const task = state.tasks.find((t) => t.id === item.taskId);
+            const startSlot = item.startSlot ?? sectionFallbackStart(section.section);
+            const endSlot = startSlot + Math.ceil(item.completionTime / 15);
+
+            return {
+              task,
+              taskId: item.taskId,
+              startSlot,
+              endSlot,
+              axiomCost: item.axiomCost,
+              isRecreational: item.isRecreational,
+            };
+          }),
+      );
+
+      const activeEntries = sectionItems.filter(
+        (entry) => entry.task && entry.task.state !== "completed" && entry.task.state !== "skipped",
+      );
+      const completedEntries = sectionItems.filter(
+        (entry) => entry.task && entry.task.state === "completed",
+      );
+
+      const totalCL = sectionItems.reduce((sum, entry) => {
+        if (!entry.task) return sum;
+        return entry.task.etask > 0 ? sum + entry.task.etask : sum;
+      }, 0);
+
+      const recoveryCL = Math.abs(
+        sectionItems.reduce((sum, entry) => {
+          if (!entry.task) return sum;
+          return entry.task.etask < 0 ? sum + entry.task.etask : sum;
+        }, 0),
+      );
+
+      return {
+        entries: sectionItems.sort((a, b) => a.startSlot - b.startSlot),
+        activeCount: activeEntries.length,
+        completedCount: completedEntries.length,
+        totalCL,
+        recoveryCL,
+      };
+    }
+
+    const fallbackEntries = state.tasks
+      .filter((t) => t.scheduledSlot && t.scheduledSlot.day === 0 && t.state !== "unscheduled")
+      .map((task) => ({
+        task,
+        taskId: task.id,
+        startSlot: task.scheduledSlot?.startSlot ?? 0,
+        endSlot: task.scheduledSlot?.endSlot ?? 0,
+        axiomCost: task.etask,
+        isRecreational: task.etask < 0,
+      }))
+      .sort((a, b) => a.startSlot - b.startSlot);
+
+    const totalCL = state.tasks
+      .filter((t) => t.etask > 0 && t.scheduledSlot && t.scheduledSlot.day === 0)
+      .reduce((s, t) => s + t.etask, 0);
+
+    const recoveryCL = Math.abs(
+      state.tasks
+        .filter((t) => t.etask < 0 && t.scheduledSlot && t.scheduledSlot.day === 0)
+        .reduce((s, t) => s + t.etask, 0),
+    );
+
+    return {
+      entries: fallbackEntries,
+      activeCount: fallbackEntries.filter((e) => e.task.state !== "completed" && e.task.state !== "skipped").length,
+      completedCount: fallbackEntries.filter((e) => e.task.state === "completed").length,
+      totalCL,
+      recoveryCL,
+    };
+  }, [state.scheduledDays, state.tasks]);
+
+  const scheduled = todaySchedule.entries;
+  const totalCL = todaySchedule.totalCL;
+  const recoveryCL = todaySchedule.recoveryCL;
 
   // Section view helpers
   const hasSections = state.scheduledDays.length > 0;
@@ -364,7 +443,7 @@ function DashboardContent() {
               {formatDateHeading(state.currentDate)}
             </h1>
             <p style={{ color: "var(--muted)", maxWidth: 380, marginBottom: 24 }}>
-              {scheduled.length} tasks scheduled · {state.tasks.filter((t) => t.state === "completed").length} completed
+              {todaySchedule.activeCount} tasks scheduled · {todaySchedule.completedCount} completed
             </p>
 
             <div
@@ -487,12 +566,14 @@ function DashboardContent() {
             const now = new Date();
             const currentSlot = Math.floor((now.getHours() * 60 + now.getMinutes()) / 15);
 
-            const taskInCurrentSlot = scheduled.find(t =>
-              currentSlot >= (t.scheduledSlot?.startSlot ?? 0) &&
-              currentSlot < (t.scheduledSlot?.endSlot ?? 0)
+            const taskInCurrentSlot = scheduled.find((entry) =>
+              currentSlot >= entry.startSlot && currentSlot < entry.endSlot,
             );
 
-            const currentTask = taskInCurrentSlot && taskInCurrentSlot.state !== "completed" ? taskInCurrentSlot : null;
+            const currentTask =
+              taskInCurrentSlot?.task && taskInCurrentSlot.task.state !== "completed"
+                ? taskInCurrentSlot.task
+                : null;
 
             if (!currentTask) {
               return (
@@ -523,26 +604,31 @@ function DashboardContent() {
                 <div style={{
                   background: "var(--card-bg)",
                   border: "0.5px solid var(--rule)",
-                  borderLeft: `4px solid ${Math.abs(currentTask.cl) > 7 ? 'var(--vermillion)' : 'var(--ink)'}`,
+                  borderLeft: `4px solid ${Math.abs(currentTask.etask) > 7 ? 'var(--vermillion)' : 'var(--ink)'}`,
                   padding: "24px",
                 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{currentTask.name}</h3>
                     <span className="meta-text">
-                      {slotToTime(currentTask.scheduledSlot!.startSlot)} – {slotToTime(currentTask.scheduledSlot!.endSlot)}
+                      {slotToTime(taskInCurrentSlot!.startSlot)} – {slotToTime(taskInCurrentSlot!.endSlot)}
                     </span>
                   </div>
                   <div className="meta-text" style={{ marginBottom: 24, display: "flex", gap: 12 }}>
-                    <span style={{ fontWeight: 700, color: "var(--ink)" }}>CL {currentTask.cl.toFixed(1)}</span>
+                    <span style={{ fontWeight: 700, color: "var(--ink)" }}>Etask {(currentTask.etask ?? 0).toFixed(1)}</span>
                     <span>·</span>
-                    <span>{formatDuration(currentTask.duration)}</span>
+                    <span>{formatDuration(currentTask.completionTime)}</span>
                   </div>
                   <button
                     className="btn btn-primary"
                     style={{ width: "100%" }}
                     onClick={async () => {
                       dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: currentTask.id, state: "completed" } });
-                      await updateTaskStateAndSlot(currentTask.id, "completed", currentTask.scheduledSlot);
+                      await updateTaskStateAndSlot(currentTask.id, "completed", {
+                        day: 0,
+                        startSlot: taskInCurrentSlot!.startSlot,
+                        endSlot: taskInCurrentSlot!.endSlot,
+                        fitnessScore: 5,
+                      });
                     }}
                   >
                     Mark as Complete ✓
@@ -557,7 +643,7 @@ function DashboardContent() {
             <>
               {/* Day selector */}
               <div style={{ display: "flex", gap: 8, marginBottom: 24, overflowX: "auto" }}>
-                {state.scheduledDays.map((d) => (
+                {state.scheduledDays.filter(d => d.dayOffset <= 6).map((d) => (
                   <button
                     key={d.dayOffset}
                     className="btn btn-sm"
@@ -606,33 +692,31 @@ function DashboardContent() {
                   </div>
 
                   {/* Section columns */}
-                  {viewDayData.sections.map((section) => (
-                    <SectionView
-                      key={section.section}
-                      section={section}
-                      tasks={state.tasks}
-                      onComplete={async (taskId) => {
-                        dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId, state: "completed" } });
-                        await updateTaskStateAndSlot(taskId, "completed", undefined);
-                        // Trigger adaptive reschedule after completion
-                        dispatch({ type: "ADAPTIVE_RESCHEDULE", payload: { reason: "task_completed" } });
-                      }}
-                      onMarkSectionDone={async () => {
-                        await markSectionComplete(section.section as any, section.axiomBudget, section.axiomUsed);
-                        // Compute and store calibrated multipliers based on completion rates
-                        const calibrated = computeCalibratedMultipliers(state.tasks);
-                        if (calibrated) {
-                          dispatch({ type: "CALIBRATE_MULTIPLIERS", payload: calibrated });
-                        }
-                      }}
-                      onSkip={async (taskId) => {
-                        dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId, state: "rescheduled" } });
-                        await updateTaskStateAndSlot(taskId, "rescheduled", undefined);
-                        // Trigger adaptive reschedule after skip
-                        dispatch({ type: "ADAPTIVE_RESCHEDULE", payload: { reason: "task_skipped" } });
-                      }}
-                    />
-                  ))}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                    {viewDayData.sections.map((section) => (
+                      <SectionView
+                        key={section.section}
+                        section={section}
+                        tasks={state.tasks}
+                        onComplete={async (taskId) => {
+                          dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId, state: "completed" } });
+                          await updateTaskStateAndSlot(taskId, "completed", undefined);
+                        }}
+                        onMarkSectionDone={async () => {
+                          await markSectionComplete(section.section as any, section.axiomBudget, section.axiomUsed);
+                          // Compute and store calibrated multipliers based on completion rates
+                          const calibrated = computeCalibratedMultipliers(state.tasks);
+                          if (calibrated) {
+                            dispatch({ type: "CALIBRATE_MULTIPLIERS", payload: calibrated });
+                          }
+                        }}
+                        onSkip={async (taskId) => {
+                          dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId, state: "unscheduled" } });
+                          await updateTaskStateAndSlot(taskId, "unscheduled", undefined);
+                        }}
+                      />
+                    ))}
+                  </div>
                 </>
               ) : (
                 <div style={{ padding: "40px 0", textAlign: "center", color: "var(--muted)" }}>
@@ -655,6 +739,9 @@ function DashboardContent() {
         {/* Reasoning chain */}
         {showReasoning && <ReasoningChain />}
       </section>
+
+      {/* ── Trend Intelligence Summary ── */}
+      <TrendsSummary trends={initialTrends} />
 
       <AddTaskModal />
       <ConflictPanel />
@@ -709,14 +796,14 @@ function DashboardContent() {
             </div>
             {state.tasks
               .filter(t => t.state === "unscheduled")
-              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+              .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
               .length === 0 ? (
               <p style={{ color: "var(--muted)" }}>No tasks in the pool. Generate a syllabus plan first!</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {state.tasks
                   .filter(t => t.state === "unscheduled")
-                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                  .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
                   .map(task => (
                   <div
                     key={task.id}
@@ -731,8 +818,8 @@ function DashboardContent() {
                     </div>
                     <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>{task.name}</div>
                     <div style={{ fontSize: 13, color: "var(--muted)", display: "flex", justifyContent: "space-between" }}>
-                      <span>CL: {task.cl.toFixed(1)}</span>
-                      <span>{task.duration}m</span>
+                      <span>Etask: {(task.etask ?? 0).toFixed(1)}</span>
+                      <span>{task.completionTime}m</span>
                     </div>
                   </div>
                 ))}
@@ -773,31 +860,55 @@ function DashboardContent() {
           <div className="trace-log" style={{ padding: 24, marginBottom: 32 }}>
             <div className="log-line rule">State: {selectedTask.state.toUpperCase()}</div>
             <div className="log-line rule">Type: {selectedTask.type}</div>
-            <div className="log-line rule">Duration: {selectedTask.duration}m</div>
+            <div className="log-line rule">Duration: {selectedTask.completionTime}m</div>
             <div className="log-line rule">Priority: {selectedTask.priority}</div>
             <div className="log-line rule">Difficulty: {selectedTask.difficulty}/10</div>
           </div>
 
-          <div className="meta-text" style={{ marginBottom: 16 }}>Cognitive Load Score</div>
+          <div className="meta-text" style={{ marginBottom: 16 }}>Axiom Cost (Etask)</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 24 }}>
-            <span style={{ fontSize: 32, fontWeight: 700, color: Math.abs(selectedTask.cl) > 7 ? 'var(--vermillion)' : 'var(--ink)' }}>
-              {selectedTask.cl.toFixed(2)}
+            <span style={{ fontSize: 32, fontWeight: 700, color: Math.abs(selectedTask.etask ?? 0) > 7 ? 'var(--vermillion)' : 'var(--ink)' }}>
+              {(selectedTask.etask ?? 0).toFixed(2)}
             </span>
-            <span className="meta-text">Base CL</span>
+            <span className="meta-text">Etask</span>
           </div>
 
-          {selectedTask.clBreakdown && (
+          {selectedTask.etaskBreakdown && (
             <>
-              <div className="meta-text" style={{ marginBottom: 12 }}>Load Breakdown</div>
+              <div className="meta-text" style={{ marginBottom: 12 }}>Etask Breakdown</div>
               <div style={{ border: "0.5px solid var(--rule)", padding: "16px", background: "var(--bg)" }}>
                 <pre style={{ margin: 0, fontFamily: "var(--mono)", fontSize: 11, color: "var(--muted)", whiteSpace: "pre-wrap" }}>
-                  {JSON.stringify(selectedTask.clBreakdown, null, 2)}
+                  {JSON.stringify(selectedTask.etaskBreakdown, null, 2)}
                 </pre>
               </div>
             </>
           )}
 
-          <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ marginTop: 32, display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            {selectedTask.state === "scheduled" && (
+              <button
+                className="btn"
+                onClick={async () => {
+                  dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: selectedTask.id, state: "unscheduled" } });
+                  await updateTaskStateAndSlot(selectedTask.id, "unscheduled", undefined);
+                  setSelectedTask(null);
+                }}
+              >
+                Unschedule [U]
+              </button>
+            )}
+            {selectedTask.state !== "completed" && (
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId: selectedTask.id, state: "completed" } });
+                  setSelectedTask(null);
+                  await updateTaskStateAndSlot(selectedTask.id, "completed", selectedTask.scheduledSlot ?? undefined);
+                }}
+              >
+                Mark as Complete ✓
+              </button>
+            )}
             <button
               className="btn"
               style={{ color: "var(--vermillion)", borderColor: "var(--vermillion)" }}
@@ -816,6 +927,6 @@ function DashboardContent() {
   );
 }
 
-export default function Dashboard() {
-  return <DashboardContent />;
+export default function Dashboard({ initialTrends }: { initialTrends?: TrendResult[] }) {
+  return <DashboardContent initialTrends={initialTrends} />;
 }

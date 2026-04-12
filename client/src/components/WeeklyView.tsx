@@ -36,7 +36,7 @@ export default function WeeklyView() {
   // CL per day
   const clPerDay = weekDays.map((_, i) => {
     const dayTasks = tasksForDay(i);
-    return dayTasks.reduce((sum, t) => sum + (t.cl > 0 ? t.cl : 0), 0);
+    return dayTasks.reduce((sum, t) => sum + (t.etask > 0 ? t.etask : 0), 0);
   });
 
   const maxDayCL = Math.max(...clPerDay, 1);
