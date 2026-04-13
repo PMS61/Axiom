@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "WATCHPACK_POLLING=true WATCHPACK_POLLING_INTERVAL=300 NODE_OPTIONS=--max-old-space-size=4096 next dev --webpack -p 3000",
+    "dev": "WATCHPACK_POLLING=true WATCHPACK_POLLING_INTERVAL=300 NODE_OPTIONS=--max-old-space-size=4096 next dev --turbopack -p 3000",
     "dev:fresh": "rm -rf .next && npm run dev",
     "build": "next build",
     "start": "next start",
