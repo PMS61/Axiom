@@ -16,7 +16,13 @@ const MOMENTUM_SYMBOL: Record<string, string> = {
   slowing: "↓",
 };
 
-function MiniTrendRow({ trend, accentColor }: { trend: TrendResult; accentColor: string }) {
+function MiniTrendRow({
+  trend,
+  accentColor,
+}: {
+  trend: TrendResult;
+  accentColor: string;
+}) {
   return (
     <a
       href={`/dashboard/trends/explore?topic=${encodeURIComponent(trend.topic)}`}
@@ -116,8 +122,13 @@ function ColumnCard({
         }}
       >
         <div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>{label}</div>
-          <div className="meta-text" style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>
+            {label}
+          </div>
+          <div
+            className="meta-text"
+            style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}
+          >
             {sublabel}
           </div>
         </div>
@@ -166,9 +177,15 @@ function ColumnCard({
 export default function TrendsSummary({ trends }: TrendsSummaryProps) {
   if (trends.length === 0) return null;
 
-  const rising = trends.filter((t) => t.direction === "rising").sort((a, b) => b.trend_score - a.trend_score);
-  const stable = trends.filter((t) => t.direction === "stable").sort((a, b) => b.trend_score - a.trend_score);
-  const declining = trends.filter((t) => t.direction === "declining").sort((a, b) => b.trend_score - a.trend_score);
+  const rising = trends
+    .filter((t) => t.direction === "rising")
+    .sort((a, b) => b.trend_score - a.trend_score);
+  const stable = trends
+    .filter((t) => t.direction === "stable")
+    .sort((a, b) => b.trend_score - a.trend_score);
+  const declining = trends
+    .filter((t) => t.direction === "declining")
+    .sort((a, b) => b.trend_score - a.trend_score);
 
   const topTrend = trends[0];
 
@@ -200,12 +217,20 @@ export default function TrendsSummary({ trends }: TrendsSummaryProps) {
           <h2 style={{ fontSize: 22, margin: 0, fontWeight: 700 }}>
             What to Learn Next
           </h2>
-          <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 6, marginBottom: 0 }}>
-            Live signals from News, Reddit &amp; Hacker News ·{" "}
-            {trends.length} topics tracked
+          <p
+            style={{
+              color: "var(--muted)",
+              fontSize: 12,
+              marginTop: 6,
+              marginBottom: 0,
+            }}
+          >
+            Live signals from News, Reddit &amp; Hacker News · {trends.length}{" "}
+            topics tracked
             {topTrend && (
               <>
-                {" "}· Top signal:{" "}
+                {" "}
+                · Top signal:{" "}
                 <span style={{ fontWeight: 600, color: "var(--ink)" }}>
                   {topTrend.topic}
                 </span>{" "}
@@ -274,7 +299,7 @@ export default function TrendsSummary({ trends }: TrendsSummaryProps) {
         }}
       >
         <span>Sources: NewsAPI · Reddit · Hacker News</span>
-        <span>Insights: Gemini 2.5 Flash Lite</span>
+        <span>Insights: Gemma 4</span>
       </div>
     </section>
   );

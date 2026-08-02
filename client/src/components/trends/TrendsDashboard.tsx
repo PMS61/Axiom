@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { addTopicToRoadmap, fetchTopTrends } from "@/app/actions/trends";
 import Header from "@/components/Header";
-import TrendCard from "./TrendCard";
+import type { RoadmapPayload, TrendResult } from "@/lib/trend-engine/types";
 import TopicSearch from "./TopicSearch";
-import { fetchTopTrends, addTopicToRoadmap } from "@/app/actions/trends";
-import type { TrendResult, RoadmapPayload } from "@/lib/trend-engine/types";
+import TrendCard from "./TrendCard";
 
 interface TrendsDashboardProps {
   initialTrends: TrendResult[];
@@ -56,11 +56,15 @@ export default function TrendsDashboard({
 
   // Stats
   const risingCount = trends.filter((t) => t.direction === "rising").length;
-  const decliningCount = trends.filter((t) => t.direction === "declining").length;
+  const decliningCount = trends.filter(
+    (t) => t.direction === "declining",
+  ).length;
   const stableCount = trends.filter((t) => t.direction === "stable").length;
   const avgScore =
     trends.length > 0
-      ? Math.round(trends.reduce((s, t) => s + t.trend_score, 0) / trends.length)
+      ? Math.round(
+          trends.reduce((s, t) => s + t.trend_score, 0) / trends.length,
+        )
       : 0;
   const topTrend = trends[0] ?? null;
 
@@ -107,9 +111,14 @@ export default function TrendsDashboard({
             <div className="meta-text" style={{ marginBottom: 16 }}>
               TREND INTELLIGENCE
             </div>
-            <h1 style={{ fontSize: 42, marginBottom: 24 }}>What to Learn Next</h1>
-            <p style={{ color: "var(--muted)", maxWidth: 380, marginBottom: 24 }}>
-              {trends.length} topics tracked · live signals from News, Reddit &amp; Hacker News.
+            <h1 style={{ fontSize: 42, marginBottom: 24 }}>
+              What to Learn Next
+            </h1>
+            <p
+              style={{ color: "var(--muted)", maxWidth: 380, marginBottom: 24 }}
+            >
+              {trends.length} topics tracked · live signals from News, Reddit
+              &amp; Hacker News.
             </p>
 
             <div
@@ -123,7 +132,9 @@ export default function TrendsDashboard({
               }}
             >
               <div>
-                <div style={{ fontSize: 10, color: "var(--muted)" }}>Rising</div>
+                <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                  Rising
+                </div>
                 <div
                   style={{
                     fontWeight: 700,
@@ -136,15 +147,24 @@ export default function TrendsDashboard({
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: "var(--muted)" }}>Stable</div>
+                <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                  Stable
+                </div>
                 <div
-                  style={{ fontWeight: 700, fontSize: 20, marginTop: 4, color: "var(--ink)" }}
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 20,
+                    marginTop: 4,
+                    color: "var(--ink)",
+                  }}
                 >
                   {stableCount}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: "var(--muted)" }}>Declining</div>
+                <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                  Declining
+                </div>
                 <div
                   style={{
                     fontWeight: 700,
@@ -157,9 +177,16 @@ export default function TrendsDashboard({
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: "var(--muted)" }}>Avg Score</div>
+                <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                  Avg Score
+                </div>
                 <div
-                  style={{ fontWeight: 700, fontSize: 20, marginTop: 4, color: "var(--ink)" }}
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 20,
+                    marginTop: 4,
+                    color: "var(--ink)",
+                  }}
                 >
                   {avgScore}
                 </div>
@@ -203,14 +230,26 @@ export default function TrendsDashboard({
                     marginBottom: 12,
                   }}
                 >
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{topTrend.topic}</h3>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
+                    {topTrend.topic}
+                  </h3>
                   <span
-                    style={{ fontWeight: 700, fontSize: 24, fontFamily: "var(--mono)" }}
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 24,
+                      fontFamily: "var(--mono)",
+                    }}
                   >
                     {topTrend.trend_score}
                   </span>
                 </div>
-                <p style={{ color: "var(--muted)", fontSize: 12, marginBottom: 16 }}>
+                <p
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: 12,
+                    marginBottom: 16,
+                  }}
+                >
                   {topTrend.insight}
                 </p>
                 <div className="meta-text" style={{ display: "flex", gap: 16 }}>
@@ -248,10 +287,14 @@ export default function TrendsDashboard({
       >
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <button
+            type="button"
             className="btn btn-sm btn-primary"
             onClick={handleRefresh}
             disabled={isPending}
-            style={{ opacity: isPending ? 0.6 : 1, cursor: isPending ? "not-allowed" : "pointer" }}
+            style={{
+              opacity: isPending ? 0.6 : 1,
+              cursor: isPending ? "not-allowed" : "pointer",
+            }}
           >
             {isPending ? "Refreshing…" : "↺ Refresh Signals"}
           </button>
@@ -264,8 +307,17 @@ export default function TrendsDashboard({
 
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           {roadmapQueue.length > 0 && (
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <span className="meta-text">Roadmap Queue ({roadmapQueue.length}):</span>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <span className="meta-text">
+                Roadmap Queue ({roadmapQueue.length}):
+              </span>
               {roadmapQueue.map((p) => (
                 <div
                   key={p.topic}
@@ -294,8 +346,10 @@ export default function TrendsDashboard({
       </section>
 
       {/* ── Main Content ── */}
-      <section className="container" style={{ paddingTop: 40, paddingBottom: 80 }}>
-
+      <section
+        className="container"
+        style={{ paddingTop: 40, paddingBottom: 80 }}
+      >
         {/* Trending Topics Table */}
         <div style={{ marginBottom: 60 }}>
           <div
@@ -308,7 +362,9 @@ export default function TrendsDashboard({
               paddingBottom: 8,
             }}
           >
-            <h2 style={{ fontSize: 18 }}>Top {trends.length} Trending Topics</h2>
+            <h2 style={{ fontSize: 18 }}>
+              Top {trends.length} Trending Topics
+            </h2>
             <span className="meta-text">Last 48h · All sources</span>
           </div>
 
@@ -391,7 +447,7 @@ export default function TrendsDashboard({
           <span>Sources: NewsAPI</span>
           <span>Reddit</span>
           <span>Hacker News</span>
-          <span>Insights: Gemini 2.0 Flash</span>
+          <span>Insights: Gemma 4</span>
         </div>
       </section>
     </div>

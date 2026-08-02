@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DemoNotice from "@/components/DemoNotice";
 import FlashcardStack from "@/components/FlashcardStack";
 import { generateFlashcards } from "./actions";
 
@@ -50,6 +51,7 @@ export default function FlashcardDemoPage() {
         paddingBottom: 40,
       }}
     >
+      <DemoNotice label="flashcard generation sandbox" />
       <section
         className="container section-rule"
         style={{ paddingTop: 40, paddingBottom: 32 }}

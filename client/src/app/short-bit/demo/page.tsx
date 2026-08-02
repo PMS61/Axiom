@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DemoNotice from "@/components/DemoNotice";
 import ShortBitStack from "@/components/ShortBitStack";
 import { generateShortBits } from "./actions";
 
@@ -50,6 +51,7 @@ export default function ShortBitDemoPage() {
         paddingBottom: 40,
       }}
     >
+      <DemoNotice label="short-bit generation sandbox" />
       <section
         className="container section-rule"
         style={{ paddingTop: 40, paddingBottom: 32 }}

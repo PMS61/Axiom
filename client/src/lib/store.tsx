@@ -1044,10 +1044,10 @@ function reducer(state: AppState, action: Action): AppState {
       const recomputed = updatedNodes.map((node) => {
         const mastery =
           updatedNodes.find((n) => n.id === node.id)?.masteryScore ?? 0;
-        if (mastery >= 0.8) return { ...node, nodeState: "mastered" as const };
+        if (mastery >= 0.75) return { ...node, nodeState: "mastered" as const };
         const allPrereqsMet = node.prerequisites.every((prereqId) => {
           const prereq = updatedNodes.find((n) => n.id === prereqId);
-          return prereq && prereq.masteryScore >= 0.8;
+          return prereq && prereq.masteryScore >= 0.75;
         });
         if (allPrereqsMet || node.prerequisites.length === 0) {
           return {

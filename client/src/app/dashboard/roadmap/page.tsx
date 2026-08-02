@@ -6,22 +6,21 @@
 
 "use client";
 
-import { Suspense, useCallback, useState, useEffect, useRef } from "react";
-import { useApp } from "@/lib/store";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import {
+  generateRoadmapAction,
+  getLatestRoadmapAction,
+  getRoadmapAction,
+  listRoadmapsAction,
+  saveRoadmapAction,
+} from "@/app/actions/roadmap";
+import { getTasks, saveTask, syncTasks } from "@/app/actions/tasks";
 import Header from "@/components/Header";
 import RoadmapDAGView from "@/components/RoadmapDAGView";
 import RoadmapGoalModal from "@/components/RoadmapGoalModal";
-import {
-  generateRoadmapAction,
-  saveRoadmapAction,
-  clearRoadmapAction,
-  listRoadmapsAction,
-  getRoadmapAction,
-  getLatestRoadmapAction,
-} from "@/app/actions/roadmap";
-import { saveTask, syncTasks, getTasks } from "@/app/actions/tasks";
 import { computeCL } from "@/lib/engine";
+import { useApp } from "@/lib/store";
 import type { RoadmapDAGNode, RoadmapGoal, Task } from "@/lib/types";
 
 // ── Task type mapping ─────────────────────────────────────
@@ -130,7 +129,11 @@ export default function RoadmapPage() {
     <Suspense
       fallback={
         <div
-          style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+          }}
         >
           <Header />
         </div>
@@ -203,18 +206,21 @@ function RoadmapPageContent() {
     setLoadingRoadmaps(false);
   }, []);
 
-  const loadSpecificRoadmap = useCallback(async (id: string) => {
-    dispatch({ type: "SET_ROADMAP_GENERATING", payload: true });
-    setShowSavedModal(false);
-    const result = await getRoadmapAction(id);
-    if (result.roadmap) {
-      dispatch({ type: "SET_ROADMAP", payload: result.roadmap });
-      setShowGoalModal(false);
-    } else {
-      setError(result.error ?? "Failed to load roadmap");
-    }
-    dispatch({ type: "SET_ROADMAP_GENERATING", payload: false });
-  }, [dispatch]);
+  const loadSpecificRoadmap = useCallback(
+    async (id: string) => {
+      dispatch({ type: "SET_ROADMAP_GENERATING", payload: true });
+      setShowSavedModal(false);
+      const result = await getRoadmapAction(id);
+      if (result.roadmap) {
+        dispatch({ type: "SET_ROADMAP", payload: result.roadmap });
+        setShowGoalModal(false);
+      } else {
+        setError(result.error ?? "Failed to load roadmap");
+      }
+      dispatch({ type: "SET_ROADMAP_GENERATING", payload: false });
+    },
+    [dispatch],
+  );
 
   // ── Auto-save roadmap ──────────────────────────────────
   useEffect(() => {
@@ -246,7 +252,7 @@ function RoadmapPageContent() {
 
       // Auto-create a task for every node
       const newTasks: Task[] = [];
-      const updatedNodes = result.roadmap.nodes.map(node => {
+      const updatedNodes = result.roadmap.nodes.map((node) => {
         const task = nodeToTask(node);
         newTasks.push(task);
         return { ...node, taskId: task.id };
@@ -255,10 +261,10 @@ function RoadmapPageContent() {
       result.roadmap.lastUpdatedAt = new Date().toISOString(); // Update timestamp to trigger auto-save
 
       dispatch({ type: "SET_ROADMAP", payload: result.roadmap });
-      
+
       // Dispatch ADD_TASK sequentially for the reducer
-      newTasks.forEach(t => dispatch({ type: "ADD_TASK", payload: t }));
-      
+      newTasks.forEach((t) => dispatch({ type: "ADD_TASK", payload: t }));
+
       // Save them all to the database
       try {
         await syncTasks(newTasks);
@@ -684,15 +690,45 @@ function RoadmapPageContent() {
             >
               ✕
             </button>
-            <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, marginBottom: 24 }}>
+            <h2
+              style={{
+                fontFamily: "var(--serif)",
+                fontSize: 24,
+                marginBottom: 24,
+              }}
+            >
               Saved Roadmaps
             </h2>
             {loadingRoadmaps ? (
-              <p style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>Loading...</p>
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontFamily: "var(--mono)",
+                  fontSize: 12,
+                }}
+              >
+                Loading...
+              </p>
             ) : savedRoadmaps.length === 0 ? (
-              <p style={{ color: "var(--muted)", fontFamily: "var(--mono)", fontSize: 12 }}>No saved roadmaps found.</p>
+              <p
+                style={{
+                  color: "var(--muted)",
+                  fontFamily: "var(--mono)",
+                  fontSize: 12,
+                }}
+              >
+                No saved roadmaps found.
+              </p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 400, overflowY: "auto" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  maxHeight: 400,
+                  overflowY: "auto",
+                }}
+              >
                 {savedRoadmaps.map((rm) => (
                   <div
                     key={rm.id}
@@ -703,9 +739,28 @@ function RoadmapPageContent() {
                     }}
                     onClick={() => loadSpecificRoadmap(rm.id)}
                   >
-                    <div style={{ fontWeight: "bold", marginBottom: 8, fontSize: 14 }}>{rm.goal.goal}</div>
-                    <div style={{ display: "flex", gap: 16, fontSize: 10, fontFamily: "var(--mono)", color: "var(--muted)", textTransform: "uppercase" }}>
-                      <span>{new Date(rm.lastUpdatedAt).toLocaleDateString()}</span>
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        marginBottom: 8,
+                        fontSize: 14,
+                      }}
+                    >
+                      {rm.goal.goal}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 16,
+                        fontSize: 10,
+                        fontFamily: "var(--mono)",
+                        color: "var(--muted)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      <span>
+                        {new Date(rm.lastUpdatedAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 ))}

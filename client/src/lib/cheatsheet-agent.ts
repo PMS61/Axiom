@@ -247,14 +247,13 @@ JSON schema to follow exactly:
   try {
     const raw = await getGeminiResponse(prompt, true);
     const parsed = JSON.parse(raw);
+    if (parsed?.error) {
+      throw new Error(parsed.message || parsed.error);
+    }
     const payload = normalizePayload(parsed, title, description);
     return toMarkdown(payload, title, additionalInstructions);
   } catch (error) {
     console.error("[CheatSheetAgent] generation failed:", error);
-    return toMarkdown(
-      fallbackPayload(title, description),
-      title,
-      additionalInstructions,
-    );
+    throw error;
   }
 }

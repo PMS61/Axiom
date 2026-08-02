@@ -36,7 +36,8 @@ type StoredContentType =
   | "story"
   | "flashcards"
   | "short_bits"
-  | "cheatsheet";
+  | "cheatsheet"
+  | "assessment";
 
 export type StoredContentKind = StoredContentType;
 

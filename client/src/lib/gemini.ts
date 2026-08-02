@@ -5,26 +5,17 @@ import { GoogleGenAI } from "@google/genai";
 // Rate limiter configuration
 const MAX_CALLS_PER_MINUTE = 30;
 const MINUTE_IN_MS = 60 * 1000;
+const GEMMA_4_MODEL = "gemma-4-31b-it";
 
-// Initialize the API with your API key
-const API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-
-if (!API_KEY) {
-  throw new Error("Missing Gemini API key. Please add GEMINI_API_KEY or NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file");
-}
-
-// console.log("Using Gemini API key:", API_KEY);
-
-const genAI = new GoogleGenAI({
-  apiKey: API_KEY
-});
+let genAI: GoogleGenAI | null = null;
 
 /**
  * Sleep for the specified duration
  * @param {number} ms - Duration to sleep in milliseconds
  * @returns {Promise<void>}
  */
-const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 function extractJsonFromResponse(text: string): string {
   const startIndex = text.indexOf("```json");
@@ -35,6 +26,21 @@ function extractJsonFromResponse(text: string): string {
   }
 
   return text.trim(); // fallback: return full text
+}
+
+function getGeminiClient(): GoogleGenAI | null {
+  if (genAI) return genAI;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn(
+      "GEMINI_API_KEY is not configured; AI generation is unavailable.",
+    );
+    return null;
+  }
+
+  genAI = new GoogleGenAI({ apiKey });
+  return genAI;
 }
 
 // Improved rate limiter: avoid hitting the limit by spacing calls evenly
@@ -54,24 +60,36 @@ async function rateLimitSafe(): Promise<void> {
 
 function isRateLimitError(error: unknown): boolean {
   if (!error) return false;
-  if (typeof error === 'object' && error !== null) {
-    // @ts-expect-error Gemini API error shape may have response.status
-    if (error.response && error.response.status === 429) return true;
-    // @ts-expect-error Gemini API error shape may have message string
-    if (typeof error.message === 'string' && error.message.toLowerCase().includes('rate limit')) return true;
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as {
+      message?: unknown;
+      response?: { status?: unknown };
+    };
+    if (candidate.response?.status === 429) return true;
+    if (
+      typeof candidate.message === "string" &&
+      candidate.message.toLowerCase().includes("rate limit")
+    )
+      return true;
   }
   return false;
 }
 
 function isServiceUnavailableError(error: unknown): boolean {
   if (!error) return false;
-  if (typeof error === 'object' && error !== null) {
-    // @ts-expect-error Gemini API error shape may have status
-    if (error.status === 503) return true;
-    // @ts-expect-error Gemini API error shape may have message string
-    if (typeof error.message === 'string' && error.message.toLowerCase().includes('overloaded')) return true;
-    // @ts-expect-error Gemini API error shape may have message string
-    if (typeof error.message === 'string' && error.message.toLowerCase().includes('unavailable')) return true;
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { message?: unknown; status?: unknown };
+    if (candidate.status === 503) return true;
+    if (
+      typeof candidate.message === "string" &&
+      candidate.message.toLowerCase().includes("overloaded")
+    )
+      return true;
+    if (
+      typeof candidate.message === "string" &&
+      candidate.message.toLowerCase().includes("unavailable")
+    )
+      return true;
   }
   return false;
 }
@@ -84,8 +102,25 @@ function isServiceUnavailableError(error: unknown): boolean {
 export async function getGeminiResponse(
   prompt: string,
   isJson: boolean = true,
-  model: string = "gemma-4-31b-it",
+  model: string = GEMMA_4_MODEL,
 ): Promise<string> {
+  const client = getGeminiClient();
+  if (!client) {
+    return isJson
+      ? JSON.stringify({
+          error: "ai_unavailable",
+          message:
+            "Gemma 4 is unavailable because GEMINI_API_KEY is not configured.",
+        })
+      : "AI generation is unavailable because GEMINI_API_KEY is not configured.";
+  }
+
+  if (model !== GEMMA_4_MODEL) {
+    console.warn(
+      `Ignoring requested model "${model}". Axiom is configured to use ${GEMMA_4_MODEL} only.`,
+    );
+  }
+
   let retryCount = 0;
   const maxRetries = 3;
 
@@ -93,8 +128,8 @@ export async function getGeminiResponse(
     try {
       await rateLimitSafe();
 
-      const response = await genAI.models.generateContent({
-        model: model,
+      const response = await client.models.generateContent({
+        model: GEMMA_4_MODEL,
         contents: prompt,
       });
 
@@ -135,20 +170,29 @@ export async function getGeminiResponse(
       }
 
       if (isServiceUnavailableError(error)) {
-        console.warn(`Service unavailable (attempt ${retryCount}/${maxRetries}), retrying in ${5 * retryCount}s...`);
+        console.warn(
+          `Service unavailable (attempt ${retryCount}/${maxRetries}), retrying in ${5 * retryCount}s...`,
+        );
         if (retryCount < maxRetries) {
           await sleep(5000 * retryCount);
           continue;
         }
       }
 
-      console.error(`Error in Gemini API (attempt ${retryCount}/${maxRetries}):`, error);
+      console.error(
+        `Error in Gemini API (attempt ${retryCount}/${maxRetries}):`,
+        error,
+      );
 
       if (retryCount >= maxRetries) {
         console.error("Max retries exceeded, falling back to default content");
         if (isJson) {
           // Return a basic error structure for JSON requests
-          return JSON.stringify({ error: "service_unavailable", message: "Gemini API is currently unavailable. Using fallback content." });
+          return JSON.stringify({
+            error: "service_unavailable",
+            message:
+              "Gemma 4 is currently unavailable. Using fallback content.",
+          });
         } else {
           return "I apologize, but the AI service is currently unavailable. Please try again later.";
         }
@@ -161,5 +205,7 @@ export async function getGeminiResponse(
 
   // This should never be reached, but just in case
   console.error("Unexpected end of retry loop");
-  return isJson ? JSON.stringify({ error: "max_retries_exceeded" }) : "Sorry, I encountered an error processing your request.";
+  return isJson
+    ? JSON.stringify({ error: "max_retries_exceeded" })
+    : "Sorry, I encountered an error processing your request.";
 }
