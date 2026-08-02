@@ -1,5 +1,24 @@
 # Plan 4 — Unify Personalization Across Trends, Course, and Scheduler
 
+## Status: core implemented (commit `a23c4a6`)
+
+What shipped, and how it differs from the original design below (kept for history — this file is still the reference for what's left):
+
+| Sequencing step | Status | Notes |
+|---|---|---|
+| 1. `mastery` table + write-back points | **Done** | Landed as `user_mastery` (not `mastery`) in `app/actions/personalization.ts`. Write-back wired at both points identified: `evaluateAssessmentAction` (assessment.ts) and `completeNodeAction` (roadmap.ts). Merge policy implemented exactly as specified — `source="assessment"` always overwrites, `source="roadmap"` only writes when no assessment-sourced row exists yet. Scheduler's `computeCalibratedMultipliers()` was deliberately **not** wired into this table — confirmed correct per this plan's own §4 note that it's a type-level signal, not topic-level; it stays live-computed from `tasks`, no persistence needed. |
+| 2. Consolidate `user_interests` | **Done, differently than specified** | Did **not** physically merge `user_interests` into the `users` row — kept it as its own table (it already had a clean FK) and instead built the "single fetch path" the design allowed as an alternative: `getLearnerProfile(userId)` joins `users` + `user_interests` + `section_weights` + `user_mastery` into one object. Lower migration risk, same practical effect (nothing reads `user_interests` directly anymore outside this join). |
+| 3. Three projection functions | **Done** | Landed in `lib/personalization.ts`: `toRoadmapPersonalizationPayload` (wired), `toCoursePersonalizationPayload` and `toTrendPersonalizationPayload` (built, intentionally unwired — see step 5/6). Also added `normalizeTopicKey()`, not in the original design — routes every mastery key through the trend engine's `normalizeQueryToTopic()` so mastery topics, roadmap node titles, and trend topic labels converge on one vocabulary instead of three. |
+| 4. Wire roadmap agent | **Done, bigger than expected** | The plan assumed this was "mostly a refactor" of an existing ad-hoc construction. Investigation found `RoadmapGoal.userProfile` and `existingMastery` were typed fields **never populated by any call site** — `RoadmapGoalModal` only ever submitted `{goal, syllabus, deadline}`. This was a from-scratch wire, not a refactor: `generateRoadmapAction` now fetches `getLearnerProfile()` and fills both fields when the caller didn't set them explicitly. |
+| 5. Wire course agents | **Not started — deferred, as planned** | Waiting on Plan 2's pipeline refactor, per this file's own §"Suggested sequencing" note. `toCoursePersonalizationPayload` is ready to consume. |
+| 6. Wire trend ranking | **Not started — deferred, as planned** | Waiting on Plan 3's scoring/grounding fixes landing first. `toTrendPersonalizationPayload` is ready to consume. |
+
+Also shipped but not in the original design: a canonical `LearnerProfile` type (`lib/types.ts`) — rather than extending `StoredUserProfile` directly as §1 originally proposed, personalization fields live in a separate type, fetched server-side only, exactly matching this plan's own §3 guidance to keep them out of the localStorage-first fast path. And a `users.experience_level`/`users.learning_style` column pair plus a minimal edit UI in `ProfileClient.tsx`, since those fields had no capture path anywhere (not scoped in the original design, added because the alternative was another write-only dead field like `user_interests` was before this plan).
+
+**Next consumers**: Plan 2 and Plan 3 pick up `toCoursePersonalizationPayload`/`toTrendPersonalizationPayload` respectively — see the branch note in each plan's file.
+
+---
+
 ## Context: personalization today is three disconnected islands
 
 | Pillar | Profile data it actually uses | Source | Persistence |

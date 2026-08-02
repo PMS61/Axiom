@@ -35,11 +35,11 @@ It's a Next.js application, not a slideware concept — every piece named below 
 - Scores every topic on **frequency, engagement, and recency** (exponential recency decay, 24h half-life), ranks and surfaces the top movers on a live dashboard.
 - Classifies each trend's **direction** (rising/stable/declining) and **momentum** (accelerating/steady/slowing) from real signal history — not a static label.
 - An "Explore" mode lets a user type any topic and get an AI-generated market overview: relevance score, effort/ROI estimate, job demand, a full prerequisite-graph breakdown into subtopics, all grounded in the live trend data where available.
-- Users declare interest domains and a profile type to personalize what surfaces.
+- Users declare interest domains and a profile type; wiring that into what actually surfaces (rather than just being captured) is next in line — see `plans/03`.
 
 ### HOW — Adaptive Content Generation
-- **Roadmap Agent** — turns a stated goal into a personalized Directed Acyclic Graph of learning nodes (courses + assessments), respecting prerequisites, sized to the learner's available daily time and experience level, fast-tracking topics they've already shown mastery in.
-- **Course Agent** — generates full slide-deck courses from a topic: title, section, content, code, image, table, list, quote, and Mermaid-diagram slide types, composed automatically into a coherent crash course.
+- **Roadmap Agent** — turns a stated goal into a personalized Directed Acyclic Graph of learning nodes (courses + assessments), respecting prerequisites, sized to the learner's available daily time and declared experience level, fast-tracking topics with a recorded mastery score above 0.75. This mastery signal is real and measured, not a placeholder: every assessment grade and every completed roadmap node writes to a shared mastery table that the next roadmap generation reads back.
+- **Course Agent** — generates full slide-deck courses from a topic: title, section, content, code, image, table, list, quote, and Mermaid-diagram slide types, composed automatically into a coherent crash course. Depth/pacing adapting to the same mastery signal is next in line — see `plans/02`.
 - **Assessment Agent** — generates mixed-format quizzes (MCQ, short answer, long answer, coding with test cases) per topic, and evaluates free-form answers with AI-graded feedback and rubric scoring.
 - **Cheatsheet, Flashcard, Short-Bit, and Story Agents** — the same topic can be consumed as an exam cheat-sheet, a spaced-repetition flashcard deck, a bite-size micro-learning card, or a narrative web-novel chapter — four different learning styles from one content pipeline.
 - Every generator is LLM-backed (Gemini) with structured-JSON contracts, retry logic, and rate-limit handling already production-hardened.
@@ -68,7 +68,7 @@ This is Axiom's core technical differentiator: a **fully deterministic, explaina
 | Reproducible (same input → same output) | No | Yes | **Yes — fully deterministic** |
 | Models cognitive effort, not just time | No | No | **Yes — energy/axiom model** |
 | Connects discovery → content → schedule | No | No | **Yes — one loop, not three tools** |
-| Adapts content depth to demonstrated mastery | Rarely | No | Roadmap agent does today; full personalization is active development (see `plans/04`) |
+| Adapts content depth to demonstrated mastery | Rarely | No | Roadmap node selection does today, on a real measured mastery signal; course-content depth is next in line (see `plans/02`) |
 
 The scheduler's determinism is a deliberate, defensible choice, not a limitation: every schedule Axiom produces can be audited, reproduced, and explained — a real gap in every commercial AI scheduling tool on the market today.
 
@@ -81,4 +81,11 @@ The scheduler's determinism is a deliberate, defensible choice, not a limitation
 
 ## 6. What's Next (kept out of this brief, tracked separately)
 
-Five workstreams are actively planned and documented in `plans/`: a formal research paper on the scheduler (with a real optimizer implementation replacing the current heuristic for comparison), agentic course generation with 3D narrated video export, trend-prediction accuracy improvements, a unified personalization layer, and full closed-loop integration across all three pillars. None of that is claimed as done here — this brief is deliberately scoped to what a user can use today.
+Five workstreams are planned in `plans/`. **One is done**: the unified personalization layer (`plans/04`) — a shared mastery table and learner profile now backing the roadmap agent, described above. Four remain, each being built on its own git branch since they're largely independent of each other:
+
+- `plans/01` — a formal research paper on the scheduler, with a real optimizer implementation replacing the current heuristic for comparison. Fully independent — its own branch, mergeable in any order.
+- `plans/02` — agentic course generation with 3D narrated video export and a doubt chatbox. Own branch, builds directly on the personalization layer already merged.
+- `plans/03` — trend-prediction accuracy and grounding improvements. Own branch, independent of `plans/02`, also builds on the personalization layer.
+- `plans/05` — closing the remaining two loop edges (trend ranking and course generation reading the mastery signal live). Its branch opens only after `plans/02` and `plans/03` both merge, since it wires their interfaces together.
+
+None of the remaining four is claimed as done here — this brief is deliberately scoped to what a user can use today.
