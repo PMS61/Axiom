@@ -25,6 +25,19 @@ Not all four "missing" techniques are equally worth building. Triaged by effort 
 
 Net effect: the rewritten paper keeps §5.1–5.4 and §5.6–5.9 as-is (they're already true), replaces §5.5 (chunking) with an honest note on atomic scheduling, replaces §5.10 (Knapsack) with the *real* implementation, keeps §5.11 (Lagrangian) but backed by real code, replaces §5.12 (Markov) with a Limitations entry, and replaces §5.13 (Fourier) with a real DFT run over synthetic energy logs. Section 6 (Evaluation) is entirely rebuilt on real simulation output — the 84%/81%/9%/7% table is deleted and replaced with real numbers, whatever they turn out to be.
 
+## Framing: the constants are priors, not fitted parameters
+
+Every formula in the model has at least one hand-picked constant: `E_task = 0.6·d² + 0.8·p`, the 0.40/0.35/0.25 morning/afternoon/evening split, the feedback learning rate α=0.2, the `Score = (2p + d + 3U)/E_task` weighting, the Lagrangian multipliers λ₁/λ₂/λ₃ once added. None of these were fit to real usage data — there is no deployed cohort to fit them against, and no comparable prior system's constants to borrow (the PDF's own baselines are a synthetic "AI Scheduler" and a synthetic "Static Planner," not real products with known-good parameters).
+
+**Do not claim these specific numbers are optimal.** That claim isn't supportable and would be the same overreach being fixed elsewhere in this plan (fabricated Knapsack/Markov/Fourier results). Instead, frame explicitly:
+
+- The contribution is the **formulation** — a constrained-optimization structure for cognitive-load scheduling, with a provably feasible optimizer and measurable multi-objective trade-offs — not a claim that these particular coefficients are correct.
+- The constants are **hand-tuned priors**, stated as such wherever they appear (§5.1–5.4 text, not just a caveat buried in Limitations).
+- Add a **sensitivity analysis** to the evaluation (§6): sweep each constant (e.g. the 0.6/0.8 split in `E_task`, the α feedback rate, the composite-score weighting) across a plausible range and show how feasibility rate / deadline-miss rate / burnout-incident rate respond. This replaces false precision with an honest map of "how much does this constant matter, and in which direction" — which is itself a useful, checkable result.
+- Frame the paper's numeric baseline explicitly as **a starting point for calibration against real usage**, not a finished tuning. This is consistent with `AXIOM_PROJECT_BRIEF.md`'s own Bayesian-calibration proposal (§05) and gives the paper a legitimate future-work hook instead of an unfalsifiable claim.
+
+This framing is a strict improvement, not a hedge: it turns "we don't know if these numbers are right" from a weakness into the honest scope of a first paper on a system with no prior deployment to calibrate against — real usage data becomes the natural follow-up study, and the sensitivity analysis is itself a real, checkable contribution the fabricated draft never had.
+
 ## Deliverables
 
 1. **`research/` harness directory** (new, sibling to `client/`, doesn't touch production data or `client/src/lib` behavior at runtime):
@@ -38,11 +51,12 @@ Net effect: the rewritten paper keeps §5.1–5.4 and §5.6–5.9 as-is (they're
    - `analysis/fourierRhythm.ts` — DFT over synthetic/logged energy time series, feeding calibrated section weights back into `buildSections`.
    - `metrics/engine.ts` — computes every metric in `AXIOM_PROJECT_BRIEF.md` §09 (feasibility rate, deadline-miss rate, CL variance, context-switches/day, burnout-incident rate, axiom utilisation, solve time, explanation fidelity) per run, logged automatically.
    - `analysis/statisticalCompare.ts` — paired t-test / Wilcoxon signed-rank across identical seeds, Pareto-front plot data (deadline-risk vs. burnout-risk) per algorithm.
+   - `analysis/sensitivitySweep.ts` — reruns the algorithm bank across a grid of constant values (E_task's 0.6/0.8, feedback α, composite-score weights) holding seeds fixed, so results are attributable to the constant change and not seed noise. Backs the "priors, not fitted parameters" framing above with an actual sensitivity curve instead of an assertion.
    - `run.ts` — CLI entry point: N seeds × {7, 14, 30}-day horizons × algorithm bank, writes raw results to `research/results/`.
 2. **Rewritten paper** at `research/paper/axiom-scheduler.md` (or `.tex` if the target venue needs LaTeX — check with the co-authors before choosing format): same author list and section structure as the PDF, but:
    - §5.5, §5.10–§5.13 rewritten to match what's actually built (per the triage table above).
    - §6 entirely replaced with real simulation output from the harness.
-   - New §7 Limitations honestly scoped: synthetic-only evaluation (already true, keep), Markov model explicitly deferred pending session telemetry, energy-model constants still empirically chosen not fitted.
+   - New §7 Limitations honestly scoped: synthetic-only evaluation (already true, keep), Markov model explicitly deferred pending session telemetry, and all model constants stated as hand-tuned priors backed by the sensitivity sweep — not claimed as fitted-optimal, with real-usage calibration named as the natural follow-up.
    - Every formula gets a real `File:` pointer, and every pointer must resolve to an actual file — no more references to nonexistent modules.
 3. **A short reconciliation note** (can live at the top of the new paper or as a separate `research/NOTE.md`) explicitly stating the earlier draft's Table 1/Table 2 numbers were placeholders never backed by an implementation, and are superseded by this version. This is the honest thing to do given the co-authors' names are on the original draft — flag it before anyone submits or shares the old PDF further.
 
