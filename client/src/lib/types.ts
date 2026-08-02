@@ -364,6 +364,26 @@ export interface TopicMastery {
   score: number; // 0.0 – 1.0
 }
 
+/**
+ * Canonical, cross-pillar learner profile. One source of truth for
+ * personalisation signal consumed by the roadmap agent, course
+ * generators, and trend ranking — see plans/04-personalization-unification-plan.md.
+ *
+ * Schedule-specific fields (wake/sleep, focus windows, session style, etc.)
+ * intentionally stay in `StoredUserProfile` (userProfileStorage.ts) — this
+ * type only covers what the *other* pillars need and currently lack.
+ */
+export interface LearnerProfile {
+  userId: number;
+  experienceLevel: "beginner" | "intermediate" | "advanced";
+  learningStyle: "visual" | "reading" | "practice" | "balanced";
+  interestDomains: string[];
+  profileType: string;
+  dailyMinutes: number;
+  /** topic (normalised via trend-engine's topicMapper) -> mastery score 0.0–1.0 */
+  masteryByTopic: Record<string, number>;
+}
+
 /** Full goal specification passed to the Roadmap Agent */
 export interface RoadmapGoal {
   goal: string; // e.g. "Master Data Structures & Algorithms for coding interviews"

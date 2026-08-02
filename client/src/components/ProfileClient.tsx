@@ -6,16 +6,22 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AppProvider } from "@/lib/store";
-import Header from "@/components/Header";
+import { useCallback, useState } from "react";
 import { updateUserProfile } from "@/app/actions/auth";
+import Header from "@/components/Header";
+import { AppProvider } from "@/lib/store";
 
 /* ── Label maps ─────────────────────────────────────────── */
 
-const ROLE_OPTIONS = ["Student", "Researcher", "Professional", "Self-learner", "Other"];
+const ROLE_OPTIONS = [
+  "Student",
+  "Researcher",
+  "Professional",
+  "Self-learner",
+  "Other",
+];
 
 const SESSION_STYLE_OPTIONS = [
   "Long deep blocks (90+ min)",
@@ -31,19 +37,50 @@ const SWITCH_BUFFER_OPTIONS = [
   "Finish one first",
 ];
 
-const DEADLINE_STYLE_OPTIONS = ["Finish early", "Work steadily", "Work under pressure"];
+const DEADLINE_STYLE_OPTIONS = [
+  "Finish early",
+  "Work steadily",
+  "Work under pressure",
+];
+
+const EXPERIENCE_LEVEL_OPTIONS: Array<{
+  value: "beginner" | "intermediate" | "advanced";
+  label: string;
+}> = [
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+];
+
+const LEARNING_STYLE_OPTIONS: Array<{
+  value: "visual" | "reading" | "practice" | "balanced";
+  label: string;
+}> = [
+  { value: "visual", label: "Visual (diagrams, video)" },
+  { value: "reading", label: "Reading (text, docs)" },
+  { value: "practice", label: "Practice (hands-on)" },
+  { value: "balanced", label: "Balanced mix" },
+];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /* ── Helpers ────────────────────────────────────────────── */
 
 type TimeWindow = { start_min: number; end_min: number };
-type FixedBlock = { title: string; start_min: number; end_min: number; days: number[]; recurring: boolean };
+type FixedBlock = {
+  title: string;
+  start_min: number;
+  end_min: number;
+  days: number[];
+  recurring: boolean;
+};
 
 function formatTime(minutes: number | null | undefined): string {
   if (minutes === null || minutes === undefined) return "N/A";
   const normalized = ((Math.floor(minutes) % 1440) + 1440) % 1440;
-  const h = Math.floor(normalized / 60).toString().padStart(2, "0");
+  const h = Math.floor(normalized / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (normalized % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
 }
@@ -56,7 +93,9 @@ function minutesFromTimeString(s: string): number {
 function timeInputValue(minutes: number | null | undefined): string {
   if (minutes === null || minutes === undefined) return "07:00";
   const normalized = ((Math.floor(minutes) % 1440) + 1440) % 1440;
-  const h = Math.floor(normalized / 60).toString().padStart(2, "0");
+  const h = Math.floor(normalized / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (normalized % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
 }
@@ -80,7 +119,11 @@ const sectionHeadingStyle: React.CSSProperties = {
   alignItems: "center",
 };
 
-const fieldLabelStyle: React.CSSProperties = { fontSize: 12, color: "var(--muted)", marginBottom: 4 };
+const fieldLabelStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "var(--muted)",
+  marginBottom: 4,
+};
 const fieldValueStyle: React.CSSProperties = { fontWeight: 600 };
 
 const chipStyle: React.CSSProperties = {
@@ -133,16 +176,34 @@ export default function ProfileClient({ user }: { user: any }) {
 
   // --- Peak / Low windows ---
   const [editingPeak, setEditingPeak] = useState(false);
-  const rawPeak = typeof user.peak_focus_windows === "string" ? JSON.parse(user.peak_focus_windows) : (user.peak_focus_windows ?? []);
+  const rawPeak =
+    typeof user.peak_focus_windows === "string"
+      ? JSON.parse(user.peak_focus_windows)
+      : (user.peak_focus_windows ?? []);
   const [peakWindows, setPeakWindows] = useState<TimeWindow[]>(rawPeak);
 
   const [editingLow, setEditingLow] = useState(false);
-  const rawLow = typeof user.low_energy_windows === "string" ? JSON.parse(user.low_energy_windows) : (user.low_energy_windows ?? []);
+  const rawLow =
+    typeof user.low_energy_windows === "string"
+      ? JSON.parse(user.low_energy_windows)
+      : (user.low_energy_windows ?? []);
   const [lowWindows, setLowWindows] = useState<TimeWindow[]>(rawLow);
+
+  // --- Learning preferences (experience level, learning style) ---
+  const [editingLearning, setEditingLearning] = useState(false);
+  const [experienceLevel, setExperienceLevel] = useState<
+    "beginner" | "intermediate" | "advanced"
+  >(user.experience_level ?? "beginner");
+  const [learningStyle, setLearningStyle] = useState<
+    "visual" | "reading" | "practice" | "balanced"
+  >(user.learning_style ?? "balanced");
 
   // --- Fixed commitments ---
   const [editingBlocks, setEditingBlocks] = useState(false);
-  const rawBlocks = typeof user.fixed_commitments === "string" ? JSON.parse(user.fixed_commitments) : (user.fixed_commitments ?? []);
+  const rawBlocks =
+    typeof user.fixed_commitments === "string"
+      ? JSON.parse(user.fixed_commitments)
+      : (user.fixed_commitments ?? []);
   const [fixedBlocks, setFixedBlocks] = useState<FixedBlock[]>(rawBlocks);
 
   // --- Saving state ---
@@ -154,19 +215,44 @@ export default function ProfileClient({ user }: { user: any }) {
   const saveSleepWake = useCallback(async () => {
     setSaving(true);
     setSaveMsg("");
-    const res = await updateUserProfile({ wake_time: wakeTime, sleep_time: sleepTime });
+    const res = await updateUserProfile({
+      wake_time: wakeTime,
+      sleep_time: sleepTime,
+    });
     setSaving(false);
-    if (res.error) { setSaveMsg(res.error); return; }
+    if (res.error) {
+      setSaveMsg(res.error);
+      return;
+    }
     setEditingSleep(false);
     router.refresh();
   }, [wakeTime, sleepTime, router]);
+
+  const saveLearningPrefs = useCallback(async () => {
+    setSaving(true);
+    setSaveMsg("");
+    const res = await updateUserProfile({
+      experience_level: experienceLevel,
+      learning_style: learningStyle,
+    });
+    setSaving(false);
+    if (res.error) {
+      setSaveMsg(res.error);
+      return;
+    }
+    setEditingLearning(false);
+    router.refresh();
+  }, [experienceLevel, learningStyle, router]);
 
   const savePeakWindows = useCallback(async () => {
     setSaving(true);
     setSaveMsg("");
     const res = await updateUserProfile({ peak_focus_windows: peakWindows });
     setSaving(false);
-    if (res.error) { setSaveMsg(res.error); return; }
+    if (res.error) {
+      setSaveMsg(res.error);
+      return;
+    }
     setEditingPeak(false);
     router.refresh();
   }, [peakWindows, router]);
@@ -176,7 +262,10 @@ export default function ProfileClient({ user }: { user: any }) {
     setSaveMsg("");
     const res = await updateUserProfile({ low_energy_windows: lowWindows });
     setSaving(false);
-    if (res.error) { setSaveMsg(res.error); return; }
+    if (res.error) {
+      setSaveMsg(res.error);
+      return;
+    }
     setEditingLow(false);
     router.refresh();
   }, [lowWindows, router]);
@@ -186,7 +275,10 @@ export default function ProfileClient({ user }: { user: any }) {
     setSaveMsg("");
     const res = await updateUserProfile({ fixed_commitments: fixedBlocks });
     setSaving(false);
-    if (res.error) { setSaveMsg(res.error); return; }
+    if (res.error) {
+      setSaveMsg(res.error);
+      return;
+    }
     setEditingBlocks(false);
     router.refresh();
   }, [fixedBlocks, router]);
@@ -202,31 +294,169 @@ export default function ProfileClient({ user }: { user: any }) {
       <main className="container" style={{ paddingTop: 60, paddingBottom: 80 }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           {/* Hero */}
-          <div className="meta-text" style={{ marginBottom: 16 }}>USER PROFILE</div>
+          <div className="meta-text" style={{ marginBottom: 16 }}>
+            USER PROFILE
+          </div>
           <h1 style={{ fontSize: 42, marginBottom: 8 }}>{user.name}</h1>
-          <p style={{ color: "var(--muted)", marginBottom: 40, fontSize: 16 }}>{user.email}</p>
+          <p style={{ color: "var(--muted)", marginBottom: 40, fontSize: 16 }}>
+            {user.email}
+          </p>
 
           {saveMsg && (
-            <div style={{ background: "var(--vermillion)", color: "var(--bg)", padding: "10px 16px", marginBottom: 24, fontFamily: "var(--mono)", fontSize: 12 }}>
+            <div
+              style={{
+                background: "var(--vermillion)",
+                color: "var(--bg)",
+                padding: "10px 16px",
+                marginBottom: 24,
+                fontFamily: "var(--mono)",
+                fontSize: 12,
+              }}
+            >
               {saveMsg}
             </div>
           )}
 
           <div style={{ display: "grid", gap: 32 }}>
-
             {/* ─── General Information ─── */}
             <section style={cardStyle}>
               <div>
-                <h3 className="meta-text" style={sectionHeadingStyle}>General Information</h3>
-                <div className="responsive-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <h3 className="meta-text" style={sectionHeadingStyle}>
+                  General Information
+                </h3>
+                <div
+                  className="responsive-2col"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 24,
+                  }}
+                >
                   <div>
                     <div style={fieldLabelStyle}>Role</div>
-                    <div style={fieldValueStyle}>{ROLE_OPTIONS[user.role] || "Unknown"}</div>
+                    <div style={fieldValueStyle}>
+                      {ROLE_OPTIONS[user.role] || "Unknown"}
+                    </div>
                   </div>
                   <div>
                     <div style={fieldLabelStyle}>Timezone</div>
-                    <div style={fieldValueStyle}>{user.timezone || "Not set"}</div>
+                    <div style={fieldValueStyle}>
+                      {user.timezone || "Not set"}
+                    </div>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ─── Learning Preferences (editable) ─── */}
+            <section style={cardStyle}>
+              <div>
+                <h3 className="meta-text" style={sectionHeadingStyle}>
+                  <span>Learning Preferences</span>
+                  {!editingLearning ? (
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => setEditingLearning(true)}
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={saveLearningPrefs}
+                        disabled={saving}
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => {
+                          setEditingLearning(false);
+                          setExperienceLevel(
+                            user.experience_level ?? "beginner",
+                          );
+                          setLearningStyle(user.learning_style ?? "balanced");
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </h3>
+                <div
+                  className="responsive-2col"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 24,
+                  }}
+                >
+                  <div>
+                    <div style={fieldLabelStyle}>Experience Level</div>
+                    {editingLearning ? (
+                      <select
+                        value={experienceLevel}
+                        onChange={(e) =>
+                          setExperienceLevel(
+                            e.target.value as typeof experienceLevel,
+                          )
+                        }
+                        style={inputBoxStyle}
+                      >
+                        {EXPERIENCE_LEVEL_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div style={fieldValueStyle}>
+                        {
+                          EXPERIENCE_LEVEL_OPTIONS.find(
+                            (o) =>
+                              o.value === (user.experience_level ?? "beginner"),
+                          )?.label
+                        }
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={fieldLabelStyle}>Learning Style</div>
+                    {editingLearning ? (
+                      <select
+                        value={learningStyle}
+                        onChange={(e) =>
+                          setLearningStyle(
+                            e.target.value as typeof learningStyle,
+                          )
+                        }
+                        style={inputBoxStyle}
+                      >
+                        {LEARNING_STYLE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div style={fieldValueStyle}>
+                        {
+                          LEARNING_STYLE_OPTIONS.find(
+                            (o) =>
+                              o.value === (user.learning_style ?? "balanced"),
+                          )?.label
+                        }
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div
+                  style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}
+                >
+                  Used to personalize roadmap generation, and — as content
+                  generators and trend ranking pick this up — course
+                  depth/pacing and topic recommendations.
                 </div>
               </div>
             </section>
@@ -237,30 +467,57 @@ export default function ProfileClient({ user }: { user: any }) {
                 <h3 className="meta-text" style={sectionHeadingStyle}>
                   <span>Sleep / Wake Cycle</span>
                   {!editingSleep ? (
-                    <button className="btn btn-sm" onClick={() => setEditingSleep(true)}>Edit</button>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => setEditingSleep(true)}
+                    >
+                      Edit
+                    </button>
                   ) : (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button className="btn btn-sm btn-primary" onClick={saveSleepWake} disabled={saving}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={saveSleepWake}
+                        disabled={saving}
+                      >
                         {saving ? "Saving…" : "Save"}
                       </button>
-                      <button className="btn btn-sm" onClick={() => { setEditingSleep(false); setWakeTime(user.wake_time ?? 420); setSleepTime(user.sleep_time ?? 1380); }}>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => {
+                          setEditingSleep(false);
+                          setWakeTime(user.wake_time ?? 420);
+                          setSleepTime(user.sleep_time ?? 1380);
+                        }}
+                      >
                         Cancel
                       </button>
                     </div>
                   )}
                 </h3>
-                <div className="responsive-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <div
+                  className="responsive-2col"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 24,
+                  }}
+                >
                   <div>
                     <div style={fieldLabelStyle}>Wake Time</div>
                     {editingSleep ? (
                       <input
                         type="time"
                         value={timeInputValue(wakeTime)}
-                        onChange={(e) => setWakeTime(minutesFromTimeString(e.target.value))}
+                        onChange={(e) =>
+                          setWakeTime(minutesFromTimeString(e.target.value))
+                        }
                         style={inputBoxStyle}
                       />
                     ) : (
-                      <div style={fieldValueStyle}>{formatTime(user.wake_time)}</div>
+                      <div style={fieldValueStyle}>
+                        {formatTime(user.wake_time)}
+                      </div>
                     )}
                   </div>
                   <div>
@@ -269,11 +526,15 @@ export default function ProfileClient({ user }: { user: any }) {
                       <input
                         type="time"
                         value={timeInputValue(sleepTime)}
-                        onChange={(e) => setSleepTime(minutesFromTimeString(e.target.value))}
+                        onChange={(e) =>
+                          setSleepTime(minutesFromTimeString(e.target.value))
+                        }
                         style={inputBoxStyle}
                       />
                     ) : (
-                      <div style={fieldValueStyle}>{formatTime(user.sleep_time)}</div>
+                      <div style={fieldValueStyle}>
+                        {formatTime(user.sleep_time)}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -286,23 +547,53 @@ export default function ProfileClient({ user }: { user: any }) {
                 <h3 className="meta-text" style={sectionHeadingStyle}>
                   <span>Peak Focus Windows</span>
                   {!editingPeak ? (
-                    <button className="btn btn-sm" onClick={() => setEditingPeak(true)}>Edit</button>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => setEditingPeak(true)}
+                    >
+                      Edit
+                    </button>
                   ) : (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button className="btn btn-sm btn-primary" onClick={savePeakWindows} disabled={saving}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={savePeakWindows}
+                        disabled={saving}
+                      >
                         {saving ? "Saving…" : "Save"}
                       </button>
-                      <button className="btn btn-sm" onClick={() => { setEditingPeak(false); setPeakWindows(rawPeak); }}>Cancel</button>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => {
+                          setEditingPeak(false);
+                          setPeakWindows(rawPeak);
+                        }}
+                      >
+                        Cancel
+                      </button>
                     </div>
                   )}
                 </h3>
 
                 {peakWindows.length === 0 && !editingPeak && (
-                  <p style={{ color: "var(--muted)", fontSize: 12 }}>No peak focus windows configured.</p>
+                  <p style={{ color: "var(--muted)", fontSize: 12 }}>
+                    No peak focus windows configured.
+                  </p>
                 )}
 
                 {peakWindows.map((w, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: editingPeak ? "1fr 1fr auto" : "1fr 1fr", gap: 16, marginBottom: 12, alignItems: "end" }}>
+                  <div
+                    key={i}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: editingPeak
+                        ? "1fr 1fr auto"
+                        : "1fr 1fr",
+                      gap: 16,
+                      marginBottom: 12,
+                      alignItems: "end",
+                    }}
+                  >
                     <div>
                       <div style={fieldLabelStyle}>Start</div>
                       {editingPeak ? (
@@ -311,13 +602,18 @@ export default function ProfileClient({ user }: { user: any }) {
                           value={timeInputValue(w.start_min)}
                           onChange={(e) => {
                             const next = [...peakWindows];
-                            next[i] = { ...next[i], start_min: minutesFromTimeString(e.target.value) };
+                            next[i] = {
+                              ...next[i],
+                              start_min: minutesFromTimeString(e.target.value),
+                            };
                             setPeakWindows(next);
                           }}
                           style={inputBoxStyle}
                         />
                       ) : (
-                        <div style={fieldValueStyle}>{formatTime(w.start_min)}</div>
+                        <div style={fieldValueStyle}>
+                          {formatTime(w.start_min)}
+                        </div>
                       )}
                     </div>
                     <div>
@@ -328,19 +624,26 @@ export default function ProfileClient({ user }: { user: any }) {
                           value={timeInputValue(w.end_min)}
                           onChange={(e) => {
                             const next = [...peakWindows];
-                            next[i] = { ...next[i], end_min: minutesFromTimeString(e.target.value) };
+                            next[i] = {
+                              ...next[i],
+                              end_min: minutesFromTimeString(e.target.value),
+                            };
                             setPeakWindows(next);
                           }}
                           style={inputBoxStyle}
                         />
                       ) : (
-                        <div style={fieldValueStyle}>{formatTime(w.end_min)}</div>
+                        <div style={fieldValueStyle}>
+                          {formatTime(w.end_min)}
+                        </div>
                       )}
                     </div>
                     {editingPeak && (
                       <button
                         className="btn btn-sm btn-danger"
-                        onClick={() => setPeakWindows(peakWindows.filter((_, j) => j !== i))}
+                        onClick={() =>
+                          setPeakWindows(peakWindows.filter((_, j) => j !== i))
+                        }
                       >
                         ×
                       </button>
@@ -352,7 +655,12 @@ export default function ProfileClient({ user }: { user: any }) {
                   <button
                     className="btn btn-sm"
                     style={{ marginTop: 8 }}
-                    onClick={() => setPeakWindows([...peakWindows, { start_min: 540, end_min: 660 }])}
+                    onClick={() =>
+                      setPeakWindows([
+                        ...peakWindows,
+                        { start_min: 540, end_min: 660 },
+                      ])
+                    }
                   >
                     + Add Window
                   </button>
@@ -366,23 +674,53 @@ export default function ProfileClient({ user }: { user: any }) {
                 <h3 className="meta-text" style={sectionHeadingStyle}>
                   <span>Low Energy Windows</span>
                   {!editingLow ? (
-                    <button className="btn btn-sm" onClick={() => setEditingLow(true)}>Edit</button>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => setEditingLow(true)}
+                    >
+                      Edit
+                    </button>
                   ) : (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button className="btn btn-sm btn-primary" onClick={saveLowWindows} disabled={saving}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={saveLowWindows}
+                        disabled={saving}
+                      >
                         {saving ? "Saving…" : "Save"}
                       </button>
-                      <button className="btn btn-sm" onClick={() => { setEditingLow(false); setLowWindows(rawLow); }}>Cancel</button>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => {
+                          setEditingLow(false);
+                          setLowWindows(rawLow);
+                        }}
+                      >
+                        Cancel
+                      </button>
                     </div>
                   )}
                 </h3>
 
                 {lowWindows.length === 0 && !editingLow && (
-                  <p style={{ color: "var(--muted)", fontSize: 12 }}>No low energy windows configured.</p>
+                  <p style={{ color: "var(--muted)", fontSize: 12 }}>
+                    No low energy windows configured.
+                  </p>
                 )}
 
                 {lowWindows.map((w, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: editingLow ? "1fr 1fr auto" : "1fr 1fr", gap: 16, marginBottom: 12, alignItems: "end" }}>
+                  <div
+                    key={i}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: editingLow
+                        ? "1fr 1fr auto"
+                        : "1fr 1fr",
+                      gap: 16,
+                      marginBottom: 12,
+                      alignItems: "end",
+                    }}
+                  >
                     <div>
                       <div style={fieldLabelStyle}>Start</div>
                       {editingLow ? (
@@ -391,13 +729,18 @@ export default function ProfileClient({ user }: { user: any }) {
                           value={timeInputValue(w.start_min)}
                           onChange={(e) => {
                             const next = [...lowWindows];
-                            next[i] = { ...next[i], start_min: minutesFromTimeString(e.target.value) };
+                            next[i] = {
+                              ...next[i],
+                              start_min: minutesFromTimeString(e.target.value),
+                            };
                             setLowWindows(next);
                           }}
                           style={inputBoxStyle}
                         />
                       ) : (
-                        <div style={fieldValueStyle}>{formatTime(w.start_min)}</div>
+                        <div style={fieldValueStyle}>
+                          {formatTime(w.start_min)}
+                        </div>
                       )}
                     </div>
                     <div>
@@ -408,19 +751,26 @@ export default function ProfileClient({ user }: { user: any }) {
                           value={timeInputValue(w.end_min)}
                           onChange={(e) => {
                             const next = [...lowWindows];
-                            next[i] = { ...next[i], end_min: minutesFromTimeString(e.target.value) };
+                            next[i] = {
+                              ...next[i],
+                              end_min: minutesFromTimeString(e.target.value),
+                            };
                             setLowWindows(next);
                           }}
                           style={inputBoxStyle}
                         />
                       ) : (
-                        <div style={fieldValueStyle}>{formatTime(w.end_min)}</div>
+                        <div style={fieldValueStyle}>
+                          {formatTime(w.end_min)}
+                        </div>
                       )}
                     </div>
                     {editingLow && (
                       <button
                         className="btn btn-sm btn-danger"
-                        onClick={() => setLowWindows(lowWindows.filter((_, j) => j !== i))}
+                        onClick={() =>
+                          setLowWindows(lowWindows.filter((_, j) => j !== i))
+                        }
                       >
                         ×
                       </button>
@@ -432,7 +782,12 @@ export default function ProfileClient({ user }: { user: any }) {
                   <button
                     className="btn btn-sm"
                     style={{ marginTop: 8 }}
-                    onClick={() => setLowWindows([...lowWindows, { start_min: 840, end_min: 900 }])}
+                    onClick={() =>
+                      setLowWindows([
+                        ...lowWindows,
+                        { start_min: 840, end_min: 900 },
+                      ])
+                    }
                   >
                     + Add Window
                   </button>
@@ -446,19 +801,38 @@ export default function ProfileClient({ user }: { user: any }) {
                 <h3 className="meta-text" style={sectionHeadingStyle}>
                   <span>Availability Blocks</span>
                   {!editingBlocks ? (
-                    <button className="btn btn-sm" onClick={() => setEditingBlocks(true)}>Edit</button>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => setEditingBlocks(true)}
+                    >
+                      Edit
+                    </button>
                   ) : (
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button className="btn btn-sm btn-primary" onClick={saveFixedBlocks} disabled={saving}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={saveFixedBlocks}
+                        disabled={saving}
+                      >
                         {saving ? "Saving…" : "Save"}
                       </button>
-                      <button className="btn btn-sm" onClick={() => { setEditingBlocks(false); setFixedBlocks(rawBlocks); }}>Cancel</button>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => {
+                          setEditingBlocks(false);
+                          setFixedBlocks(rawBlocks);
+                        }}
+                      >
+                        Cancel
+                      </button>
                     </div>
                   )}
                 </h3>
 
                 {fixedBlocks.length === 0 && !editingBlocks && (
-                  <p style={{ color: "var(--muted)", fontSize: 12 }}>No availability blocks configured.</p>
+                  <p style={{ color: "var(--muted)", fontSize: 12 }}>
+                    No availability blocks configured.
+                  </p>
                 )}
 
                 {fixedBlocks.map((block, i) => (
@@ -483,10 +857,20 @@ export default function ProfileClient({ user }: { user: any }) {
                               setFixedBlocks(next);
                             }}
                             placeholder="e.g. Morning Commute"
-                            style={{ ...inputBoxStyle, borderBottom: "0.5px solid var(--rule)" }}
+                            style={{
+                              ...inputBoxStyle,
+                              borderBottom: "0.5px solid var(--rule)",
+                            }}
                           />
                         </div>
-                        <div className="responsive-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                        <div
+                          className="responsive-2col"
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: 16,
+                          }}
+                        >
                           <div>
                             <div style={fieldLabelStyle}>Start</div>
                             <input
@@ -494,7 +878,12 @@ export default function ProfileClient({ user }: { user: any }) {
                               value={timeInputValue(block.start_min)}
                               onChange={(e) => {
                                 const next = [...fixedBlocks];
-                                next[i] = { ...next[i], start_min: minutesFromTimeString(e.target.value) };
+                                next[i] = {
+                                  ...next[i],
+                                  start_min: minutesFromTimeString(
+                                    e.target.value,
+                                  ),
+                                };
                                 setFixedBlocks(next);
                               }}
                               style={inputBoxStyle}
@@ -507,7 +896,12 @@ export default function ProfileClient({ user }: { user: any }) {
                               value={timeInputValue(block.end_min)}
                               onChange={(e) => {
                                 const next = [...fixedBlocks];
-                                next[i] = { ...next[i], end_min: minutesFromTimeString(e.target.value) };
+                                next[i] = {
+                                  ...next[i],
+                                  end_min: minutesFromTimeString(
+                                    e.target.value,
+                                  ),
+                                };
                                 setFixedBlocks(next);
                               }}
                               style={inputBoxStyle}
@@ -516,16 +910,29 @@ export default function ProfileClient({ user }: { user: any }) {
                         </div>
                         <div>
                           <div style={fieldLabelStyle}>Days</div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 4,
+                              marginTop: 4,
+                            }}
+                          >
                             {DAYS.map((day, dayIdx) => (
                               <span
                                 key={dayIdx}
-                                style={block.days.includes(dayIdx) ? chipActiveStyle : chipInactiveStyle}
+                                style={
+                                  block.days.includes(dayIdx)
+                                    ? chipActiveStyle
+                                    : chipInactiveStyle
+                                }
                                 onClick={() => {
                                   const next = [...fixedBlocks];
                                   const days = block.days.includes(dayIdx)
                                     ? block.days.filter((d) => d !== dayIdx)
-                                    : [...block.days, dayIdx].sort((a, b) => a - b);
+                                    : [...block.days, dayIdx].sort(
+                                        (a, b) => a - b,
+                                      );
                                   next[i] = { ...next[i], days };
                                   setFixedBlocks(next);
                                 }}
@@ -537,22 +944,40 @@ export default function ProfileClient({ user }: { user: any }) {
                         </div>
                         <button
                           className="btn btn-sm btn-danger"
-                          onClick={() => setFixedBlocks(fixedBlocks.filter((_, j) => j !== i))}
+                          onClick={() =>
+                            setFixedBlocks(
+                              fixedBlocks.filter((_, j) => j !== i),
+                            )
+                          }
                         >
                           Remove Block
                         </button>
                       </div>
                     ) : (
                       <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                          <div style={{ fontWeight: 700 }}>{block.title || "Untitled"}</div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: 8,
+                          }}
+                        >
+                          <div style={{ fontWeight: 700 }}>
+                            {block.title || "Untitled"}
+                          </div>
                           <span className="meta-text">
-                            {formatTime(block.start_min)} – {formatTime(block.end_min)}
+                            {formatTime(block.start_min)} –{" "}
+                            {formatTime(block.end_min)}
                           </span>
                         </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        <div
+                          style={{ display: "flex", flexWrap: "wrap", gap: 4 }}
+                        >
                           {(block.days || []).map((dayIdx: number) => (
-                            <span key={dayIdx} style={chipStyle}>{DAYS[dayIdx]}</span>
+                            <span key={dayIdx} style={chipStyle}>
+                              {DAYS[dayIdx]}
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -564,10 +989,18 @@ export default function ProfileClient({ user }: { user: any }) {
                   <button
                     className="btn btn-sm"
                     style={{ marginTop: 4 }}
-                    onClick={() => setFixedBlocks([
-                      ...fixedBlocks,
-                      { title: "", start_min: 540, end_min: 600, days: [1, 2, 3, 4, 5], recurring: true },
-                    ])}
+                    onClick={() =>
+                      setFixedBlocks([
+                        ...fixedBlocks,
+                        {
+                          title: "",
+                          start_min: 540,
+                          end_min: 600,
+                          days: [1, 2, 3, 4, 5],
+                          recurring: true,
+                        },
+                      ])
+                    }
                   >
                     + Add Block
                   </button>
@@ -578,19 +1011,33 @@ export default function ProfileClient({ user }: { user: any }) {
             {/* ─── Cognitive Preferences (read-only) ─── */}
             <section style={cardStyle}>
               <div>
-                <h3 className="meta-text" style={sectionHeadingStyle}>Cognitive &amp; Session Preferences</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24 }}>
+                <h3 className="meta-text" style={sectionHeadingStyle}>
+                  Cognitive &amp; Session Preferences
+                </h3>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gap: 24,
+                  }}
+                >
                   <div>
                     <div style={fieldLabelStyle}>Session Style</div>
-                    <div style={fieldValueStyle}>{SESSION_STYLE_OPTIONS[user.session_style] || "Unknown"}</div>
+                    <div style={fieldValueStyle}>
+                      {SESSION_STYLE_OPTIONS[user.session_style] || "Unknown"}
+                    </div>
                   </div>
                   <div>
                     <div style={fieldLabelStyle}>Task Switching</div>
-                    <div style={fieldValueStyle}>{SWITCH_BUFFER_OPTIONS[user.switch_buffer] || "Unknown"}</div>
+                    <div style={fieldValueStyle}>
+                      {SWITCH_BUFFER_OPTIONS[user.switch_buffer] || "Unknown"}
+                    </div>
                   </div>
                   <div>
                     <div style={fieldLabelStyle}>Deadline Management</div>
-                    <div style={fieldValueStyle}>{DEADLINE_STYLE_OPTIONS[user.deadline_style] || "Unknown"}</div>
+                    <div style={fieldValueStyle}>
+                      {DEADLINE_STYLE_OPTIONS[user.deadline_style] || "Unknown"}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -598,7 +1045,9 @@ export default function ProfileClient({ user }: { user: any }) {
           </div>
 
           <div style={{ marginTop: 40, textAlign: "center" }}>
-            <Link href="/dashboard" className="btn btn-primary">Back to Dashboard</Link>
+            <Link href="/dashboard" className="btn btn-primary">
+              Back to Dashboard
+            </Link>
           </div>
         </div>
       </main>
