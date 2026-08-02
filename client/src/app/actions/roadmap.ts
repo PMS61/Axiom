@@ -6,11 +6,11 @@
  * ═══════════════════════════════════════════════════════════
  */
 
-import { generateRoadmapDAG, recomputeNodeStates } from "@/lib/roadmap-agent";
-import type { AdaptiveRoadmap, RoadmapGoal, RoadmapDAGNode } from "@/lib/types";
 import { sql } from "@vercel/postgres";
-import { cookies } from "next/headers";
 import { verify } from "jsonwebtoken";
+import { cookies } from "next/headers";
+import { generateRoadmapDAG, recomputeNodeStates } from "@/lib/roadmap-agent";
+import type { AdaptiveRoadmap, RoadmapDAGNode, RoadmapGoal } from "@/lib/types";
 import { updateTaskStateAndSlot } from "./tasks";
 
 // ── Auth Helper ───────────────────────────────────────────
@@ -104,7 +104,7 @@ export async function getRoadmapAction(roadmapId?: string): Promise<{
     const result = roadmapId
       ? await sql`SELECT id, goal, nodes, generated_at, last_updated_at FROM roadmaps WHERE user_id = ${userId} AND id = ${roadmapId} LIMIT 1`
       : await sql`SELECT id, goal, nodes, generated_at, last_updated_at FROM roadmaps WHERE user_id = ${userId} ORDER BY last_updated_at DESC LIMIT 1`;
-      
+
     if (result.rows.length === 0) return { roadmap: null };
     const row = result.rows[0];
     return {
@@ -123,7 +123,12 @@ export async function getRoadmapAction(roadmapId?: string): Promise<{
 }
 
 export async function listRoadmapsAction(): Promise<{
-  roadmaps?: { id: string; goal: RoadmapGoal; generatedAt: string; lastUpdatedAt: string }[];
+  roadmaps?: {
+    id: string;
+    goal: RoadmapGoal;
+    generatedAt: string;
+    lastUpdatedAt: string;
+  }[];
   error?: string;
 }> {
   const userId = await getUserId();
@@ -135,7 +140,7 @@ export async function listRoadmapsAction(): Promise<{
       SELECT id, goal, generated_at, last_updated_at FROM roadmaps WHERE user_id = ${userId} ORDER BY last_updated_at DESC
     `;
     return {
-      roadmaps: result.rows.map(row => ({
+      roadmaps: result.rows.map((row) => ({
         id: row.id,
         goal: row.goal,
         generatedAt: new Date(row.generated_at).toISOString(),
@@ -185,9 +190,17 @@ export async function clearRoadmapAction(): Promise<{
   success?: boolean;
   error?: string;
 }> {
-  // We no longer wipe the entire roadmaps table! 
-  // "Clear" simply means closing the current visualization in the UI.
-  return { success: true };
+  const userId = await getUserId();
+  if (!userId) return { error: "Unauthorized" };
+
+  try {
+    await createRoadmapsTable();
+    await sql`DELETE FROM roadmaps WHERE user_id = ${userId}`;
+    return { success: true };
+  } catch (err) {
+    console.error("[clearRoadmapAction] Error:", err);
+    return { error: "Failed to clear roadmaps." };
+  }
 }
 
 export async function generateRoadmapAction(goal: RoadmapGoal): Promise<{
@@ -220,22 +233,35 @@ export async function generateRoadmapAction(goal: RoadmapGoal): Promise<{
 export async function generateContentAction(
   title: string,
   topic: string,
-  contentType: "ppt" | "one-shot" | "shortbits" | "storytelling" = "ppt"
+  contentType: "ppt" | "one-shot" | "shortbits" | "storytelling" = "ppt",
 ): Promise<{ data?: any; error?: string }> {
   try {
-    // Currently fallback to generateCourseComplete for everything as instructed
+    if (contentType === "shortbits") {
+      const { generateShortBitSet } = await import("@/lib/short-bit-agent");
+      return { data: await generateShortBitSet(title, topic, "") };
+    }
+
+    if (contentType === "storytelling") {
+      const { generateNextChapterMarkdown } = await import("@/lib/story-agent");
+      return { data: await generateNextChapterMarkdown(title, topic, "") };
+    }
+
+    if (contentType === "one-shot") {
+      const { generateCheatSheetMarkdown } = await import(
+        "@/lib/cheatsheet-agent"
+      );
+      return { data: await generateCheatSheetMarkdown(title, topic, "") };
+    }
+
     const { generateCourseComplete } = await import("@/lib/course-agent");
-    const result = await generateCourseComplete(title, topic);
-    return { data: result };
+    return { data: await generateCourseComplete(title, topic) };
   } catch (err: any) {
     console.error("[generateContentAction] Error:", err);
     return { error: err.message };
   }
 }
 
-export async function completeNodeAction(
-  taskId: string
-): Promise<{
+export async function completeNodeAction(taskId: string): Promise<{
   success?: boolean;
   error?: string;
   roadmap?: AdaptiveRoadmap;
@@ -300,7 +326,9 @@ export async function completeNodeAction(
 
       roadmapRow = candidates.rows.find((row) => {
         const nodes = (row.nodes as RoadmapDAGNode[]) ?? [];
-        return nodes.some((node) => normalize(node.title) === normalizedTaskName);
+        return nodes.some(
+          (node) => normalize(node.title) === normalizedTaskName,
+        );
       }) as typeof roadmapRow;
     }
 

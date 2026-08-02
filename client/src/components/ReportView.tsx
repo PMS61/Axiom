@@ -1,17 +1,15 @@
 /* ═══════════════════════════════════════════════════════════
    THE AXIOM — Behaviour Deviation Report
    Reads user onboarding baseline from localStorage and
-   renders a clear human-readable static report showing every
-   possible deviation category (wake early/late, sleep
-   early/late, peak-window shift, low-energy drift, etc.).
-   Static deviation values are placeholders – replace with
-   algo output later.
+   renders a human-readable drift report from saved daily
+   observations.
    ═══════════════════════════════════════════════════════════ */
 
 "use client";
 
 import { useEffect, useState } from "react";
 import { getUserProfile } from "@/app/actions/auth";
+import { getReportDataForDate } from "@/app/actions/report";
 import Header from "@/components/Header";
 import { AppProvider } from "@/lib/store";
 import {
@@ -21,10 +19,6 @@ import {
   toStoredUserProfileFromServerUser,
   writeStoredUserProfile,
 } from "@/lib/userProfileStorage";
-import { useApp } from "@/lib/store";
-import { calculateAnalytics } from "@/lib/engine";
-import { type Task } from "@/lib/types";
-import { getReportDataForDate } from "@/app/actions/report";
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -58,10 +52,12 @@ interface ObservedValues {
 // ── Helpers ───────────────────────────────────────────────
 
 function fmt(minutes: number): string {
-  const h = Math.floor(((minutes % 1440) + 1440) % 1440 / 60)
+  const h = Math.floor((((minutes % 1440) + 1440) % 1440) / 60)
     .toString()
     .padStart(2, "0");
-  const m = (((minutes % 1440) + 1440) % 1440 % 60).toString().padStart(2, "0");
+  const m = ((((minutes % 1440) + 1440) % 1440) % 60)
+    .toString()
+    .padStart(2, "0");
   return `${h}:${m}`;
 }
 
@@ -75,9 +71,24 @@ function fmtDelta(minutes: number): string {
   return parts.join(" ") || "0m";
 }
 
-const ROLE_LABELS = ["Student", "Researcher", "Professional", "Self-learner", "Other"];
-const SESSION_LABELS = ["Long deep blocks (90+ min)", "Medium sprints (45–60 min)", "Short bursts (20–30 min)", "Mix it up"];
-const DEADLINE_LABELS = ["Finish early", "Work steadily", "Work under pressure"];
+const ROLE_LABELS = [
+  "Student",
+  "Researcher",
+  "Professional",
+  "Self-learner",
+  "Other",
+];
+const SESSION_LABELS = [
+  "Long deep blocks (90+ min)",
+  "Medium sprints (45–60 min)",
+  "Short bursts (20–30 min)",
+  "Mix it up",
+];
+const DEADLINE_LABELS = [
+  "Finish early",
+  "Work steadily",
+  "Work under pressure",
+];
 
 // colour helpers
 function severityColour(s: "low" | "medium" | "high") {
@@ -94,24 +105,25 @@ function dirIcon(dir: DeviationDir) {
   return "—";
 }
 
-// ── Static deviation data (replace with algo later) ───────
-// These represent "what the algo observed vs. what user set".
+// ── Observed deviation data ───────────────────────────────
 
-function buildDeviations(profile: UserProfile, tasks: Task[], observed: ObservedValues | null): Deviation[] {
+function buildDeviations(
+  profile: UserProfile,
+  observed: ObservedValues | null,
+): Deviation[] {
   const { wake_sleep } = profile;
-  const analytics = calculateAnalytics(tasks);
 
-  const hasObservedData = observed !== null;
-  
-  const actualWakeMin = hasObservedData ? observed!.actualWakeMin : wake_sleep.wake + (analytics.contextSwitchesPerDay > 5 ? 45 : 15);
-  const actualSleepMin = hasObservedData ? observed!.actualSleepMin : wake_sleep.sleep + (analytics.contextSwitchesPerDay > 5 ? 45 : 15) * 1.5;
-  const peak1ActualStart = hasObservedData ? observed!.peak1ActualStart : (profile.peak_focus_windows[0]?.start_min ?? 540) + 15;
-  const low1ActualStart = hasObservedData ? observed!.low1ActualStart : (profile.low_energy_windows[0]?.start_min ?? 840);
-  const avgSleepDurationMin = hasObservedData ? observed!.avgSleepDurationMin : 420 - (analytics.contextSwitchesPerDay > 5 ? 45 : 15);
-  const avgSessionDurationPct = hasObservedData ? observed!.avgSessionDurationPct : analytics.avgSessionDurationPct;
-  const recoveryAdherencePct = hasObservedData ? observed!.recoveryAdherencePct : analytics.recoveryAdherencePct;
-  const contextSwitchesPerDay = hasObservedData ? observed!.contextSwitchesPerDay : analytics.contextSwitchesPerDay;
-  const deadlineBufferDays = hasObservedData ? observed!.deadlineBufferDays : analytics.deadlineBufferDays;
+  if (!observed) return [];
+
+  const actualWakeMin = observed.actualWakeMin;
+  const actualSleepMin = observed.actualSleepMin;
+  const peak1ActualStart = observed.peak1ActualStart;
+  const low1ActualStart = observed.low1ActualStart;
+  const avgSleepDurationMin = observed.avgSleepDurationMin;
+  const avgSessionDurationPct = observed.avgSessionDurationPct;
+  const recoveryAdherencePct = observed.recoveryAdherencePct;
+  const contextSwitchesPerDay = observed.contextSwitchesPerDay;
+  const deadlineBufferDays = observed.deadlineBufferDays;
 
   const deviations: Deviation[] = [];
 
@@ -125,10 +137,16 @@ function buildDeviations(profile: UserProfile, tasks: Task[], observed: Observed
       current: fmt(actualWakeMin),
       delta: fmtDelta(wakeDelta),
       direction: wakeDelta > 0 ? "late" : "early",
-      severity: Math.abs(wakeDelta) > 45 ? "high" : Math.abs(wakeDelta) > 20 ? "medium" : "low",
-      note: wakeDelta > 0
-        ? `You're waking up ${fmtDelta(wakeDelta)} later than your baseline. This compresses your productive morning window.`
-        : `You've been rising ${fmtDelta(Math.abs(wakeDelta))} earlier than planned — monitor energy levels in the afternoon.`,
+      severity:
+        Math.abs(wakeDelta) > 45
+          ? "high"
+          : Math.abs(wakeDelta) > 20
+            ? "medium"
+            : "low",
+      note:
+        wakeDelta > 0
+          ? `You're waking up ${fmtDelta(wakeDelta)} later than your baseline. This compresses your productive morning window.`
+          : `You've been rising ${fmtDelta(Math.abs(wakeDelta))} earlier than planned — monitor energy levels in the afternoon.`,
     });
   }
 
@@ -142,17 +160,24 @@ function buildDeviations(profile: UserProfile, tasks: Task[], observed: Observed
       current: fmt(actualSleepMin),
       delta: fmtDelta(sleepDelta),
       direction: sleepDelta > 0 ? "late" : "early",
-      severity: Math.abs(sleepDelta) > 60 ? "high" : Math.abs(sleepDelta) > 30 ? "medium" : "low",
-      note: sleepDelta > 0
-        ? `You're sleeping ${fmtDelta(sleepDelta)} later than intended. Late sleep accumulates a circadian debt that degrades next-day cognition.`
-        : `Sleeping ${fmtDelta(Math.abs(sleepDelta))} earlier than planned. Could indicate fatigue front-loading or early recovery.`,
+      severity:
+        Math.abs(sleepDelta) > 60
+          ? "high"
+          : Math.abs(sleepDelta) > 30
+            ? "medium"
+            : "low",
+      note:
+        sleepDelta > 0
+          ? `You're sleeping ${fmtDelta(sleepDelta)} later than intended. Late sleep accumulates a circadian debt that degrades next-day cognition.`
+          : `Sleeping ${fmtDelta(Math.abs(sleepDelta))} earlier than planned. Could indicate fatigue front-loading or early recovery.`,
     });
   }
 
   // ── Sleep duration ────────────────────────────────────
-  const targetSleepSpan = wake_sleep.wake > wake_sleep.sleep
-    ? wake_sleep.wake - wake_sleep.sleep
-    : 1440 - wake_sleep.sleep + wake_sleep.wake;
+  const targetSleepSpan =
+    wake_sleep.wake > wake_sleep.sleep
+      ? wake_sleep.wake - wake_sleep.sleep
+      : 1440 - wake_sleep.sleep + wake_sleep.wake;
   const sleepDurDelta = avgSleepDurationMin - targetSleepSpan;
   if (Math.abs(sleepDurDelta) >= 10) {
     deviations.push({
@@ -162,10 +187,16 @@ function buildDeviations(profile: UserProfile, tasks: Task[], observed: Observed
       current: fmtDelta(avgSleepDurationMin),
       delta: fmtDelta(Math.abs(sleepDurDelta)),
       direction: sleepDurDelta < 0 ? "shorter" : "longer",
-      severity: Math.abs(sleepDurDelta) > 90 ? "high" : Math.abs(sleepDurDelta) > 45 ? "medium" : "low",
-      note: sleepDurDelta < 0
-        ? `Getting ${fmtDelta(Math.abs(sleepDurDelta))} less sleep than baseline. Chronic short sleep reduces decision quality and increases CL sensitivity.`
-        : `Sleeping ${fmtDelta(sleepDurDelta)} beyond baseline. Could indicate recovery debt or under-stimulation during the day.`,
+      severity:
+        Math.abs(sleepDurDelta) > 90
+          ? "high"
+          : Math.abs(sleepDurDelta) > 45
+            ? "medium"
+            : "low",
+      note:
+        sleepDurDelta < 0
+          ? `Getting ${fmtDelta(Math.abs(sleepDurDelta))} less sleep than baseline. Chronic short sleep reduces decision quality and increases CL sensitivity.`
+          : `Sleeping ${fmtDelta(sleepDurDelta)} beyond baseline. Could indicate recovery debt or under-stimulation during the day.`,
     });
   }
 
@@ -182,9 +213,10 @@ function buildDeviations(profile: UserProfile, tasks: Task[], observed: Observed
         delta: fmtDelta(startDelta),
         direction: startDelta > 0 ? "late" : "early",
         severity: Math.abs(startDelta) > 45 ? "high" : "medium",
-        note: startDelta > 0
-          ? `Your deep-work block is starting ${fmtDelta(startDelta)} late, likely eating into your peak cognitive bandwidth.`
-          : `Starting focus sessions ${fmtDelta(Math.abs(startDelta))} earlier than baseline — align with your natural alertness curve.`,
+        note:
+          startDelta > 0
+            ? `Your deep-work block is starting ${fmtDelta(startDelta)} late, likely eating into your peak cognitive bandwidth.`
+            : `Starting focus sessions ${fmtDelta(Math.abs(startDelta))} earlier than baseline — align with your natural alertness curve.`,
       });
     }
   }
@@ -202,9 +234,10 @@ function buildDeviations(profile: UserProfile, tasks: Task[], observed: Observed
         delta: fmtDelta(lDelta),
         direction: lDelta < 0 ? "early" : "late",
         severity: Math.abs(lDelta) > 45 ? "high" : "medium",
-        note: lDelta < 0
-          ? `Energy dip is arriving ${fmtDelta(Math.abs(lDelta))} earlier than expected. Consider lighter tasks after lunch to avoid forced errors.`
-          : `Low-energy phase shifted ${fmtDelta(lDelta)} later — you may be sustaining effort longer than optimal.`,
+        note:
+          lDelta < 0
+            ? `Energy dip is arriving ${fmtDelta(Math.abs(lDelta))} earlier than expected. Consider lighter tasks after lunch to avoid forced errors.`
+            : `Low-energy phase shifted ${fmtDelta(lDelta)} later — you may be sustaining effort longer than optimal.`,
       });
     }
   }
@@ -257,15 +290,17 @@ function buildDeviations(profile: UserProfile, tasks: Task[], observed: Observed
       category: "Deadline Rhythm",
       label: "Average deadline buffer",
       baseline: DEADLINE_LABELS[profile.deadline_style],
-      current: deadlineBufferDays < 0
-        ? `${Math.abs(deadlineBufferDays)}d late on avg`
-        : `${deadlineBufferDays}d ahead on avg`,
+      current:
+        deadlineBufferDays < 0
+          ? `${Math.abs(deadlineBufferDays)}d late on avg`
+          : `${deadlineBufferDays}d ahead on avg`,
       delta: `${Math.abs(deadlineBufferDays)}d`,
       direction: deadlineBufferDays < 0 ? "late" : "early",
       severity: Math.abs(deadlineBufferDays) > 2 ? "high" : "medium",
-      note: deadlineBufferDays < 0
-        ? `Tasks are completing ${Math.abs(deadlineBufferDays)} day(s) past deadline on average — misaligned with your "${DEADLINE_LABELS[profile.deadline_style]}" preference.`
-        : `Finishing ahead of deadline. Great alignment with your "${DEADLINE_LABELS[profile.deadline_style]}" style.`,
+      note:
+        deadlineBufferDays < 0
+          ? `Tasks are completing ${Math.abs(deadlineBufferDays)} day(s) past deadline on average — misaligned with your "${DEADLINE_LABELS[profile.deadline_style]}" preference.`
+          : `Finishing ahead of deadline. Great alignment with your "${DEADLINE_LABELS[profile.deadline_style]}" style.`,
     });
   }
 
@@ -291,9 +326,18 @@ function DeviationCard({ d }: { d: Deviation }) {
       }}
     >
       {/* Header row */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+        }}
+      >
         <div>
-          <div className="meta-text" style={{ marginBottom: 4 }}>{d.category}</div>
+          <div className="meta-text" style={{ marginBottom: 4 }}>
+            {d.category}
+          </div>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{d.label}</div>
         </div>
         <span
@@ -308,7 +352,11 @@ function DeviationCard({ d }: { d: Deviation }) {
             whiteSpace: "nowrap",
           }}
         >
-          {d.severity === "high" ? "High drift" : d.severity === "medium" ? "Moderate" : "Slight"}
+          {d.severity === "high"
+            ? "High drift"
+            : d.severity === "medium"
+              ? "Moderate"
+              : "Slight"}
         </span>
       </div>
 
@@ -325,15 +373,37 @@ function DeviationCard({ d }: { d: Deviation }) {
         }}
       >
         <div>
-          <div className="meta-text" style={{ marginBottom: 4 }}>Baseline</div>
-          <div style={{ fontFamily: "var(--mono)", fontWeight: 700, fontSize: 16 }}>{d.baseline}</div>
+          <div className="meta-text" style={{ marginBottom: 4 }}>
+            Baseline
+          </div>
+          <div
+            style={{ fontFamily: "var(--mono)", fontWeight: 700, fontSize: 16 }}
+          >
+            {d.baseline}
+          </div>
         </div>
-        <div style={{ textAlign: "center", color: col, fontSize: 20, fontWeight: 700 }}>
+        <div
+          style={{
+            textAlign: "center",
+            color: col,
+            fontSize: 20,
+            fontWeight: 700,
+          }}
+        >
           {isOnTrack ? "✓" : dirIcon(d.direction)}
         </div>
         <div style={{ textAlign: "right" }}>
-          <div className="meta-text" style={{ marginBottom: 4 }}>Observed</div>
-          <div style={{ fontFamily: "var(--mono)", fontWeight: 700, fontSize: 16, color: isOnTrack ? "var(--safe)" : col }}>
+          <div className="meta-text" style={{ marginBottom: 4 }}>
+            Observed
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--mono)",
+              fontWeight: 700,
+              fontSize: 16,
+              color: isOnTrack ? "var(--safe)" : col,
+            }}
+          >
             {d.current}
           </div>
         </div>
@@ -342,7 +412,14 @@ function DeviationCard({ d }: { d: Deviation }) {
       {/* Delta pill */}
       {!isOnTrack && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: col, fontWeight: 700 }}>
+          <span
+            style={{
+              fontFamily: "var(--mono)",
+              fontSize: 11,
+              color: col,
+              fontWeight: 700,
+            }}
+          >
             Δ {d.delta}
           </span>
           <span className="meta-text">deviation from baseline</span>
@@ -383,9 +460,26 @@ function SummaryBar({ deviations }: { deviations: Deviation[] }) {
       }}
     >
       {[
-        { label: "Alignment score", value: `${score}`, colour: score >= 80 ? "var(--safe)" : score >= 60 ? "var(--watch)" : "var(--vermillion)" },
-        { label: "High drift", value: String(high), colour: "var(--vermillion)" },
-        { label: "Moderate drift", value: String(medium), colour: "var(--watch)" },
+        {
+          label: "Alignment score",
+          value: `${score}`,
+          colour:
+            score >= 80
+              ? "var(--safe)"
+              : score >= 60
+                ? "var(--watch)"
+                : "var(--vermillion)",
+        },
+        {
+          label: "High drift",
+          value: String(high),
+          colour: "var(--vermillion)",
+        },
+        {
+          label: "Moderate drift",
+          value: String(medium),
+          colour: "var(--watch)",
+        },
         { label: "Low drift", value: String(low), colour: "var(--safe)" },
       ].map((item) => (
         <div
@@ -396,7 +490,9 @@ function SummaryBar({ deviations }: { deviations: Deviation[] }) {
             borderBottom: "0.5px solid var(--rule)",
           }}
         >
-          <div className="meta-text" style={{ marginBottom: 8 }}>{item.label}</div>
+          <div className="meta-text" style={{ marginBottom: 8 }}>
+            {item.label}
+          </div>
           <div
             style={{
               fontFamily: "var(--mono)",
@@ -414,7 +510,13 @@ function SummaryBar({ deviations }: { deviations: Deviation[] }) {
   );
 }
 
-function CategoryGroup({ category, items }: { category: string; items: Deviation[] }) {
+function CategoryGroup({
+  category,
+  items,
+}: {
+  category: string;
+  items: Deviation[];
+}) {
   return (
     <div style={{ marginBottom: 16 }}>
       <div
@@ -454,10 +556,12 @@ function EmptyState() {
       }}
     >
       <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
-      <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>All behaviour aligned</div>
+      <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>
+        All behaviour aligned
+      </div>
       <p style={{ color: "var(--muted)", fontSize: 12 }}>
-        No significant deviations detected from your baseline profile.
-        Keep going — we'll flag any drift as it appears.
+        No significant deviations detected from your baseline profile. Keep
+        going — we'll flag any drift as it appears.
       </p>
     </div>
   );
@@ -466,18 +570,49 @@ function EmptyState() {
 function Timeline({ profile }: { profile: UserProfile }) {
   // Simple visual timeline for the day (midnight = 0, 23:59 = 1439)
   const segments = [
-    { label: "Sleep", start: profile.wake_sleep.sleep, end: 1440, colour: "#E8E0D4" },
-    { label: "Sleep", start: 0, end: profile.wake_sleep.wake, colour: "#E8E0D4" },
-    ...profile.peak_focus_windows.map((w) => ({ label: "Peak", start: w.start_min, end: w.end_min, colour: "var(--ink)" })),
-    ...profile.low_energy_windows.map((w) => ({ label: "Low", start: w.start_min, end: w.end_min, colour: "var(--watch)" })),
+    {
+      label: "Sleep",
+      start: profile.wake_sleep.sleep,
+      end: 1440,
+      colour: "#E8E0D4",
+    },
+    {
+      label: "Sleep",
+      start: 0,
+      end: profile.wake_sleep.wake,
+      colour: "#E8E0D4",
+    },
+    ...profile.peak_focus_windows.map((w) => ({
+      label: "Peak",
+      start: w.start_min,
+      end: w.end_min,
+      colour: "var(--ink)",
+    })),
+    ...profile.low_energy_windows.map((w) => ({
+      label: "Low",
+      start: w.start_min,
+      end: w.end_min,
+      colour: "var(--watch)",
+    })),
   ];
 
-  function pct(min: number) { return `${(min / 1440) * 100}%`; }
+  function pct(min: number) {
+    return `${(min / 1440) * 100}%`;
+  }
 
   return (
     <div style={{ marginBottom: 40 }}>
-      <div className="meta-text" style={{ marginBottom: 10 }}>Your baseline day — 00:00 → 23:59</div>
-      <div style={{ position: "relative", height: 28, background: "var(--bg)", border: "0.5px solid var(--rule)" }}>
+      <div className="meta-text" style={{ marginBottom: 10 }}>
+        Your baseline day — 00:00 → 23:59
+      </div>
+      <div
+        style={{
+          position: "relative",
+          height: 28,
+          background: "var(--bg)",
+          border: "0.5px solid var(--rule)",
+        }}
+      >
         {segments.map((s) => (
           <div
             key={`${s.label}-${s.start}`}
@@ -494,11 +629,35 @@ function Timeline({ profile }: { profile: UserProfile }) {
           />
         ))}
         {/* Wake marker */}
-        <div style={{ position: "absolute", left: pct(profile.wake_sleep.wake), top: -6, bottom: -6, width: 1, background: "var(--ink)" }} />
+        <div
+          style={{
+            position: "absolute",
+            left: pct(profile.wake_sleep.wake),
+            top: -6,
+            bottom: -6,
+            width: 1,
+            background: "var(--ink)",
+          }}
+        />
         {/* Sleep marker */}
-        <div style={{ position: "absolute", left: pct(profile.wake_sleep.sleep), top: -6, bottom: -6, width: 1, background: "var(--ink)" }} />
+        <div
+          style={{
+            position: "absolute",
+            left: pct(profile.wake_sleep.sleep),
+            top: -6,
+            bottom: -6,
+            width: 1,
+            background: "var(--ink)",
+          }}
+        />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 6,
+        }}
+      >
         <span className="meta-text">00:00</span>
         <span className="meta-text">06:00</span>
         <span className="meta-text">12:00</span>
@@ -511,8 +670,18 @@ function Timeline({ profile }: { profile: UserProfile }) {
           { label: "Peak focus", colour: "var(--ink)" },
           { label: "Low energy", colour: "var(--watch)" },
         ].map((l) => (
-          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, background: l.colour, flexShrink: 0 }} />
+          <div
+            key={l.label}
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                background: l.colour,
+                flexShrink: 0,
+              }}
+            />
             <span className="meta-text">{l.label}</span>
           </div>
         ))}
@@ -585,8 +754,7 @@ function ReportContent() {
     };
   }, []);
 
-  const { state } = useApp();
-  const deviations = profile ? buildDeviations(profile, state.tasks, observed) : [];
+  const deviations = profile ? buildDeviations(profile, observed) : [];
 
   // group by category
   const grouped = deviations.reduce<Record<string, Deviation[]>>((acc, d) => {
@@ -604,24 +772,37 @@ function ReportContent() {
         className="container section-rule"
         style={{ paddingTop: 80, paddingBottom: 40 }}
       >
-        <div className="meta-text" style={{ marginBottom: 10 }}>Behaviour Report</div>
+        <div className="meta-text" style={{ marginBottom: 10 }}>
+          Behaviour Report
+        </div>
         <h1 style={{ marginBottom: 12 }}>How your habits have shifted</h1>
         {profile ? (
-          <p style={{ color: "var(--muted)", maxWidth: "100%", fontSize: 13, lineHeight: 1.8 }}>
-            Comparing <strong>{profile.name}</strong>'s observed behaviour against the baseline set
-            during onboarding on{" "}
+          <p
+            style={{
+              color: "var(--muted)",
+              maxWidth: "100%",
+              fontSize: 13,
+              lineHeight: 1.8,
+            }}
+          >
+            Comparing <strong>{profile.name}</strong>'s observed behaviour
+            against the baseline set during onboarding on{" "}
             {new Date(profile.onboarded_at).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "long",
               year: "numeric",
             })}
             . Deviations marked{" "}
-            <span style={{ color: "var(--vermillion)", fontWeight: 700 }}>High</span> need
-            immediate attention.
+            <span style={{ color: "var(--vermillion)", fontWeight: 700 }}>
+              High
+            </span>{" "}
+            need immediate attention.
           </p>
         ) : (
           <p style={{ color: "var(--muted)", fontSize: 13 }}>
-            {loaded ? "No onboarding profile found. Complete onboarding to see your personal drift report." : "Loading…"}
+            {loaded
+              ? "No onboarding profile found. Complete onboarding to see your personal drift report."
+              : "Loading…"}
           </p>
         )}
       </section>
@@ -636,7 +817,13 @@ function ReportContent() {
         }}
       >
         {!loaded && (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "var(--muted)" }}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "80px 0",
+              color: "var(--muted)",
+            }}
+          >
             Loading profile…
           </div>
         )}
@@ -650,11 +837,17 @@ function ReportContent() {
               textAlign: "center",
             }}
           >
-            <div style={{ fontWeight: 700, marginBottom: 8 }}>No profile data</div>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>
+              No profile data
+            </div>
             <p style={{ color: "var(--muted)", fontSize: 12 }}>
               Finish onboarding to generate your behaviour deviation report.
             </p>
-            <a href="/onboarding" className="btn btn-primary" style={{ display: "inline-block", marginTop: 20 }}>
+            <a
+              href="/onboarding"
+              className="btn btn-primary"
+              style={{ display: "inline-block", marginTop: 20 }}
+            >
               Start onboarding →
             </a>
           </div>
@@ -677,8 +870,17 @@ function ReportContent() {
                 { k: "Role", v: ROLE_LABELS[profile.role] ?? "–" },
                 { k: "Wake", v: fmt(profile.wake_sleep.wake) },
                 { k: "Sleep", v: fmt(profile.wake_sleep.sleep) },
-                { k: "Session style", v: SESSION_LABELS[profile.session_config.session_style]?.split("(")[0].trim() ?? "–" },
-                { k: "Deadline", v: DEADLINE_LABELS[profile.deadline_style] ?? "–" },
+                {
+                  k: "Session style",
+                  v:
+                    SESSION_LABELS[profile.session_config.session_style]
+                      ?.split("(")[0]
+                      .trim() ?? "–",
+                },
+                {
+                  k: "Deadline",
+                  v: DEADLINE_LABELS[profile.deadline_style] ?? "–",
+                },
                 { k: "Timezone", v: profile.timezone },
               ].map(({ k, v }) => (
                 <div
@@ -708,8 +910,12 @@ function ReportContent() {
               className="trace-log"
               style={{ marginBottom: 40, padding: "16px 24px" }}
             >
-              <div className="meta-text" style={{ marginBottom: 6 }}>Data source</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.7 }}>
+              <div className="meta-text" style={{ marginBottom: 6 }}>
+                Data source
+              </div>
+              <div
+                style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.7 }}
+              >
                 {observed
                   ? "Observed values are pulled from your saved daily feedback. This includes actual wake/sleep times, session completion rates, and other metrics you track in the Feedback tab."
                   : "No observed data available yet. Enter your daily values in the Feedback tab to see how your behaviour deviates from baseline."}
@@ -745,10 +951,11 @@ function ReportContent() {
               }}
             >
               <span className="meta-text">Methodology — </span>
-              Baseline is your onboarding snapshot. Observed values are averaged over the current
-              reporting window. Severity thresholds: <strong>High</strong> = &gt; 45 min drift or
-              &gt; 25% adherence gap; <strong>Moderate</strong> = 20–45 min or 15–25%; <strong>Low</strong>{" "}
-              = 5–20 min or &lt; 15%.
+              Baseline is your onboarding snapshot. Observed values are averaged
+              over the current reporting window. Severity thresholds:{" "}
+              <strong>High</strong> = &gt; 45 min drift or &gt; 25% adherence
+              gap; <strong>Moderate</strong> = 20–45 min or 15–25%;{" "}
+              <strong>Low</strong> = 5–20 min or &lt; 15%.
             </div>
           </>
         )}

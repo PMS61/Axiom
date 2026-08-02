@@ -14,12 +14,12 @@
 "use server";
 
 import { sql } from "@vercel/postgres";
-import { cookies } from "next/headers";
-import { verify } from "jsonwebtoken";
-import type { Task, SchedulerOutput, RunSchedulerResult } from "@/lib/types";
-import { scoreSubtaskArray, type SubtaskInput } from "@/lib/scoring";
-import { runScheduler, taskToRow, type TaskRow } from "@/lib/schedule";
 import crypto from "crypto";
+import { verify } from "jsonwebtoken";
+import { cookies } from "next/headers";
+import { runScheduler, type TaskRow, taskToRow } from "@/lib/schedule";
+import { type SubtaskInput, scoreSubtaskArray } from "@/lib/scoring";
+import type { RunSchedulerResult, SchedulerOutput, Task } from "@/lib/types";
 
 // ── Terminal states — excluded from scheduling ─────────────
 const TERMINAL_STATES = new Set(["completed", "sacrificed", "skipped"]);
@@ -197,7 +197,7 @@ async function fetchSectionWeightsById(userId: number): Promise<{
   afternoon: number;
   evening: number;
 }> {
-  const defaults = { morning: 0.40, afternoon: 0.35, evening: 0.25 };
+  const defaults = { morning: 0.4, afternoon: 0.35, evening: 0.25 };
   try {
     await createTasksTables();
     const result = await sql`
@@ -214,9 +214,9 @@ async function fetchSectionWeightsById(userId: number): Promise<{
     }
     const r = result.rows[0];
     return {
-      morning:   (r.morning   as number) ?? defaults.morning,
+      morning: (r.morning as number) ?? defaults.morning,
       afternoon: (r.afternoon as number) ?? defaults.afternoon,
-      evening:   (r.evening   as number) ?? defaults.evening,
+      evening: (r.evening as number) ?? defaults.evening,
     };
   } catch {
     // Table may not exist yet — fall back to defaults silently
@@ -226,7 +226,9 @@ async function fetchSectionWeightsById(userId: number): Promise<{
 
 // ── Internal: Run scheduler + upsert schedules table ─────
 
-async function runAndSaveSchedule(userId: number): Promise<SchedulerOutput | null> {
+async function runAndSaveSchedule(
+  userId: number,
+): Promise<SchedulerOutput | null> {
   await createTasksTables();
   // 1. Fetch ALL tasks for this user
   let rawRows: any[];
@@ -337,7 +339,7 @@ async function runAndSaveSchedule(userId: number): Promise<SchedulerOutput | nul
           day: day.dayOffset,
           startSlot: t.startSlot,
           endSlot: (t.startSlot || 0) + Math.ceil(t.completionTime / 15),
-          fitnessScore: 5.0
+          fitnessScore: 5.0,
         };
         updatePromises.push(sql`
           UPDATE tasks
@@ -393,7 +395,9 @@ export async function getTasks(): Promise<{ tasks?: Task[]; error?: string }> {
 /**
  * Add / upload a single task manually.
  */
-export async function addTask(task: Task): Promise<{ success?: boolean; error?: string }> {
+export async function addTask(
+  task: Task,
+): Promise<{ success?: boolean; error?: string }> {
   const userId = await getUserId();
   if (!userId) return { error: "Unauthorized" };
 
@@ -771,7 +775,7 @@ export async function syncTasks(
 
 /**
  * Delete all tasks in the 'unscheduled' state for the current user.
- * Used to flush the pool before a fresh RAG extraction.
+ * Used to flush the unscheduled pool before a fresh generated plan.
  */
 export async function clearUnscheduledTasks(): Promise<{
   success?: boolean;
@@ -952,90 +956,6 @@ export async function markSectionComplete(
   }
 }
 
-// ── RAG Source Persistence ────────────────────────────────
-
-async function ensureSourcesTable(): Promise<void> {
-  await sql`
-    CREATE TABLE IF NOT EXISTS sources (
-      id SERIAL PRIMARY KEY,
-      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      topic VARCHAR(255),
-      content TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-    )
-  `;
-}
-
-/**
- * Persist RAG context text for a topic so it survives page reloads.
- */
-export async function saveSource(
-  content: string,
-  topic?: string,
-): Promise<{ success?: boolean; error?: string }> {
-  const userId = await getUserId();
-  if (!userId) return { error: "Unauthorized" };
-  try {
-    await ensureSourcesTable();
-    await sql`
-      INSERT INTO sources (user_id, topic, content)
-      VALUES (${userId}, ${topic ?? null}, ${content})
-    `;
-    return { success: true };
-  } catch (err: any) {
-    console.error("saveSource failed:", err);
-    return { error: err.message || "Failed to save source" };
-  }
-}
-
-/**
- * Retrieve the most recent RAG context for the current user.
- */
-export async function getSource(): Promise<{
-  content?: string;
-  topic?: string;
-  error?: string;
-}> {
-  const userId = await getUserId();
-  if (!userId) return { error: "Unauthorized" };
-  try {
-    await ensureSourcesTable();
-    const result = await sql`
-      SELECT content, topic FROM sources
-      WHERE user_id = ${userId}
-      ORDER BY created_at DESC
-      LIMIT 1
-    `;
-    if (result.rows.length === 0) return {};
-    return {
-      content: result.rows[0].content as string,
-      topic: result.rows[0].topic as string | undefined,
-    };
-  } catch (err: any) {
-    console.error("getSource failed:", err);
-    return { error: err.message || "Failed to get source" };
-  }
-}
-
-/**
- * Delete all RAG context rows for the current user.
- */
-export async function clearSources(): Promise<{
-  success?: boolean;
-  error?: string;
-}> {
-  const userId = await getUserId();
-  if (!userId) return { error: "Unauthorized" };
-  try {
-    await ensureSourcesTable();
-    await sql`DELETE FROM sources WHERE user_id = ${userId}`;
-    return { success: true };
-  } catch (err: any) {
-    console.error("clearSources failed:", err);
-    return { error: err.message || "Failed to clear sources" };
-  }
-}
-
 // ── Chunk Persistence (task_chunks table) ─────────────────
 
 /**
@@ -1114,7 +1034,11 @@ export async function runSchedulerAction(
       .map(taskToRow);
 
     if (activeRows.length === 0) {
-      return { days: [], unscheduled: [], reasoningLog: ["No active tasks to schedule."] };
+      return {
+        days: [],
+        unscheduled: [],
+        reasoningLog: ["No active tasks to schedule."],
+      };
     }
 
     // 3. Run the pure deterministic scheduler
@@ -1178,8 +1102,8 @@ export async function runSchedulerAction(
 //   User prompt → Gemini (RoadmapDAGNode[]) → SubtaskInput[]
 //              → scoreSubtaskArray → INSERT tasks → runAndSaveSchedule
 
-import { generateRoadmapAction } from "./roadmap";
 import type { RoadmapDAGNode } from "@/lib/types";
+import { generateRoadmapAction } from "./roadmap";
 
 function nodeToSubtask(
   node: RoadmapDAGNode,
@@ -1194,7 +1118,7 @@ function nodeToSubtask(
         ? "low"
         : "normal";
 
-  let parsedDeadline: string | undefined = undefined;
+  let parsedDeadline: string | undefined;
   if (deadline) {
     const timestamp = Date.parse(deadline);
     if (!isNaN(timestamp)) {

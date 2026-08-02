@@ -205,9 +205,12 @@ JSON shape:
   try {
     const raw = await getGeminiResponse(prompt, true);
     const parsed = JSON.parse(raw);
+    if (parsed?.error) {
+      throw new Error(parsed.message || parsed.error);
+    }
     return normalizeSet(parsed, title, description);
   } catch (error) {
     console.error("[ShortBitAgent] generation failed:", error);
-    return fallbackSet(title, description);
+    throw error;
   }
 }

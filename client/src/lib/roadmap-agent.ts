@@ -143,16 +143,11 @@ function hydrateNodes(parsed: RoadmapDAGNode[]): RoadmapDAGNode[] {
       | "assessment",
     priority: ["low", "normal", "high"].includes(node.priority as string)
       ? (node.priority as "low" | "normal" | "high")
-      : "normal" as const,
+      : ("normal" as const),
     sequence: typeof node.sequence === "number" ? node.sequence : idx + 1,
     difficulty: Math.min(10, Math.max(1, node.difficulty ?? 5)),
-    estimatedMinutes: Math.min(
-      180,
-      Math.max(15, node.estimatedMinutes ?? 60),
-    ),
-    prerequisites: Array.isArray(node.prerequisites)
-      ? node.prerequisites
-      : [],
+    estimatedMinutes: Math.min(180, Math.max(15, node.estimatedMinutes ?? 60)),
+    prerequisites: Array.isArray(node.prerequisites) ? node.prerequisites : [],
     masteryScore: node.masteryScore ?? 0,
     subject: node.subject || "Core",
     nodeState: "locked" as const,
@@ -164,7 +159,10 @@ function hydrateNodes(parsed: RoadmapDAGNode[]): RoadmapDAGNode[] {
     ...node,
     // Ensure prerequisites reference valid nodes only
     prerequisites: node.prerequisites.filter((p: string) => nodeIds.has(p)),
-    nodeState: node.prerequisites.length === 0 ? ("available" as const) : ("locked" as const),
+    nodeState:
+      node.prerequisites.length === 0
+        ? ("available" as const)
+        : ("locked" as const),
   }));
 }
 
@@ -181,10 +179,12 @@ export async function generateRoadmapDAG(
   for (let attempt = 1; attempt <= MAX_ROADMAP_ATTEMPTS; attempt++) {
     try {
       console.log(`[RoadmapAgent] Attempt ${attempt}/${MAX_ROADMAP_ATTEMPTS}…`);
-      const raw = await getGeminiResponse(prompt, true, "gemma-4-31b-it");
+      const raw = await getGeminiResponse(prompt, true);
       const parsed = parseAndValidateNodes(raw);
       const nodes = hydrateNodes(parsed);
-      console.log(`[RoadmapAgent] Successfully generated ${nodes.length} nodes.`);
+      console.log(
+        `[RoadmapAgent] Successfully generated ${nodes.length} nodes.`,
+      );
       return nodes;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));

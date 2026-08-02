@@ -1,0 +1,19 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+**/secrets/**
+**/credentials/**
+
+# tool/IDE local state
+.antigravitycli/
+.agents/
+.codex/
+
+# OS
+.DS_Store
+
+# node
+node_modules/

@@ -802,57 +802,75 @@ export default function RoadmapDAGView({
               </div>
             </div>
             <div>
-              <div
-                style={{
-                  fontSize: 9,
-                  fontFamily: "var(--mono)",
-                  color: "var(--muted)",
-                  letterSpacing: "0.12em",
-                  marginBottom: 4,
-                }}
-              >
-                MASTERY
-              </div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: 22,
-                  fontFamily: "var(--mono)",
-                  color:
-                    selectedNode.masteryScore >= 0.8
-                      ? "var(--safe)"
-                      : selectedNode.masteryScore > 0
-                        ? "var(--watch)"
-                        : "var(--muted)",
-                }}
-              >
-                {Math.round(selectedNode.masteryScore * 100)}%
-              </div>
+            <div
+            style={{
+              fontSize: 9,
+              fontFamily: "var(--mono)",
+              color: "var(--muted)",
+              letterSpacing: "0.12em",
+              marginBottom: 4,
+            }}
+            >
+            MASTERY
+            </div>
+            <div
+            style={{
+              fontWeight: 700,
+              fontSize: 22,
+              fontFamily: "var(--mono)",
+              color:
+                selectedNode.masteryScore >= 0.75
+                  ? "var(--safe)"
+                  : selectedNode.masteryScore > 0
+                    ? "var(--watch)"
+                    : "var(--muted)",
+            }}
+            >
+            {Math.round(selectedNode.masteryScore * 100)}%
+            </div>
             </div>
             <div>
-              <div
-                style={{
-                  fontSize: 9,
-                  fontFamily: "var(--mono)",
-                  color: "var(--muted)",
-                  letterSpacing: "0.12em",
-                  marginBottom: 4,
-                }}
-              >
-                PREREQS
-              </div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: 22,
-                  fontFamily: "var(--mono)",
-                }}
-              >
-                {selectedNode.prerequisites.length}
-              </div>
+            <div
+            style={{
+              fontSize: 9,
+              fontFamily: "var(--mono)",
+              color: "var(--muted)",
+              letterSpacing: "0.12em",
+              marginBottom: 4,
+            }}
+            >
+            PREREQS
             </div>
-          </div>
+            <div
+            style={{
+              fontWeight: 700,
+              fontSize: 22,
+              fontFamily: "var(--mono)",
+            }}
+            >
+            {selectedNode.prerequisites.length}
+            </div>
+            </div>
+            </div>
 
+            {/* Mark as Complete Button (for Course nodes) */}
+            {selectedNode.type === "course" && selectedNode.nodeState !== "mastered" && selectedNode.nodeState !== "locked" && (
+            <button
+            type="button"
+            className="btn btn-primary"
+            style={{
+            width: "100%",
+            marginBottom: 16,
+            justifyContent: "center",
+            background: "var(--safe)",
+            borderColor: "var(--safe)",
+            color: "white"
+            }}
+            onClick={() => onMasteryUpdate?.(selectedNode.id, 1.0)}
+            >
+            ✓ Mark as Complete
+            </button>
+            )}
 
 
           {/* Convert to Task (Now Automated, maybe Fallback) */}
@@ -876,31 +894,91 @@ export default function RoadmapDAGView({
           {selectedTaskId &&
             (linkedTask && linkedTask.state === "scheduled" ? (
               <>
-                {storedContentTypes.length > 0 && (
+                {selectedNode.type === "assessment" ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{
+                      width: "100%",
+                      marginBottom: 12,
+                      justifyContent: "center",
+                    }}
+                    onClick={() =>
+                      router.push(`/dashboard/assessment/${selectedTaskId}`)
+                    }
+                  >
+                    ↳ Open Assessment
+                  </button>
+                ) : (
                   <>
+                    {storedContentTypes.length > 0 && (
+                      <>
+                        <div style={{ marginBottom: 8 }}>
+                          <label
+                            htmlFor="stored-content-selector"
+                            className="meta-text"
+                            style={{ display: "block", marginBottom: 6 }}
+                          >
+                            STORED CONTENT
+                          </label>
+                          <select
+                            id="stored-content-selector"
+                            value={selectedStoredType}
+                            onChange={(e) =>
+                              setSelectedStoredType(e.target.value as StoredContentKind)
+                            }
+                            style={{ width: "100%" }}
+                          >
+                            {STORED_CONTENT_OPTIONS.filter((opt) =>
+                              storedContentTypes.includes(opt.value),
+                            ).map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          style={{
+                            width: "100%",
+                            marginBottom: 12,
+                            justifyContent: "center",
+                          }}
+                          onClick={() =>
+                            router.push(
+                              getStoredContentRoute(selectedTaskId, selectedStoredType),
+                            )
+                          }
+                        >
+                          ↳ Open Stored Content
+                        </button>
+                      </>
+                    )}
+
                     <div style={{ marginBottom: 8 }}>
                       <label
-                        htmlFor="stored-content-selector"
+                        htmlFor="content-experience-selector"
                         className="meta-text"
                         style={{ display: "block", marginBottom: 6 }}
                       >
-                        STORED CONTENT
+                        SELECT CONTENT MODE {storedContentTypes.length > 0 ? "(GENERATE / REGENERATE)" : ""}
                       </label>
                       <select
-                        id="stored-content-selector"
-                        value={selectedStoredType}
+                        id="content-experience-selector"
+                        value={selectedExperience}
                         onChange={(e) =>
-                          setSelectedStoredType(e.target.value as StoredContentKind)
+                          setSelectedExperience(e.target.value as ContentExperience)
                         }
                         style={{ width: "100%" }}
                       >
-                        {STORED_CONTENT_OPTIONS.filter((opt) =>
-                          storedContentTypes.includes(opt.value),
-                        ).map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
+                        <option value="ppt">Slides (PPT)</option>
+                        <option value="flashcards">Flashcards</option>
+                        <option value="shortbits">Short Bits</option>
+                        <option value="one-shot">Cheat Sheet</option>
+                        <option value="storytelling">Story</option>
                       </select>
                     </div>
 
@@ -909,123 +987,82 @@ export default function RoadmapDAGView({
                       className="btn btn-primary"
                       style={{
                         width: "100%",
-                        marginBottom: 12,
+                        marginBottom: 8,
                         justifyContent: "center",
                       }}
                       onClick={() =>
                         router.push(
-                          getStoredContentRoute(selectedTaskId, selectedStoredType),
+                          getPrimaryContentRoute(
+                            selectedTaskId,
+                            selectedExperience,
+                          ),
                         )
                       }
                     >
-                      ↳ Open Stored Content
+                      ✦ {storedContentTypes.length > 0 ? "Generate / Regenerate" : "Generate"} {getPrimaryContentLabel(selectedExperience)}
                     </button>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 8,
+                        marginBottom: 8,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          router.push(`/dashboard/course/${selectedTaskId}`)
+                        }
+                        style={{ justifyContent: "center" }}
+                      >
+                        Slides
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          router.push(`/dashboard/flashcard/${selectedTaskId}`)
+                        }
+                        style={{ justifyContent: "center" }}
+                      >
+                        Flashcards
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          router.push(`/dashboard/short-bit/${selectedTaskId}`)
+                        }
+                        style={{ justifyContent: "center" }}
+                      >
+                        Short Bits
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          router.push(`/dashboard/cheatsheet/${selectedTaskId}`)
+                        }
+                        style={{ justifyContent: "center" }}
+                      >
+                        Cheat Sheet
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          router.push(`/dashboard/story/${selectedTaskId}`)
+                        }
+                        style={{ justifyContent: "center" }}
+                      >
+                        Story
+                      </button>
+                    </div>
                   </>
                 )}
-
-                <div style={{ marginBottom: 8 }}>
-                  <label
-                    htmlFor="content-experience-selector"
-                    className="meta-text"
-                    style={{ display: "block", marginBottom: 6 }}
-                  >
-                    SELECT CONTENT MODE {storedContentTypes.length > 0 ? "(GENERATE / REGENERATE)" : ""}
-                  </label>
-                  <select
-                    id="content-experience-selector"
-                    value={selectedExperience}
-                    onChange={(e) =>
-                      setSelectedExperience(e.target.value as ContentExperience)
-                    }
-                    style={{ width: "100%" }}
-                  >
-                    <option value="ppt">Slides (PPT)</option>
-                    <option value="flashcards">Flashcards</option>
-                    <option value="shortbits">Short Bits</option>
-                    <option value="one-shot">Cheat Sheet</option>
-                    <option value="storytelling">Story</option>
-                  </select>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  style={{
-                    width: "100%",
-                    marginBottom: 8,
-                    justifyContent: "center",
-                  }}
-                  onClick={() =>
-                    router.push(
-                      getPrimaryContentRoute(
-                        selectedTaskId,
-                        selectedExperience,
-                      ),
-                    )
-                  }
-                >
-                  ✦ {storedContentTypes.length > 0 ? "Generate / Regenerate" : "Generate"} {getPrimaryContentLabel(selectedExperience)}
-                </button>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      router.push(`/dashboard/course/${selectedTaskId}`)
-                    }
-                    style={{ justifyContent: "center" }}
-                  >
-                    Slides
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      router.push(`/dashboard/flashcard/${selectedTaskId}`)
-                    }
-                    style={{ justifyContent: "center" }}
-                  >
-                    Flashcards
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      router.push(`/dashboard/short-bit/${selectedTaskId}`)
-                    }
-                    style={{ justifyContent: "center" }}
-                  >
-                    Short Bits
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      router.push(`/dashboard/cheatsheet/${selectedTaskId}`)
-                    }
-                    style={{ justifyContent: "center" }}
-                  >
-                    Cheat Sheet
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      router.push(`/dashboard/story/${selectedTaskId}`)
-                    }
-                    style={{ justifyContent: "center" }}
-                  >
-                    Story
-                  </button>
-                </div>
               </>
             ) : (
               <div
