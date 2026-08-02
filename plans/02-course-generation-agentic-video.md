@@ -1,5 +1,9 @@
 # Plan 2 — Course Generation: PPT + 3D Narration + Video Export + Doubt Chat
 
+## Branch strategy
+
+Build this plan on its own branch (e.g. `plan/02-course-agentic-video`), off current `master` — Plan 4 (personalization) is already merged there, so `toCoursePersonalizationPayload()` (`lib/personalization.ts`) is available from the start of this branch. Independent of Plans 1 and 3; no need to wait on either. Plan 5 depends on this plan merging first (see Plan 5's own branch note).
+
 ## Context: what exists today
 
 `course-agent.ts` is two flat, sequential Gemini calls with no orchestration:
@@ -9,7 +13,7 @@
 
 There is no personalization input (no user profile, no mastery, no learning style — confirmed absent from `course-agent.ts`'s signature, unlike `roadmap-agent.ts` which does take a profile). There is no narration script, no TTS, no avatar, no video export, and no chat. This is a from-scratch feature build, not an enhancement of an existing partial system.
 
-`AXIOM_PROJECT_BRIEF.md` §06 already scoped "How" pillar work as an engineering showcase (not the research track) and named the exact techniques to demonstrate: self-refinement loop (Reflexion-style critic), model routing by task complexity, adaptive in-context learning from user history, and performance-aware generation. This plan operationalizes those for the course feature specifically, since it's the one getting the video/avatar/chat treatment.
+The project's original research brief (superseded by this `plans/` directory, no longer in the repo) already scoped "How" pillar work as an engineering showcase (not the research track) and named the exact techniques to demonstrate: self-refinement loop (Reflexion-style critic), model routing by task complexity, adaptive in-context learning from user history, and performance-aware generation. This plan operationalizes those for the course feature specifically, since it's the one getting the video/avatar/chat treatment.
 
 ## Scope clarification
 
@@ -62,9 +66,9 @@ Given a single course's total slide text is small (a crash course capped at ~3 s
 - Conversation history persisted per course session (reuse the existing Postgres/JWT auth pattern already used elsewhere in `app/actions/`) so the chat has memory across turns — this is the actual "LLM orchestration" requirement: multi-turn state, not a stateless Q&A.
 - If a course is later allowed to be much larger (full curriculum, not a crash course), *then* revisit with retrieval — flag this as a documented non-goal for now, not a silent gap.
 
-## Personalization hook (ties to Plan 4)
+## Personalization hook (ties to Plan 4 — already shipped)
 
-Once Plan 4's unified learner profile exists, `generateCourseSkeleton`/`generateCourseSlide` should accept it and adjust depth/pacing/vocabulary per the brief's "Performance-Aware Generation" item — this plan's pipeline stages are designed so that hook slots in at Stage 1/2 without restructuring (the profile becomes another input alongside title/description/userPrompt). Do not block this plan on Plan 4 — build the pipeline now with a profile parameter that defaults to null/generic, wire it for real once Plan 4 ships.
+Plan 4 is merged: `getLearnerProfile(userId)` and `toCoursePersonalizationPayload(profile, topic)` (`lib/personalization.ts`) already exist and return `{experienceLevel, learningStyle, masteryScore}` for a given topic. `generateCourseSkeleton`/`generateCourseSlide` should accept this payload and adjust depth/pacing/vocabulary per the brief's "Performance-Aware Generation" item — this plan's pipeline stages are designed so that hook slots in at Stage 1/2 without restructuring (the payload becomes another input alongside title/description/userPrompt). This is real wiring now, not a future dependency — do it as part of Stage 1/2's build, not as a follow-up.
 
 ## Suggested sequencing
 

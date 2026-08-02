@@ -1,5 +1,9 @@
 # Plan 3 — Trends: Accurate Predictions and Recommendations
 
+## Branch strategy
+
+Build this plan on its own branch (e.g. `plan/03-trends-accuracy`), off current `master` — Plan 4 (personalization) is already merged there, so `toTrendPersonalizationPayload()` (`lib/personalization.ts`) is available from the start of this branch. Independent of Plans 1 and 2; no need to wait on either. Plan 5 depends on this plan merging first (see Plan 5's own branch note).
+
 ## Context: what exists today
 
 The trend engine (`client/src/lib/trend-engine/`) is pure math with no learning or feedback:
@@ -9,7 +13,7 @@ The trend engine (`client/src/lib/trend-engine/`) is pure math with no learning 
 - **Sources**: exactly three (HN, Reddit, NewsAPI), fetched every call, no per-domain source selection.
 - **"Insight"/"future_outlook" text**: one batch LLM call per `fetchTopTrends()` run, given only the computed score/direction/momentum as text — the LLM is not shown any actual headlines, so its "insight" is a plausible-sounding guess dressed up as analysis, not a grounded claim.
 - **`searchTopic()` / `getTopicOverview()`**: single-shot Gemini calls where "current trend data" is a few numbers pasted into a prompt (or entirely absent, falling back to "use your knowledge"); `relevance_score`, `roi_estimate`, `market_relevance` etc. are model guesses with no source-checkable basis and no confidence indicator.
-- **No feedback loop**: nothing checks whether a "rising" trend actually kept rising, whether a high relevance_score topic correlated with anything real, or whether the fixed 0.4/0.4/0.2 weighting is any good. `AXIOM_PROJECT_BRIEF.md` §06 already names the intended fix for personalization ("Mastery-Weighted Trend Ranking," feeding scheduler completion-rate calibration back into topic ranking) but that link doesn't exist yet either.
+- **No feedback loop**: nothing checks whether a "rising" trend actually kept rising, whether a high relevance_score topic correlated with anything real, or whether the fixed 0.4/0.4/0.2 weighting is any good. The project's original research brief (superseded by this `plans/` directory, no longer in the repo) already named the intended fix for personalization ("Mastery-Weighted Trend Ranking," feeding scheduler completion-rate calibration back into topic ranking) but that link doesn't exist yet either.
 
 This is the honest baseline: "prediction" today means a single ungrounded LLM guess per query, and "trend score" is an unvalidated fixed-weight heuristic over whatever three sources happened to mention something in the last 48 hours.
 
@@ -46,7 +50,7 @@ Two different problems are bundled under "accuracy" and need separate treatment:
 
 ### E. Personalized ranking — implement the loop-closing bridge from the brief
 
-- Wire `computeCalibratedMultipliers()` (already in `engine.ts`, tracks per-task-type completion rates) and roadmap `masteryScore` values into trend ranking: topics matching a `TaskType`/subject the user is struggling with (low completion rate, low mastery) get a ranking boost, per `AXIOM_PROJECT_BRIEF.md` §06's "Mastery-Weighted Trend Ranking (When → What)". This requires reading from the learner profile/mastery store defined in Plan 4 — sequence this after Plan 4's unified profile lands, or at minimum after Plan 4 defines the accessor shape, so this doesn't get built against a data model that immediately changes underneath it.
+- Wire `computeCalibratedMultipliers()` (already in `engine.ts`, tracks per-task-type completion rates) and roadmap `masteryScore` values into trend ranking: topics matching a `TaskType`/subject the user is struggling with (low completion rate, low mastery) get a ranking boost, per the original brief's "Mastery-Weighted Trend Ranking (When → What)" item. Plan 4 is now merged: `getLearnerProfile()` and `toTrendPersonalizationPayload()` (`lib/personalization.ts`) already exist and return `strugglingTopics` (mastery < 0.5, sorted lowest-first) plus `interestDomains`/`profileType` — this item can be built directly against them now, no further waiting on Plan 4.
 - Also actually use the existing-but-inert `user_interests` table (`domains`, `profile_type`) to filter/boost `fetchTopTrends()` results — right now it's saved (`saveUserInterests`) but never read back into the ranking path at all.
 
 ## Suggested sequencing
@@ -55,7 +59,7 @@ Two different problems are bundled under "accuracy" and need separate treatment:
 2. Embedding fallback for topic mapping (A) — moderate effort, fixes silent data loss.
 3. Additional sources + reliability weighting (B).
 4. Backtesting harness (D) — reuse patterns from Plan 1's research harness where sensible (both are "log predictions, check them later, refit weights" problems).
-5. Mastery/interest-weighted personalization (E) — after Plan 4 ships the unified profile.
+5. Mastery/interest-weighted personalization (E) — Plan 4 shipped already, no longer a blocker; sequence this last within the branch anyway since it should layer on top of (C)/(D)'s scoring fixes, not compound with an unfixed score.
 
 ## Open question for the user
 
