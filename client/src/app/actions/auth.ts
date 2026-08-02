@@ -1,15 +1,30 @@
 "use server";
 
+import { sql } from "@vercel/postgres";
 import bcrypt from "bcrypt";
 import { sign } from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { sql } from "@vercel/postgres";
 
 type TimeWindow = { start_min: number; end_min: number };
-type FixedBlock = { title: string; start_min: number; end_min: number; days: number[]; recurring: boolean };
-type TimeExclusion = { label: string; start_min: number; end_min: number; days: number[] };
-type RecoveryActivity = { name: string; duration_min: number; energy_value: number };
+type FixedBlock = {
+  title: string;
+  start_min: number;
+  end_min: number;
+  days: number[];
+  recurring: boolean;
+};
+type TimeExclusion = {
+  label: string;
+  start_min: number;
+  end_min: number;
+  days: number[];
+};
+type RecoveryActivity = {
+  name: string;
+  duration_min: number;
+  energy_value: number;
+};
 
 type RegisterUserInput = {
   name: string;
@@ -146,6 +161,8 @@ export async function createUsersTable(): Promise<ActionResult> {
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS fixed_commitments JSONB DEFAULT '[]'::jsonb`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS hard_exclusions JSONB DEFAULT '[]'::jsonb`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_activities JSONB DEFAULT '[]'::jsonb`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_level VARCHAR(20) DEFAULT 'beginner'`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS learning_style VARCHAR(20) DEFAULT 'balanced'`;
     return {};
   } catch (error) {
     console.error("Create users table failed:", error);
@@ -153,7 +170,9 @@ export async function createUsersTable(): Promise<ActionResult> {
   }
 }
 
-export async function registerUser(userData: RegisterUserInput): Promise<ActionResult> {
+export async function registerUser(
+  userData: RegisterUserInput,
+): Promise<ActionResult> {
   const {
     name,
     email,
@@ -238,7 +257,6 @@ export async function registerUser(userData: RegisterUserInput): Promise<ActionR
       VALUES (${newUserId}, 0.40, 0.35, 0.25)
       ON CONFLICT (user_id) DO NOTHING;
     `;
-
   } catch (error) {
     console.error("Registration failed:", error);
     return { error: "Registration failed. Please try again." };
@@ -247,10 +265,12 @@ export async function registerUser(userData: RegisterUserInput): Promise<ActionR
   return authenticateAndSetSession({ email, password });
 }
 
-export async function loginUser(formData: FormData): Promise<ActionResult | void> {
+export async function loginUser(
+  formData: FormData,
+): Promise<ActionResult | void> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  
+
   const authResult = await authenticateAndSetSession({ email, password });
   if (authResult.error) {
     return authResult;
@@ -278,7 +298,7 @@ export async function getUserProfile() {
     const result = await sql`
       SELECT id, name, email, timezone, role, wake_time, sleep_time, session_style, switch_buffer, deadline_style,
         peak_focus_windows, low_energy_windows, fixed_commitments, hard_exclusions, recovery_activities,
-        created_at
+        experience_level, learning_style, created_at
       FROM users
       WHERE id = ${decoded.userId}
       LIMIT 1;
@@ -301,6 +321,8 @@ export async function updateUserProfile(updates: {
   peak_focus_windows?: TimeWindow[];
   low_energy_windows?: TimeWindow[];
   fixed_commitments?: FixedBlock[];
+  experience_level?: "beginner" | "intermediate" | "advanced";
+  learning_style?: "visual" | "reading" | "practice" | "balanced";
 }): Promise<ActionResult> {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
@@ -342,6 +364,14 @@ export async function updateUserProfile(updates: {
       }));
       const exJson = JSON.stringify(exclusions);
       await sql`UPDATE users SET hard_exclusions = ${exJson}::jsonb WHERE id = ${decoded.userId};`;
+    }
+
+    if (updates.experience_level !== undefined) {
+      await sql`UPDATE users SET experience_level = ${updates.experience_level} WHERE id = ${decoded.userId};`;
+    }
+
+    if (updates.learning_style !== undefined) {
+      await sql`UPDATE users SET learning_style = ${updates.learning_style} WHERE id = ${decoded.userId};`;
     }
 
     return {};

@@ -9,8 +9,13 @@
 import { sql } from "@vercel/postgres";
 import { verify } from "jsonwebtoken";
 import { cookies } from "next/headers";
+import {
+  normalizeTopicKey,
+  toRoadmapPersonalizationPayload,
+} from "@/lib/personalization";
 import { generateRoadmapDAG, recomputeNodeStates } from "@/lib/roadmap-agent";
 import type { AdaptiveRoadmap, RoadmapDAGNode, RoadmapGoal } from "@/lib/types";
+import { getLearnerProfile, upsertMastery } from "./personalization";
 import { updateTaskStateAndSlot } from "./tasks";
 
 // ── Auth Helper ───────────────────────────────────────────
@@ -208,10 +213,25 @@ export async function generateRoadmapAction(goal: RoadmapGoal): Promise<{
   error?: string;
 }> {
   try {
-    const nodes = await generateRoadmapDAG(goal);
+    // Fill in personalization the caller didn't already specify explicitly —
+    // an explicit userProfile/existingMastery on the goal always wins.
+    const userId = await getUserId();
+    let personalizedGoal = goal;
+    if (userId && (!goal.userProfile || !goal.existingMastery)) {
+      const profile = await getLearnerProfile(userId);
+      const { userProfile, existingMastery } =
+        toRoadmapPersonalizationPayload(profile);
+      personalizedGoal = {
+        ...goal,
+        userProfile: goal.userProfile ?? userProfile,
+        existingMastery: goal.existingMastery ?? existingMastery,
+      };
+    }
+
+    const nodes = await generateRoadmapDAG(personalizedGoal);
     const roadmap: AdaptiveRoadmap = {
       id: `roadmap_${Date.now()}`,
-      goal,
+      goal: personalizedGoal,
       nodes,
       generatedAt: new Date().toISOString(),
       lastUpdatedAt: new Date().toISOString(),
@@ -357,6 +377,16 @@ export async function completeNodeAction(taskId: string): Promise<{
     };
 
     const updatedNodes = recomputeNodeStates(nodes, masteryUpdates);
+
+    // Cross-pillar mastery signal (plans/04). This is a coarse "task done"
+    // flag, not a graded score — upsertMastery's merge policy makes sure it
+    // never overwrites a real assessment-sourced score for the same topic.
+    await upsertMastery(
+      userId,
+      normalizeTopicKey(targetNode.title),
+      1,
+      "roadmap",
+    );
 
     const updatedRoadmap: AdaptiveRoadmap = {
       id: roadmapRow.id,
