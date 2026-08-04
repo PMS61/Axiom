@@ -43,6 +43,18 @@ const VISEME_MOUTH_SHAPE: Record<Viseme, { scaleY: number; scaleX: number }> = {
   H: { scaleY: 0.2, scaleX: 0.95 },
 };
 
+// While speaking, rotate through a few gesture animations instead of
+// holding one static pose for the whole narration — keeps the hands
+// visibly active. Picked purely off audio elapsed time inside useFrame,
+// no React state, so it doesn't cost a re-render.
+const SPEAKING_GESTURE_POOL = [
+  "Teacher_ExplainingGestures",
+  "Teacher_Emphasize",
+  "Teacher_Talking",
+  "Teacher_PointingBoard",
+];
+const GESTURE_ROTATE_SECONDS = 4;
+
 function findActiveViseme(timeline: VisemeCue[], t: number): VisemeCue | null {
   for (const cue of timeline) {
     if (t >= cue.start && t < cue.end) return cue;
@@ -98,7 +110,15 @@ function RobotModel({
       }
     }
 
-    switch (currentAnimation) {
+    let effectiveAnimation = currentAnimation;
+    if (speaking && audioRef.current) {
+      const gestureIndex =
+        Math.floor(audioRef.current.currentTime / GESTURE_ROTATE_SECONDS) %
+        SPEAKING_GESTURE_POOL.length;
+      effectiveAnimation = SPEAKING_GESTURE_POOL[gestureIndex];
+    }
+
+    switch (effectiveAnimation) {
       case "Teacher_StandingPose":
         tLeftArm = [Math.sin(t) * 0.1, 0, 0.3];
         tRightArm = [Math.sin(t + 1) * 0.1, 0, -0.3];
