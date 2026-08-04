@@ -2,7 +2,7 @@
 
 ## Branch strategy
 
-Build this plan on its own branch (e.g. `plan/05-loop-integration`), but **do not create it until Plans 2 and 3 are both merged to `master`** — this plan wires their interfaces together (Bridge 2 needs Plan 2's course pipeline profile slot; Bridge 1 needs Plan 3's recalibrated trend scoring). Branching early and rebasing repeatedly against two moving targets costs more than waiting. Plan 4 is already merged, so Bridge 3's write side is already done (see below) by the time this branch opens.
+Build this plan on its own branch (e.g. `plan/05-loop-integration`), but **do not create it until Plan 2a and Plan 3 are both merged to `master`** — this plan wires their interfaces together (Bridge 2 needs Plan 2a's course pipeline profile slot; Bridge 1 needs Plan 3's recalibrated trend scoring). Branching early and rebasing repeatedly against two moving targets costs more than waiting. Plan 4 is already merged, so Bridge 3's write side is already done (see below) by the time this branch opens. (Plan 2 was split into 2a/content-pipeline and 2b/narration-video-chat after this doc was originally written — this plan's dependency is on 2a only; Plan 2b can merge independently and doesn't gate this plan.)
 
 ## Context
 
@@ -21,7 +21,7 @@ When ──────────?───────────> What     
 
 The roadmap agent already bridges What→How: it takes a goal + profile + `existingMastery` and produces a DAG of course/assessment nodes with prerequisite locking (`recomputeNodeStates()`). That edge works and should be left alone.
 
-The other two edges are exactly the two items the original brief names explicitly — "Mastery-Weighted Trend Ranking (When → What)" and "Performance-Aware Generation (When → How)" — and this plan is their concrete implementation plan, sequenced against Plans 2/3/4.
+The other two edges are exactly the two items the original brief names explicitly — "Mastery-Weighted Trend Ranking (When → What)" and "Performance-Aware Generation (When → How)" — and this plan is their concrete implementation plan, sequenced against Plans 2a/3/4.
 
 ## Why this has to be last
 
@@ -29,9 +29,9 @@ This plan does not introduce new capability by itself — it wires capability th
 
 - The When→What edge needs a readable mastery/interest signal, and needs Plan 3's trend-ranking function to have a slot for a personalization boost.
 - The How→When feedback (performance data flowing from assessments/course completion back into mastery) needs a mastery table to exist as the write target.
-- The When→How edge (performance-aware generation) needs Plan 2's course pipeline to accept a profile parameter in the first place.
+- The When→How edge (performance-aware generation) needs Plan 2a's course pipeline to accept a profile parameter in the first place.
 
-**Plan 4 shipped first (commit `a23c4a6`) and already satisfies the first two of these** — `user_mastery` exists, both write points are live, and `toTrendPersonalizationPayload()`/`toCoursePersonalizationPayload()` are built. What's actually still blocking this plan is narrower than originally scoped: only Plan 2's pipeline profile-slot and Plan 3's trend-ranking hook. Attempting this plan before those two land means wiring against interfaces that don't exist yet or will change shape. This is explicitly the integration milestone, not a parallel workstream.
+**Plan 4 shipped first (commit `a23c4a6`) and already satisfies the first two of these** — `user_mastery` exists, both write points are live, and `toTrendPersonalizationPayload()`/`toCoursePersonalizationPayload()` are built. What's actually still blocking this plan is narrower than originally scoped: only Plan 2a's pipeline profile-slot and Plan 3's trend-ranking hook. Attempting this plan before those two land means wiring against interfaces that don't exist yet or will change shape. This is explicitly the integration milestone, not a parallel workstream. (Plan 2b — narration/video/avatar/chat — is not a dependency here at all.)
 
 ## Concrete data flow to implement
 
@@ -50,7 +50,7 @@ This plan does not introduce new capability by itself — it wires capability th
                                                   │ Roadmap mastery updates   │
                      ┌───────────────────────┐   │ (recomputeNodeStates)     │
    Course generation ◄┤ toCoursePersonaliza- │   └───────────────────────────┘
-   (Plan 2, staged    │ tionPayload()         │
+   (Plan 2a, staged   │ tionPayload()         │
     pipeline)         └───────────────────────┘
 ```
 
@@ -63,8 +63,8 @@ This plan does not introduce new capability by itself — it wires capability th
 
 ### Bridge 2 — When → How (Performance-Aware Generation)
 
-- Trigger point: whenever a course/assessment/cheatsheet/etc. is generated for a specific topic (Plan 2's Stage 1/2), pull `masteryByTopic[topic]` via `toCoursePersonalizationPayload()`.
-- Low mastery on a topic → generation prompt asks for more foundational framing, more worked examples, slower pacing. High mastery → generation skips basics, assumes more prior knowledge, can move faster. This is a prompt-construction change in Plan 2's pipeline, not a new subsystem — the hook already exists in Plan 2's design (profile parameter reserved at Stage 1/2), this bridge is what actually populates and uses it in production instead of leaving it null.
+- Trigger point: whenever a course/assessment/flashcard/short-bit/etc. is generated for a specific topic (Plan 2a's Stage 1/2 — Cheatsheet was removed and Story folded into Course under Plan 2a's scope decision), pull `masteryByTopic[topic]` via `toCoursePersonalizationPayload()`.
+- Low mastery on a topic → generation prompt asks for more foundational framing, more worked examples, slower pacing. High mastery → generation skips basics, assumes more prior knowledge, can move faster. This is a prompt-construction change in Plan 2a's pipeline, not a new subsystem — the hook already exists in Plan 2a's design (profile parameter reserved at Stage 1/2), this bridge is what actually populates and uses it in production instead of leaving it null.
 
 ### Bridge 3 — How/When → mastery table (the write side, easy to overlook)
 
@@ -91,7 +91,7 @@ This scenario is the acceptance test for the whole plan — if it doesn't hold e
 1. ~~Confirm Plan 4's mastery table and projection functions are live~~ — **done**, shipped in commit `a23c4a6`.
 2. ~~Implement the three write points (Bridge 3)~~ — **done**, shipped alongside Plan 4.
 3. Confirm Plan 3's core scoring/grounding fixes are merged before layering Bridge 1 on top (soft dependency — avoids compounding an unfixed score with unvalidated personalization).
-4. Confirm Plan 2's staged pipeline has the profile-parameter slot merged (hard dependency for Bridge 2).
+4. Confirm Plan 2a's staged pipeline has the profile-parameter slot merged (hard dependency for Bridge 2; Plan 2b is not a dependency).
 5. Implement Bridge 1 (When→What).
 6. Implement Bridge 2 (When→How).
 7. Run the end-to-end acceptance scenario above manually, then as a repeatable test.
