@@ -457,7 +457,8 @@ const PlaneEye = ({ position }: { position: [number, number, number] }) => (
 const CogniBot: React.FC<TutorScriptProps> = ({
     script,
     autoPlay = false,
-    onComplete
+    onComplete,
+    isPaused: externalPaused = false
 }) => {
     const [currentStep, setCurrentStep] = useState(-1);
     const [currentAnimation, setCurrentAnimation] = useState('Teacher_StandingPose');
@@ -555,19 +556,23 @@ const CogniBot: React.FC<TutorScriptProps> = ({
         };
     }, [script]);
 
-    const togglePause = () => {
-        if (isPaused) {
-            setIsPaused(false);
-            // Resume handled by effect
-        } else {
-            window.speechSynthesis.pause();
+    // Pause/resume is driven entirely by the caller's isPaused prop now —
+    // no independent internal toggle, so this stays in lockstep with
+    // whatever play/pause control the host page renders (e.g. the course
+    // player's own "PLAY PRESENTATION"/"PAUSE" button).
+    useEffect(() => {
+        if (externalPaused) {
+            if (window.speechSynthesis) window.speechSynthesis.pause();
             if (timerRef.current) clearTimeout(timerRef.current);
             setIsPaused(true);
+        } else {
+            setIsPaused(false);
+            // Resume handled by the "Effect to resume when unpaused" above.
         }
-    };
+    }, [externalPaused]);
 
     return (
-        <div className="w-full h-full relative min-h-[400px] bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden shadow-2xl border border-cyan-500/30">
+        <div className="w-full h-full relative bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden shadow-2xl border border-cyan-500/30">
             {/* Tech Grid Background Overlay */}
             <div className="absolute inset-0 opacity-20 pointer-events-none"
                 style={{ backgroundImage: 'linear-gradient(#00ffff 1px, transparent 1px), linear-gradient(90deg, #00ffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
@@ -585,19 +590,12 @@ const CogniBot: React.FC<TutorScriptProps> = ({
                 </CanvasWrapper>
             </React.Suspense>
 
-            {/* Overlay UI */}
+            {/* Overlay UI — status only, no independent controls; play/pause is driven by the isPaused prop */}
             <div className="absolute top-4 left-4 flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                     <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_#00ffff] ${isPaused ? 'bg-yellow-500 animate-none' : 'bg-cyan-500 animate-pulse'}`}></div>
                     <span className="text-cyan-500 font-mono text-xs tracking-widest">{isPaused ? 'SYSTEM PAUSED' : 'COGNIBOT ONLINE'}</span>
                 </div>
-
-                <button
-                    onClick={togglePause}
-                    className="bg-cyan-950/80 hover:bg-cyan-900 text-cyan-400 border border-cyan-500/50 px-3 py-1 rounded text-xs font-mono transition-all uppercase"
-                >
-                    {isPaused ? '▶ Resume' : '⏸ Pause'}
-                </button>
             </div>
 
             <div className="absolute bottom-4 right-4 pointer-events-none">

@@ -7,6 +7,7 @@ import path from "node:path";
 
 const PIPER_BINARY = process.env.PIPER_BINARY_PATH || "piper";
 const PIPER_MODEL = process.env.PIPER_MODEL_PATH;
+const PIPER_ESPEAK_DATA = process.env.PIPER_ESPEAK_DATA_PATH;
 const AUDIO_OUTPUT_DIR = path.join(
   process.cwd(),
   "public",
@@ -111,6 +112,7 @@ export async function synthesizeSpeech(
 
   const args = ["--model", PIPER_MODEL as string, "--output_file", outputPath];
   if (voice) args.push("--speaker", voice);
+  if (PIPER_ESPEAK_DATA) args.push("--espeak_data", PIPER_ESPEAK_DATA);
 
   try {
     await runPiper(args, trimmed);

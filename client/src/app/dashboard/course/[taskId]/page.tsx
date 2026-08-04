@@ -1,24 +1,31 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
-import { useApp } from "@/lib/store";
-import { generateContentAction, completeNodeAction } from "@/app/actions/roadmap";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { getCourseAction, saveCourseAction } from "@/app/actions/courses";
+import { narrateSlideAction } from "@/app/actions/narration";
+import {
+  completeNodeAction,
+  generateContentAction,
+} from "@/app/actions/roadmap";
 import { getTasks } from "@/app/actions/tasks";
+import CourseNarrator, { type VisemeCue } from "@/components/CourseNarrator";
 import Header from "@/components/Header";
 import SlideViewer from "@/components/SlideViewer";
-import CogniBot, { TutorAction } from "@/components/model";
-import { determineAnimation } from "@/lib/tutor-utils";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useApp } from "@/lib/store";
 
-export default function CourseGenerationPage({ params }: { params: Promise<{ taskId: string }> }) {
+export default function CourseGenerationPage({
+  params,
+}: {
+  params: Promise<{ taskId: string }>;
+}) {
   const unwrappedParams = React.use(params);
   const router = useRouter();
   const { state, dispatch } = useApp();
   const { addToast } = useToast();
   const [task, setTask] = useState<any>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -32,18 +39,40 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
   const totalSlides = result?.slides?.length || 0;
   const isLastSlide = currentSlideIndex >= Math.max(0, totalSlides - 1);
 
-  // Build the tutor script for the current slide
-  // When isPlaying is true and muted is false, the bot speaks and drives advancement
-  const tutorScript = useMemo(() => {
-    if (!currentSlide || isMuted) return [];
-    const scriptText = currentSlide.script || "";
-    if (!scriptText) return [];
+  // Narration for the current slide: Piper audio + Rhubarb viseme timeline,
+  // fetched (and cached server-side) per slide script. Skipped while muted.
+  const [narration, setNarration] = useState<{
+    audioUrl: string;
+    visemeTimeline: VisemeCue[];
+  } | null>(null);
+  const [narrationLoading, setNarrationLoading] = useState(false);
+  const [narrationError, setNarrationError] = useState<string | null>(null);
 
-    return [
-      { type: 'animation', name: determineAnimation(scriptText), duration: 1000 },
-      { type: 'speak', text: scriptText },
-      { type: 'animation', name: 'Teacher_Listening', loop: true }
-    ] as TutorAction[];
+  useEffect(() => {
+    let cancelled = false;
+    setNarration(null);
+    setNarrationError(null);
+
+    const scriptText = currentSlide?.script || "";
+    if (isMuted || !scriptText) return;
+
+    setNarrationLoading(true);
+    narrateSlideAction(scriptText).then((res) => {
+      if (cancelled) return;
+      setNarrationLoading(false);
+      if (res.audioUrl) {
+        setNarration({
+          audioUrl: res.audioUrl,
+          visemeTimeline: res.visemeTimeline ?? [],
+        });
+      } else {
+        setNarrationError(res.error || "narration_failed");
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentSlide, isMuted]);
 
   // Advance to next slide when auto-play is active
@@ -67,16 +96,21 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!result?.slides) return;
-      if (e.key === 'ArrowRight') {
-        setCurrentSlideIndex((prev) => Math.min(prev + 1, Math.max(0, (result.slides?.length || 1) - 1)));
-      } else if (e.key === 'ArrowLeft') {
+      if (e.key === "ArrowRight") {
+        setCurrentSlideIndex((prev) =>
+          Math.min(prev + 1, Math.max(0, (result.slides?.length || 1) - 1)),
+        );
+      } else if (e.key === "ArrowLeft") {
         setCurrentSlideIndex((prev) => Math.max(prev - 1, 0));
-      } else if (e.key === 'Enter' && currentSlideIndex === Math.max(0, (result.slides?.length || 1) - 1)) {
+      } else if (
+        e.key === "Enter" &&
+        currentSlideIndex === Math.max(0, (result.slides?.length || 1) - 1)
+      ) {
         handleComplete();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [result, currentSlideIndex]);
 
   // Start: go to slide 0 if at end, enable playing
@@ -101,7 +135,9 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
   useEffect(() => {
     async function initTask() {
       if (state.tasks && state.tasks.length > 0) {
-        const foundTask = state.tasks.find((t: any) => t.id === unwrappedParams.taskId);
+        const foundTask = state.tasks.find(
+          (t: any) => t.id === unwrappedParams.taskId,
+        );
         if (foundTask) {
           setTask(foundTask);
         } else {
@@ -112,14 +148,16 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
         try {
           const res = await getTasks();
           if (res.tasks) {
-            const foundTask = res.tasks.find((t: any) => t.id === unwrappedParams.taskId);
+            const foundTask = res.tasks.find(
+              (t: any) => t.id === unwrappedParams.taskId,
+            );
             if (foundTask) {
               setTask(foundTask);
             } else {
               setError("Task not found.");
             }
           } else {
-             setError("No tasks found in database.");
+            setError("No tasks found in database.");
           }
         } catch (err: any) {
           setError("Error loading tasks: " + err.message);
@@ -156,7 +194,10 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
     try {
       const res = await completeNodeAction(unwrappedParams.taskId);
       if (res.success) {
-        addToast("Course marked complete. Roadmap unlocked and updated.", "success");
+        addToast(
+          "Course marked complete. Roadmap unlocked and updated.",
+          "success",
+        );
         dispatch({
           type: "UPDATE_TASK_STATE",
           payload: { taskId: unwrappedParams.taskId, state: "completed" },
@@ -183,24 +224,30 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
   async function handleGenerate(e?: React.FormEvent) {
     if (e) e.preventDefault();
     if (!task) return;
-    
+
     setLoading(true);
     setResult(null);
     setError(null);
-    addToast(`Generation started for ${task?.name}. You can keep using the app.`, "info");
-    
+    addToast(
+      `Generation started for ${task?.name}. You can keep using the app.`,
+      "info",
+    );
+
     try {
       const response = await generateContentAction(
         task.name,
         task.subject || task.name,
-        "ppt" // Overriding to always output ppt for now
+        "ppt", // Overriding to always output ppt for now
       );
       if (response.data) {
         setResult(response.data);
         setCurrentSlideIndex(0); // Reset on new generation
         setHasSavedCourse(true);
         addToast("Course generation completed.", "success");
-        const saveRes = await saveCourseAction(unwrappedParams.taskId, response.data);
+        const saveRes = await saveCourseAction(
+          unwrappedParams.taskId,
+          response.data,
+        );
         if (saveRes.error) {
           console.warn("Failed to persist course:", saveRes.error);
         }
@@ -222,7 +269,15 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
     return (
       <>
         <Header />
-        <div style={{ padding: 40, fontFamily: "var(--mono)", color: "var(--muted)" }}>Loading task details...</div>
+        <div
+          style={{
+            padding: 40,
+            fontFamily: "var(--mono)",
+            color: "var(--muted)",
+          }}
+        >
+          Loading task details...
+        </div>
       </>
     );
   }
@@ -230,64 +285,119 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
   return (
     <>
       <Header />
-      
-      <div style={{ paddingTop: 60, minHeight: "100vh", backgroundColor: "var(--bg)" }}>
-        <section className="container section-rule" style={{ paddingTop: 40, paddingBottom: 40 }}>
-          <button 
-            onClick={() => router.back()} 
-            style={{ background: "none", border: "none", color: "var(--muted)", textDecoration: "underline", cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12, padding: 0, marginBottom: 24 }}
+
+      <div
+        style={{
+          paddingTop: 60,
+          minHeight: "100vh",
+          backgroundColor: "var(--bg)",
+        }}
+      >
+        <section
+          className="container section-rule"
+          style={{ paddingTop: 40, paddingBottom: 40 }}
+        >
+          <button
+            onClick={() => router.back()}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--muted)",
+              textDecoration: "underline",
+              cursor: "pointer",
+              fontFamily: "var(--mono)",
+              fontSize: 12,
+              padding: 0,
+              marginBottom: 24,
+            }}
           >
             ← BACK TO ROADMAP
           </button>
-          
+
           <div style={{ marginBottom: 40 }}>
-            <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: 16 }}>
-              <h1 style={{ fontFamily: "var(--font-playfair)", fontSize: 36, letterSpacing: -0.5, color: "var(--ink)", margin: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <h1
+                style={{
+                  fontFamily: "var(--font-playfair)",
+                  fontSize: 36,
+                  letterSpacing: -0.5,
+                  color: "var(--ink)",
+                  margin: 0,
+                }}
+              >
                 {task?.name}
               </h1>
-              <div style={{
-                padding: "4px 8px",
-                border: "0.5px solid var(--ink)",
-                fontSize: 10,
-                fontFamily: "var(--mono)",
-                color: "var(--ink)"
-              }}>
+              <div
+                style={{
+                  padding: "4px 8px",
+                  border: "0.5px solid var(--ink)",
+                  fontSize: 10,
+                  fontFamily: "var(--mono)",
+                  color: "var(--ink)",
+                }}
+              >
                 {task?.contentType?.toUpperCase() || "PPT"}
               </div>
             </div>
-            
-            <div className="meta-text print-hide" style={{ color: "var(--muted)" }}>
-              {task?.subject ? `SUBJECT: ${task.subject}` : "Generative Content Creation"}
+
+            <div
+              className="meta-text print-hide"
+              style={{ color: "var(--muted)" }}
+            >
+              {task?.subject
+                ? `SUBJECT: ${task.subject}`
+                : "Generative Content Creation"}
             </div>
-            <div className="meta-text print-hide" style={{ color: "var(--muted)", marginTop: 4 }}>
+            <div
+              className="meta-text print-hide"
+              style={{ color: "var(--muted)", marginTop: 4 }}
+            >
               EST. DURATION: {task?.duration} MINS
             </div>
           </div>
 
-          <form onSubmit={handleGenerate} className="print-hide" style={{ display: "flex", flexDirection: "column", gap: 32, maxWidth: 600 }}>
+          <form
+            onSubmit={handleGenerate}
+            className="print-hide"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 32,
+              maxWidth: 600,
+            }}
+          >
             {loading && (
               <div className="meta-text" style={{ color: "var(--muted)" }}>
                 GENERATING IN BACKGROUND... FEEL FREE TO NAVIGATE.
               </div>
             )}
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-primary"
               disabled={loading}
               style={{ opacity: loading ? 0.5 : 1, width: "fit-content" }}
             >
-              {loading 
-                ? `GENERATING ${task?.contentType?.toUpperCase()}...` 
-                : hasSavedCourse 
+              {loading
+                ? `GENERATING ${task?.contentType?.toUpperCase()}...`
+                : hasSavedCourse
                   ? `REGENERATE ${task?.contentType?.toUpperCase() || "CONTENT"}`
-                  : `GENERATE ${task?.contentType?.toUpperCase() || "CONTENT"}`
-              }
+                  : `GENERATE ${task?.contentType?.toUpperCase() || "CONTENT"}`}
             </button>
           </form>
         </section>
 
         {error && (
-          <section className="container section-rule" style={{ paddingTop: 20, paddingBottom: 20 }}>
+          <section
+            className="container section-rule"
+            style={{ paddingTop: 20, paddingBottom: 20 }}
+          >
             <div className="meta-text" style={{ color: "var(--vermillion)" }}>
               ERR: {error}
             </div>
@@ -303,116 +413,149 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
               maxWidth: "min(96vw, 1680px)",
             }}
           >
-
-
             <div className="print-hide">
               <div className="meta-text" style={{ marginBottom: 16 }}>
-                01. PRESENTATION (SLIDE {currentSlideIndex + 1} OF {result.slides?.length || 0})
+                01. PRESENTATION (SLIDE {currentSlideIndex + 1} OF{" "}
+                {result.slides?.length || 0})
               </div>
 
-              {/* TOP ROW: CogniBot + Script Panel */}
-              <div style={{ display: "flex", width: "100%", gap: "32px", alignItems: "flex-start", justifyContent: "center", flexWrap: "wrap", marginBottom: "32px" }}>
-                {/* LEFT: CogniBot */}
-                <div style={{
-                  flex: "0 0 400px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px"
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div className="meta-text" style={{ color: "var(--ink)" }}>02. AI INSTRUCTOR</div>
-                    <button
-                      onClick={() => setIsMuted(!isMuted)}
+              {/* Slide viewer + AI Instructor overlay, side by side with the script panel so bot and slide are visible together */}
+              <div
+                style={{ width: "100%", maxWidth: "1400px", margin: "0 auto" }}
+              >
+                {/* Slide viewer, with a small floating CogniBot overlay in the corner instead of a separate full-width row */}
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: "100%",
+                      aspectRatio: "16 / 9",
+                      border: "0.5px solid var(--rule)",
+                      backgroundColor: "var(--card-bg)",
+                      padding: "24px",
+                      boxSizing: "border-box",
+                      display: "flex",
+                      flexDirection: "column",
+                      overflow: "auto",
+                      position: "relative",
+                    }}
+                  >
+                    <div
                       style={{
-                        background: "none",
-                        border: "0.5px solid var(--rule)",
-                        color: isMuted ? "var(--vermillion)" : "var(--ink)",
-                        fontSize: "9px",
-                        fontFamily: "var(--mono)",
-                        padding: "4px 8px",
-                        cursor: "pointer"
+                        display: "flex",
+                        justifyContent: "space-between",
+                        borderBottom: "0.5px solid var(--rule)",
+                        paddingBottom: 16,
+                        marginBottom: 24,
+                        flexShrink: 0,
                       }}
                     >
-                      {isMuted ? "UNMUTE" : "MUTE"}
-                    </button>
-                  </div>
-                  <div style={{ height: "400px", width: "100%", position: "relative", border: "0.5px solid var(--rule)", backgroundColor: "var(--card-bg)" }}>
-                    <CogniBot
-                      key={`tutor-${currentSlideIndex}-${isMuted}`}
-                      script={tutorScript}
-                      autoPlay={true}
-                      onComplete={handleBotComplete}
-                    />
-                  </div>
-                  <div className="meta-text" style={{ color: "var(--muted)", fontSize: "10px" }}>
-                    AUTO-PLAYING SCRIPT FOR SLIDE {currentSlideIndex + 1}
-                  </div>
-                </div>
+                      <div
+                        className="meta-text"
+                        style={{ color: "var(--ink)" }}
+                      >
+                        ITEM NO.{" "}
+                        {(currentSlideIndex + 1).toString().padStart(2, "0")}
+                      </div>
+                      <div
+                        className="meta-text"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        TYPE:{" "}
+                        {result.slides[currentSlideIndex].type ||
+                          task?.contentType}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "auto",
+                        minHeight: 0,
+                      }}
+                    >
+                      <SlideViewer slide={result.slides[currentSlideIndex]} />
+                    </div>
 
-                {/* RIGHT: Script Panel */}
-                <div style={{
-                  flex: "1 1 500px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                  border: "0.5px solid var(--rule)",
-                  backgroundColor: "var(--card-bg)",
-                  padding: "24px",
-                  maxHeight: "450px",
-                  overflow: "auto"
-                }}>
-                  <div className="meta-text" style={{ color: "var(--ink)", flexShrink: 0 }}>03. SLIDE SCRIPT</div>
-                  <div style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: "13px",
-                    lineHeight: "1.6",
-                    color: "var(--ink)",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word"
-                  }}>
-                    {currentSlide?.script || (
-                      <span style={{ color: "var(--muted)" }}>No script available for this slide.</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* BOTTOM ROW: Slide Viewer (full width, 16:9) */}
-              <div style={{ width: "100%", maxWidth: "1400px", margin: "0 auto" }}>
-                <div style={{
-                  width: "100%",
-                  aspectRatio: "16 / 9",
-                  border: "0.5px solid var(--rule)",
-                  backgroundColor: "var(--card-bg)",
-                  padding: "24px",
-                  boxSizing: "border-box",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "auto",
-                  position: "relative"
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "0.5px solid var(--rule)", paddingBottom: 16, marginBottom: 24, flexShrink: 0 }}>
-                    <div className="meta-text" style={{ color: "var(--ink)" }}>ITEM NO. {(currentSlideIndex + 1).toString().padStart(2, "0")}</div>
-                    <div className="meta-text" style={{ color: "var(--muted)" }}>TYPE: {result.slides[currentSlideIndex].type || task?.contentType}</div>
-                  </div>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "auto", minHeight: 0 }}>
-                    <SlideViewer slide={result.slides[currentSlideIndex]} />
+                    {/* AI Instructor — small corner overlay instead of a separate row, so bot + slide are visible at once.
+                        No independent controls here: play/pause and mute are the page's own controls below the slide. */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 16,
+                        right: 16,
+                        width: 280,
+                        height: 280,
+                        border: "0.5px solid var(--rule)",
+                        backgroundColor: "var(--card-bg)",
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                        zIndex: 10,
+                      }}
+                    >
+                      {narration ? (
+                        <CourseNarrator
+                          key={`narrator-${currentSlideIndex}-${isMuted}`}
+                          audioUrl={narration.audioUrl}
+                          visemeTimeline={narration.visemeTimeline}
+                          autoPlay={isPlaying}
+                          isPaused={!isPlaying}
+                          onComplete={handleBotComplete}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: "var(--mono)",
+                            fontSize: 10,
+                            color: "var(--muted)",
+                            textAlign: "center",
+                            padding: 12,
+                          }}
+                        >
+                          {isMuted
+                            ? "MUTED"
+                            : narrationLoading
+                              ? "SYNTHESIZING NARRATION…"
+                              : narrationError
+                                ? `NARRATION UNAVAILABLE (${narrationError})`
+                                : "NO SCRIPT FOR THIS SLIDE"}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Navigation Controls - centered beneath viewer */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, marginTop: 32, marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 16,
+                  marginTop: 32,
+                  marginBottom: 16,
+                }}
+              >
                 {/* Row 1: Play/Pause controls */}
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   {!isPlaying ? (
                     <button
                       onClick={handleStartPlay}
-                      disabled={!result?.slides || totalSlides <= 1 || completing}
+                      disabled={
+                        !result?.slides || totalSlides <= 1 || completing
+                      }
                       style={{
                         background: "#00b4d8",
                         border: "none",
-                        cursor: !result?.slides || totalSlides <= 1 ? "not-allowed" : "pointer",
+                        cursor:
+                          !result?.slides || totalSlides <= 1
+                            ? "not-allowed"
+                            : "pointer",
                         color: "#FFFFFF",
                         fontSize: 13,
                         fontFamily: "var(--mono)",
@@ -423,7 +566,7 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                         opacity: !result?.slides || totalSlides <= 1 ? 0.5 : 1,
                         display: "flex",
                         alignItems: "center",
-                        gap: 8
+                        gap: 8,
                       }}
                     >
                       ▶ PLAY PRESENTATION
@@ -445,7 +588,7 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
-                        animation: "pulse 1.5s infinite"
+                        animation: "pulse 1.5s infinite",
                       }}
                     >
                       ■ PAUSE
@@ -454,34 +597,84 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
 
                   {/* Status indicator */}
                   {isPlaying && (
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "4px 12px",
-                      border: "0.5px solid #00b4d8",
-                      borderRadius: "2px",
-                      fontSize: 10,
-                      fontFamily: "var(--mono)",
-                      color: "#00b4d8"
-                    }}>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#00b4d8", animation: "pulse 1s infinite" }} />
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "4px 12px",
+                        border: "0.5px solid #00b4d8",
+                        borderRadius: "2px",
+                        fontSize: 10,
+                        fontFamily: "var(--mono)",
+                        color: "#00b4d8",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          background: "#00b4d8",
+                          animation: "pulse 1s infinite",
+                        }}
+                      />
                       ADVANCING ON SCRIPT COMPLETE
                     </div>
                   )}
+
+                  {/* Mute — the only other AI Instructor control, kept in this unified bar rather than floating on the bot itself */}
+                  <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    style={{
+                      background: "none",
+                      border: "0.5px solid var(--rule)",
+                      color: isMuted ? "var(--vermillion)" : "var(--ink)",
+                      fontSize: 11,
+                      fontFamily: "var(--mono)",
+                      letterSpacing: "0.1em",
+                      padding: "10px 20px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {isMuted ? "🔇 UNMUTE INSTRUCTOR" : "🔊 MUTE INSTRUCTOR"}
+                  </button>
                 </div>
 
                 {/* Row 2: Manual navigation */}
                 <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
                   <button
-                    onClick={() => setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))}
+                    onClick={() =>
+                      setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))
+                    }
                     disabled={currentSlideIndex === 0 || completing}
-                    style={{ background: "none", border: "1px solid var(--rule)", cursor: currentSlideIndex === 0 ? "not-allowed" : "pointer", color: "var(--ink)", opacity: currentSlideIndex === 0 ? 0.2 : 1, fontSize: 13, fontFamily: "var(--mono)", letterSpacing: "0.1em", padding: "12px 24px", borderRadius: "0px" }}
+                    style={{
+                      background: "none",
+                      border: "1px solid var(--rule)",
+                      cursor:
+                        currentSlideIndex === 0 ? "not-allowed" : "pointer",
+                      color: "var(--ink)",
+                      opacity: currentSlideIndex === 0 ? 0.2 : 1,
+                      fontSize: 13,
+                      fontFamily: "var(--mono)",
+                      letterSpacing: "0.1em",
+                      padding: "12px 24px",
+                      borderRadius: "0px",
+                    }}
                   >
                     ← PREV
                   </button>
 
-                  <div className="meta-text" style={{ color: "var(--muted)", minWidth: 120, textAlign: "center", fontFamily: "var(--mono)", fontSize: 11 }}>
+                  <div
+                    className="meta-text"
+                    style={{
+                      color: "var(--muted)",
+                      minWidth: 120,
+                      textAlign: "center",
+                      fontFamily: "var(--mono)",
+                      fontSize: 11,
+                    }}
+                  >
                     {currentSlideIndex + 1} / {totalSlides}
                   </div>
 
@@ -505,15 +698,32 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                         animation: "pulse 2s infinite",
                         display: "flex",
                         alignItems: "center",
-                        gap: 8
+                        gap: 8,
                       }}
                     >
                       {completing ? "COMPLETING…" : "COMPLETE & UNLOCK NEXT ✓"}
                     </button>
                   ) : (
                     <button
-                      onClick={() => setCurrentSlideIndex(Math.min(Math.max(0, totalSlides - 1), currentSlideIndex + 1))}
-                      style={{ background: "none", border: "1px solid var(--rule)", cursor: "pointer", color: "var(--ink)", fontSize: 13, fontFamily: "var(--mono)", letterSpacing: "0.1em", padding: "12px 24px", borderRadius: "0px" }}
+                      onClick={() =>
+                        setCurrentSlideIndex(
+                          Math.min(
+                            Math.max(0, totalSlides - 1),
+                            currentSlideIndex + 1,
+                          ),
+                        )
+                      }
+                      style={{
+                        background: "none",
+                        border: "1px solid var(--rule)",
+                        cursor: "pointer",
+                        color: "var(--ink)",
+                        fontSize: 13,
+                        fontFamily: "var(--mono)",
+                        letterSpacing: "0.1em",
+                        padding: "12px 24px",
+                        borderRadius: "0px",
+                      }}
                     >
                       NEXT →
                     </button>
@@ -521,34 +731,84 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                 </div>
               </div>
 
-              <div style={{ textAlign: "center", marginTop: 60, padding: 40, borderTop: "0.5px solid var(--rule)" }}>
-                <div className="meta-text" style={{ marginBottom: 24, fontSize: 13, color: "var(--ink)" }}>COURSE TERMINATION</div>
-                <div style={{ display: "flex", gap: 16, justifyContent: "center", alignItems: "center" }}>
-                  <button onClick={handleDownloadPDF} className="btn" style={{ minWidth: 160 }}>EXPORT AS PDF</button>
-                  <button 
-                    onClick={handleComplete} 
+              <div
+                style={{
+                  textAlign: "center",
+                  marginTop: 60,
+                  padding: 40,
+                  borderTop: "0.5px solid var(--rule)",
+                }}
+              >
+                <div
+                  className="meta-text"
+                  style={{
+                    marginBottom: 24,
+                    fontSize: 13,
+                    color: "var(--ink)",
+                  }}
+                >
+                  COURSE TERMINATION
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 16,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="btn"
+                    style={{ minWidth: 160 }}
+                  >
+                    EXPORT AS PDF
+                  </button>
+                  <button
+                    onClick={handleComplete}
                     disabled={completing}
-                    style={{ 
+                    style={{
                       minWidth: 160,
-                      background: currentSlideIndex >= Math.max(0, (result.slides?.length || 1) - 1) ? "#10b981" : "none",
-                      border: "1px solid " + (currentSlideIndex >= Math.max(0, (result.slides?.length || 1) - 1) ? "#10b981" : "var(--rule)"),
-                      color: currentSlideIndex >= Math.max(0, (result.slides?.length || 1) - 1) ? "white" : "var(--ink)",
+                      background:
+                        currentSlideIndex >=
+                        Math.max(0, (result.slides?.length || 1) - 1)
+                          ? "#10b981"
+                          : "none",
+                      border:
+                        "1px solid " +
+                        (currentSlideIndex >=
+                        Math.max(0, (result.slides?.length || 1) - 1)
+                          ? "#10b981"
+                          : "var(--rule)"),
+                      color:
+                        currentSlideIndex >=
+                        Math.max(0, (result.slides?.length || 1) - 1)
+                          ? "white"
+                          : "var(--ink)",
                       padding: "12px 24px",
                       fontFamily: "var(--mono)",
                       fontSize: 12,
                       cursor: "pointer",
-                      opacity: completing ? 0.5 : 1
+                      opacity: completing ? 0.5 : 1,
                     }}
                   >
                     {completing ? "FINISHING..." : "FINISH COURSE EARLY"}
                   </button>
                 </div>
-                <div className="meta-text" style={{ marginTop: 12, color: "var(--muted)" }}>PRO TIP: USE ← AND → ARROW KEYS TO NAVIGATE (OR PRESS ENTER TO FINISH)</div>
+                <div
+                  className="meta-text"
+                  style={{ marginTop: 12, color: "var(--muted)" }}
+                >
+                  PRO TIP: USE ← AND → ARROW KEYS TO NAVIGATE (OR PRESS ENTER TO
+                  FINISH)
+                </div>
               </div>
             </div>
 
             <div className="print-only">
-               <style dangerouslySetInnerHTML={{__html: `
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
                  .print-only {
                     position: absolute;
                     left: -10000px;
@@ -604,20 +864,48 @@ export default function CourseGenerationPage({ params }: { params: Promise<{ tas
                       border: none !important;
                    }
                  }
-               `}} />
-               {(result.slides || []).map((slide: any, index: number) => (
-                  <div key={`print-${index}`} className="print-page-wrapper">
-                    <div className="print-slide-container">
-                       <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "0.5px solid var(--rule)", paddingBottom: 16, marginBottom: 16, flexShrink: 0 }}>
-                          <div className="meta-text" style={{ color: "var(--ink)", fontSize: 12 }}>ITEM NO. {(index + 1).toString().padStart(2, "0")}</div>
-                          <div className="meta-text" style={{ color: "var(--muted)", fontSize: 12 }}>TYPE: {slide.type || task?.contentType}</div>
-                       </div>
-                       <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                         <SlideViewer slide={slide} />
-                       </div>
+               `,
+                }}
+              />
+              {(result.slides || []).map((slide: any, index: number) => (
+                <div key={`print-${index}`} className="print-page-wrapper">
+                  <div className="print-slide-container">
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        borderBottom: "0.5px solid var(--rule)",
+                        paddingBottom: 16,
+                        marginBottom: 16,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div
+                        className="meta-text"
+                        style={{ color: "var(--ink)", fontSize: 12 }}
+                      >
+                        ITEM NO. {(index + 1).toString().padStart(2, "0")}
+                      </div>
+                      <div
+                        className="meta-text"
+                        style={{ color: "var(--muted)", fontSize: 12 }}
+                      >
+                        TYPE: {slide.type || task?.contentType}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        flex: 1,
+                        overflow: "hidden",
+                        display: "flex",
+                        flexDirection: "column",
+                      }}
+                    >
+                      <SlideViewer slide={slide} />
                     </div>
                   </div>
-               ))}
+                </div>
+              ))}
             </div>
           </section>
         )}

@@ -9,7 +9,6 @@ import {
 import { Canvas, useFrame } from "@react-three/fiber";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { determineAnimation } from "@/lib/tutor-utils";
 
 export type Viseme = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "X";
 
@@ -22,7 +21,6 @@ export interface VisemeCue {
 export interface CourseNarratorProps {
   audioUrl: string;
   visemeTimeline: VisemeCue[];
-  captionText?: string;
   animation?: string;
   autoPlay?: boolean;
   isPaused?: boolean;
@@ -501,7 +499,6 @@ function SceneEnvironment() {
 export default function CourseNarrator({
   audioUrl,
   visemeTimeline,
-  captionText,
   animation,
   autoPlay = false,
   isPaused = false,
@@ -509,12 +506,9 @@ export default function CourseNarrator({
 }: CourseNarratorProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [internalPaused, setInternalPaused] = useState(false);
 
-  const paused = isPaused || internalPaused;
   const resolvedAnimation =
-    animation ??
-    (captionText ? determineAnimation(captionText) : "Teacher_Talking");
+    animation ?? (isPlaying ? "Teacher_Talking" : "Teacher_StandingPose");
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -555,20 +549,8 @@ export default function CourseNarrator({
     audio.pause();
   }, [isPaused]);
 
-  const toggleInternalPause = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (internalPaused) {
-      audio.play().catch(() => {});
-      setInternalPaused(false);
-    } else {
-      audio.pause();
-      setInternalPaused(true);
-    }
-  };
-
   return (
-    <div className="w-full h-full relative min-h-[400px] bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden shadow-2xl border border-cyan-500/30">
+    <div className="w-full h-full relative bg-gradient-to-b from-gray-900 to-black rounded-xl overflow-hidden shadow-2xl border border-cyan-500/30">
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
@@ -578,8 +560,7 @@ export default function CourseNarrator({
         }}
       />
 
-      {/* Narration audio, not a media-with-dialogue element — captionText below is the transcript UI. */}
-      {/* biome-ignore lint/a11y/useMediaCaption: paired with captionText rendered in this component, not a <track> file */}
+      {/* biome-ignore lint/a11y/useMediaCaption: narration audio for an on-page avatar, not a captioned media asset */}
       <audio ref={audioRef} src={audioUrl} preload="auto" />
 
       <React.Suspense
@@ -590,7 +571,7 @@ export default function CourseNarrator({
         <CanvasWrapper>
           <RobotModel
             currentAnimation={resolvedAnimation}
-            speaking={isPlaying && !paused}
+            speaking={isPlaying && !isPaused}
             audioRef={audioRef}
             visemeTimeline={visemeTimeline}
           />
@@ -598,43 +579,14 @@ export default function CourseNarrator({
         </CanvasWrapper>
       </React.Suspense>
 
-      <div className="absolute top-4 left-4 flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <div
-            className={`w-3 h-3 rounded-full shadow-[0_0_10px_#00ffff] ${paused ? "bg-yellow-500 animate-none" : "bg-cyan-500 animate-pulse"}`}
-          />
-          <span className="text-cyan-500 font-mono text-xs tracking-widest">
-            {paused ? "SYSTEM PAUSED" : "COGNIBOT ONLINE"}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={toggleInternalPause}
-          className="bg-cyan-950/80 hover:bg-cyan-900 text-cyan-400 border border-cyan-500/50 px-3 py-1 rounded text-xs font-mono transition-all uppercase"
-        >
-          {internalPaused ? "▶ Resume" : "⏸ Pause"}
-        </button>
-      </div>
-
-      {captionText && isPlaying && (
-        <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-[95%] max-w-3xl z-20">
-          <div className="bg-black/80 backdrop-blur-md border border-cyan-500/50 p-4 rounded-xl shadow-[0_0_30px_rgba(0,255,255,0.15)] relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50" />
-            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-500" />
-            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-500" />
-            <p className="text-cyan-100 text-sm md:text-base font-mono leading-relaxed text-center relative z-10">
-              {captionText}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="absolute bottom-4 right-4 pointer-events-none">
-        <div className="bg-black/60 backdrop-blur-md p-2 rounded-lg border border-cyan-500/30 text-cyan-400/60 text-[10px] font-mono text-right">
-          {isPlaying ? "NARRATING" : paused ? "PAUSED" : "READY"}
-          <div>ACT: {resolvedAnimation}</div>
-        </div>
+      {/* Status only — no independent controls; play/pause is driven entirely by the isPaused prop */}
+      <div className="absolute top-2 left-2 flex items-center space-x-1">
+        <div
+          className={`w-2 h-2 rounded-full shadow-[0_0_10px_#00ffff] ${isPaused ? "bg-yellow-500 animate-none" : "bg-cyan-500 animate-pulse"}`}
+        />
+        <span className="text-cyan-500 font-mono text-[9px] tracking-widest">
+          {isPaused ? "PAUSED" : "ONLINE"}
+        </span>
       </div>
     </div>
   );

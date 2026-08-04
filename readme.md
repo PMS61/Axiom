@@ -76,6 +76,7 @@ REDDIT_SECRET=...
 # Course narration (self-hosted, local dev only — see plans/02b-course-narration-video-chat.md)
 PIPER_BINARY_PATH=piper                 # defaults to "piper" on PATH if unset
 PIPER_MODEL_PATH=...                    # required — path to a Piper .onnx voice model, no default
+PIPER_ESPEAK_DATA_PATH=...              # optional — Piper's bundled espeak-ng-data dir, needed for phonemization unless espeak-ng-data is already on the system search path
 RHUBARB_BINARY_PATH=rhubarb             # defaults to "rhubarb" on PATH if unset
 
 ```

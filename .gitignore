@@ -11,6 +11,7 @@
 .antigravitycli/
 .agents/
 .codex/
+.playwright-mcp/
 
 # OS
 .DS_Store
