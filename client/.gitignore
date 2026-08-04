@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# generated narration audio (Piper output, regenerated on demand — see lib/piper-service.ts)
+/public/audio/generated/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

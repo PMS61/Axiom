@@ -73,9 +73,14 @@ NEWS_API_KEY=...
 REDDIT_CLIENT_ID=...
 REDDIT_SECRET=...
 
+# Course narration (self-hosted, local dev only — see plans/02b-course-narration-video-chat.md)
+PIPER_BINARY_PATH=piper                 # defaults to "piper" on PATH if unset
+PIPER_MODEL_PATH=...                    # required — path to a Piper .onnx voice model, no default
+RHUBARB_BINARY_PATH=rhubarb             # defaults to "rhubarb" on PATH if unset
+
 ```
 
-Only `JWT_SECRET` and database variables are required for authenticated persistence. AI and trend features degrade or skip sources when their keys are missing.
+Only `JWT_SECRET` and database variables are required for authenticated persistence. AI, trend, and narration features degrade or skip sources when their keys/binaries are missing.
 
 ### Run Locally
 
