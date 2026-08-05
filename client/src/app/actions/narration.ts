@@ -75,3 +75,24 @@ export async function narrateSlideAction(
 
   return { audioUrl: synth.audioUrl, visemeTimeline: timeline };
 }
+
+/**
+ * Pre-synthesizes narration for every slide in a freshly generated course,
+ * in parallel (same Promise.all pattern course-agent.ts already uses for
+ * slide content itself). Fire this right after course generation instead
+ * of waiting for the user to reach each slide — with the amplitude lipsync
+ * path (~1.7s per slide, parallelizable), the whole course is ready in
+ * roughly the time of its single slowest slide, not the sum of all of
+ * them. Best-effort: a slide with an empty/failed script doesn't block the
+ * others, and the caller doesn't need the results — narrateSlideAction's
+ * own cache is what the course page actually reads from afterward.
+ */
+export async function pregenerateCourseNarrationAction(
+  scripts: string[],
+): Promise<{ succeeded: number; failed: number }> {
+  const results = await Promise.all(
+    scripts.map((script) => narrateSlideAction(script)),
+  );
+  const succeeded = results.filter((r) => r.audioUrl).length;
+  return { succeeded, failed: results.length - succeeded };
+}

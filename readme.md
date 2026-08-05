@@ -73,15 +73,71 @@ NEWS_API_KEY=...
 REDDIT_CLIENT_ID=...
 REDDIT_SECRET=...
 
-# Course narration (self-hosted, local dev only — see plans/02b-course-narration-video-chat.md)
+# Course narration (self-hosted, local dev only — see "Course Narration Setup" below)
 PIPER_BINARY_PATH=piper                 # defaults to "piper" on PATH if unset
 PIPER_MODEL_PATH=...                    # required — path to a Piper .onnx voice model, no default
 PIPER_ESPEAK_DATA_PATH=...              # optional — Piper's bundled espeak-ng-data dir, needed for phonemization unless espeak-ng-data is already on the system search path
-RHUBARB_BINARY_PATH=rhubarb             # defaults to "rhubarb" on PATH if unset
+RHUBARB_BINARY_PATH=rhubarb             # optional — only read when LIPSYNC_ENGINE=rhubarb; defaults to "rhubarb" on PATH
+LIPSYNC_ENGINE=amplitude                # optional — "amplitude" (default, fast, no Rhubarb needed) or "rhubarb"
+RHUBARB_RECOGNIZER=phonetic             # optional — only used when LIPSYNC_ENGINE=rhubarb; "phonetic" (fast, default) or "pocketSphinx" (slower, word-aware)
 
 ```
 
 Only `JWT_SECRET` and database variables are required for authenticated persistence. AI, trend, and narration features degrade or skip sources when their keys/binaries are missing.
+
+### Course Narration Setup (Piper TTS)
+
+The course player's AI Instructor avatar needs Piper installed locally — it's not an npm package, and (per the scope decision in `plans/02b-course-narration-video-chat.md`) is local-dev-only for now, not wired for Vercel's serverless runtime. Without it, narration silently degrades to no audio; nothing else breaks.
+
+1. **Download Piper** (portable binary, no sudo needed):
+   ```bash
+   mkdir -p ~/.local/share/axiom-tools/piper && cd ~/.local/share/axiom-tools
+   curl -sL -o piper_linux_x86_64.tar.gz \
+     "$(curl -s https://api.github.com/repos/rhasspy/piper/releases/latest \
+        | grep -o '"browser_download_url": *"[^"]*piper_linux_x86_64.tar.gz"' \
+        | cut -d'"' -f4)"
+   tar -xzf piper_linux_x86_64.tar.gz
+   ```
+   (For macOS/Windows, grab the matching asset from the [Piper releases page](https://github.com/rhasspy/piper/releases) instead.)
+
+2. **Download a voice model** (English example — browse [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) on Hugging Face for other languages/voices):
+   ```bash
+   mkdir -p ~/.local/share/axiom-tools/piper-voices && cd ~/.local/share/axiom-tools/piper-voices
+   curl -sL -o en_US-lessac-medium.onnx \
+     "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
+   curl -sL -o en_US-lessac-medium.onnx.json \
+     "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"
+   ```
+
+3. **Point `.env.local` at them**:
+   ```env
+   PIPER_BINARY_PATH=/home/you/.local/share/axiom-tools/piper/piper
+   PIPER_MODEL_PATH=/home/you/.local/share/axiom-tools/piper-voices/en_US-lessac-medium.onnx
+   PIPER_ESPEAK_DATA_PATH=/home/you/.local/share/axiom-tools/piper/espeak-ng-data
+   ```
+
+4. **Verify it works** standalone before trusting the app with it:
+   ```bash
+   echo "Hello from Piper." | ~/.local/share/axiom-tools/piper/piper \
+     --model ~/.local/share/axiom-tools/piper-voices/en_US-lessac-medium.onnx \
+     --output_file /tmp/piper-test.wav \
+     --espeak_data ~/.local/share/axiom-tools/piper/espeak-ng-data
+   ```
+   A valid WAV at `/tmp/piper-test.wav` means it's working.
+
+Lip sync is handled by `LIPSYNC_ENGINE=amplitude` (the default) with no extra install — it reads the Piper WAV's own loudness envelope directly, no separate binary. Only install Rhubarb if you specifically want its slower, word-aware visemes:
+
+```bash
+mkdir -p ~/.local/share/axiom-tools/rhubarb && cd ~/.local/share/axiom-tools/rhubarb
+curl -sL -o rhubarb.zip \
+  "$(curl -s https://api.github.com/repos/DanielSWolf/rhubarb-lip-sync/releases/latest \
+     | grep -o '"browser_download_url": *"[^"]*Linux.zip"' \
+     | cut -d'"' -f4)"
+unzip -q rhubarb.zip && chmod +x Rhubarb-Lip-Sync-*/rhubarb
+```
+Then set `RHUBARB_BINARY_PATH` to the extracted `rhubarb` binary and `LIPSYNC_ENGINE=rhubarb` in `.env.local`. (Grab the macOS/Windows asset from the [Rhubarb releases page](https://github.com/DanielSWolf/rhubarb-lip-sync/releases) instead, if applicable.)
+
+Restart `npm run dev` after changing any of these — Next only reads `.env.local` at server start.
 
 ### Run Locally
 

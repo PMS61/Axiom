@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { getCourseAction, saveCourseAction } from "@/app/actions/courses";
-import { narrateSlideAction } from "@/app/actions/narration";
+import {
+  narrateSlideAction,
+  pregenerateCourseNarrationAction,
+} from "@/app/actions/narration";
 import {
   completeNodeAction,
   generateContentAction,
@@ -250,6 +253,29 @@ export default function CourseGenerationPage({
         );
         if (saveRes.error) {
           console.warn("Failed to persist course:", saveRes.error);
+        }
+
+        // Pre-synthesize narration for every slide now, in parallel, instead
+        // of paying the (small, but nonzero) synthesis cost on first view of
+        // each slide. Fire-and-forget: the course is already usable, and the
+        // course page falls back to on-demand synthesis via narrateSlideAction
+        // for any slide this hasn't finished caching yet.
+        const scripts: string[] = (response.data.slides || [])
+          .map((slide: any) => slide.script)
+          .filter(
+            (script: unknown): script is string =>
+              typeof script === "string" && script.trim().length > 0,
+          );
+        if (scripts.length > 0) {
+          pregenerateCourseNarrationAction(scripts)
+            .then((res) => {
+              if (res.failed > 0) {
+                console.warn(
+                  `[Narration pre-gen] ${res.failed}/${scripts.length} slides failed to synthesize.`,
+                );
+              }
+            })
+            .catch((err) => console.warn("[Narration pre-gen] failed:", err));
         }
       } else {
         const message = response.error || "Generation returned empty.";
