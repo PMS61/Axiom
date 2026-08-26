@@ -39,7 +39,7 @@ chaintrace/
 
 ## Status
 
-Phase 2 - chain detection and data fetching. Bitcoin (Esplora/mempool.space) and
-Ethereum (Etherscan) fetchers are in place, both falling back to the bundled
-sample data when the network or an API key is missing. The dashboard is still
-the Phase 1 skeleton.
+Phase 3 - the trace engine works. BFS over a NetworkX graph follows every
+branch from the suspect wallet until it hits a labeled exchange, a mixer, a
+dead end or the hop limit, and reports the paths it found. The dashboard is
+still the Phase 1 skeleton.
