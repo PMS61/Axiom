@@ -39,7 +39,8 @@ chaintrace/
 
 ## Status
 
-Phase 3 - the trace engine works. BFS over a NetworkX graph follows every
-branch from the suspect wallet until it hits a labeled exchange, a mixer, a
-dead end or the hop limit, and reports the paths it found. The dashboard is
-still the Phase 1 skeleton.
+Phase 4 - attribution, confidence and typology flags. A trace that reaches an
+exchange reports the attributed VASP with a 5-99 confidence score and the full
+list of factors behind it; mixer and bridge hops are flagged, and a trace that
+dies in a mixer is marked "trail broken here". The dashboard is still the
+Phase 1 skeleton.

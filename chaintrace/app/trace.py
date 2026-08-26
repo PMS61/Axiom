@@ -403,7 +403,7 @@ def trace(
         for node, data in graph.nodes(data=True)
     }
 
-    return TraceResult(
+    result = TraceResult(
         address=address,
         chain=detect_chain(address),
         status=status,
@@ -413,5 +413,11 @@ def trace(
         data_sources=sources,
         notes=notes,
         graph=graph,
-        elapsed_ms=(time.perf_counter() - started) * 1000,
     )
+
+    # Phase 4: attach a confidence score and typology flags to every path.
+    from .scoring import apply_scoring  # local import keeps the modules decoupled
+
+    apply_scoring(result)
+    result.elapsed_ms = (time.perf_counter() - started) * 1000
+    return result
