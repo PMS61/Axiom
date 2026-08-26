@@ -39,5 +39,7 @@ chaintrace/
 
 ## Status
 
-Phase 1 - skeleton only. The dashboard launches and takes an address; the trace
-engine is wired up in later phases.
+Phase 2 - chain detection and data fetching. Bitcoin (Esplora/mempool.space) and
+Ethereum (Etherscan) fetchers are in place, both falling back to the bundled
+sample data when the network or an API key is missing. The dashboard is still
+the Phase 1 skeleton.

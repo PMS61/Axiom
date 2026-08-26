@@ -1,0 +1,27 @@
+{
+  "_comment": "Sample labeled address database for the ChainTrace POC. These are illustrative placeholder addresses, NOT real. type is one of: exchange, mixer, bridge.",
+
+  "1ExchangeDepositAAA111111111111111111": { "entity": "SampleExchange Alpha", "type": "exchange" },
+  "1ExchangeDepositBBB222222222222222222": { "entity": "SampleExchange Beta", "type": "exchange" },
+  "0xExchangeDepositCCC33333333333333333333333333": { "entity": "SampleExchange Gamma", "type": "exchange" },
+  "1MixerPoolXXX9999999999999999999999999": { "entity": "Sample Mixing Service", "type": "mixer" },
+  "0xBridgeContractDDD44444444444444444444444444": { "entity": "Sample Cross-Chain Bridge", "type": "bridge" },
+  "1ExchangeDepositEEE555555555555555555": { "entity": "SampleExchange Delta", "type": "exchange" },
+  "0xExchangeDepositFFF66666666666666666666666666": { "entity": "SampleExchange Epsilon", "type": "exchange" },
+  "1MixerPoolYYY8888888888888888888888888": { "entity": "Sample Tumbler Two", "type": "mixer" },
+
+  "1ExchangeDepositGGG777777777777777777": { "entity": "SampleExchange Zeta", "type": "exchange" },
+  "0xExchangeDepositHHH77777777777777777777777777": { "entity": "SampleExchange Eta", "type": "exchange" },
+  "bc1qexchangedepositiii88888888888888888888888": { "entity": "SampleExchange Theta", "type": "exchange" },
+  "3ExchangeDepositJJJ999999999999999999": { "entity": "SampleExchange Iota", "type": "exchange" },
+  "0xExchangeDepositKKK88888888888888888888888888": { "entity": "SampleExchange Kappa", "type": "exchange" },
+  "1ExchangeDepositLLL999999999999999999": { "entity": "SampleExchange Lambda", "type": "exchange" },
+  "0xExchangeDepositMMM99999999999999999999999999": { "entity": "SampleExchange Mu", "type": "exchange" },
+  "1ExchangeDepositNNN000000000000000000": { "entity": "SampleExchange Nu", "type": "exchange" },
+
+  "0xMixerContractZZZ11111111111111111111111111": { "entity": "Sample Privacy Pool", "type": "mixer" },
+  "3MixerPoolWWW777777777777777777777777": { "entity": "Sample Tumbler Three", "type": "mixer" },
+
+  "0xBridgeContractEEE55555555555555555555555555": { "entity": "Sample Rollup Bridge", "type": "bridge" },
+  "1BridgeDepositFFF6666666666666666666": { "entity": "Sample Wrapped-BTC Bridge", "type": "bridge" }
+}
