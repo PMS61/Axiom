@@ -12,3 +12,4 @@ matplotlib==3.10.0        # graph rendering fallback
 pyvis==0.3.2              # interactive graph rendering in Streamlit
 reportlab==4.2.5          # PDF report generation
 pytest==8.3.4             # tests
+httpx==0.28.1              # FastAPI TestClient dependency (tests only)

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 
 # Make the sibling `app` package importable when Streamlit runs this file.
@@ -23,6 +24,8 @@ from app.cache import get_cache
 from app.fetchers import get_sample_fetcher
 from app.labels import get_label_store
 from app.ml import feature_importances, score_wallet
+from app.report import build_pdf
+from app.storage import case_from_trace, get_case_store
 from app.scoring import confidence_band
 from app.trace import (
     STATUS_ATTRIBUTED,
@@ -240,10 +243,26 @@ def risk_tab(result: TraceResult, allow_network: bool) -> None:
         st.caption(risk.note + " Treat it as a triage hint, not evidence.")
 
 
-def evidence_tab(result: TraceResult) -> None:
+def evidence_tab(result: TraceResult, case_id: str | None = None,
+                 metadata: dict | None = None) -> None:
     st.write("**Data sources used:** " + (", ".join(result.data_sources) or "none"))
     for note in result.notes:
         st.caption(note)
+
+    # Built on render rather than behind a "generate" button: clicking a button
+    # reruns the script, and a rerun sends Streamlit back to the first tab.
+    st.download_button(
+        "Download PDF report",
+        data=build_pdf(
+            result,
+            case_id=case_id,
+            risk=score_wallet(result.address, allow_network=False),
+            metadata=metadata,
+        ),
+        file_name=f"chaintrace_report_{case_id or short(result.address, 10, 4)}.pdf",
+        mime="application/pdf",
+        key=f"pdf-{case_id or result.address}",
+    )
     payload = json.dumps(result.to_dict(), indent=2, default=str)
     st.download_button(
         "Download trace as JSON",
@@ -257,9 +276,100 @@ def evidence_tab(result: TraceResult) -> None:
 # --------------------------------------------------------------------------- #
 # Page
 # --------------------------------------------------------------------------- #
-def main() -> None:
-    max_depth, allow_network = sidebar()
+def render_result(result: TraceResult, allow_network: bool,
+                  case_id: str | None = None, metadata: dict | None = None) -> None:
+    """Everything below the input box: banner, metrics and the four tabs."""
+    st.divider()
+    status_banner(result)
+    summary_strip(result)
 
+    graph, paths, flags, risk, evidence = st.tabs(
+        ["Fund flow graph", "Traced paths", "Typology flags", "Risk (ML)", "Evidence"]
+    )
+    with graph:
+        graph_tab(result)
+    with paths:
+        paths_tab(result)
+    with flags:
+        flags_tab(result)
+    with risk:
+        risk_tab(result, allow_network)
+    with evidence:
+        evidence_tab(result, case_id=case_id, metadata=metadata)
+
+
+def complaint_view(max_depth: int, allow_network: bool) -> None:
+    """Second entry point: a wallet arrives from the fraud-complaint feed.
+
+    Same engine, no investigator in the loop, and a clock on the result -
+    this is the "act while the money is still moving" mode.
+    """
+    st.title("Complaint feed - real-time mode")
+    st.caption(
+        "Simulates a wallet arriving from a fraud complaint. The same trace engine "
+        "runs automatically and opens a case."
+    )
+
+    with st.form("complaint"):
+        column_left, column_right = st.columns(2)
+        wallet = column_left.text_input("Reported wallet", value="SUSPECT_WALLET_DEMO_1")
+        reference = column_right.text_input("Complaint reference", value="NCRP/2026/00123")
+        complainant = column_left.text_input("Complainant", value="Victim A")
+        amount = column_right.number_input("Amount reported", min_value=0.0, value=46000.0)
+        description = st.text_area(
+            "Complaint summary", value="Victim transferred funds after an investment scam call."
+        )
+        submitted = st.form_submit_button("Receive complaint and trace", type="primary")
+
+    if submitted and wallet.strip():
+        started = time.perf_counter()
+        with st.spinner("Complaint received - tracing..."):
+            result = trace(wallet.strip(), max_depth=max_depth, allow_network=allow_network)
+            metadata = {
+                "complaint_ref": reference,
+                "complainant": complainant,
+                "amount_reported": amount,
+                "description": description,
+            }
+            case = get_case_store().save(
+                case_from_trace(result, source="complaint", metadata=metadata)
+            )
+        st.session_state["complaint_result"] = (result, case.case_id, metadata)
+        st.session_state["complaint_elapsed"] = (time.perf_counter() - started) * 1000
+
+    stored = st.session_state.get("complaint_result")
+    if stored:
+        result, case_id, metadata = stored
+        elapsed = st.session_state.get("complaint_elapsed", 0.0)
+        left, right = st.columns(2)
+        left.metric("Time to result", f"{elapsed:.0f} ms")
+        right.metric("Case opened", case_id)
+        render_result(result, allow_network, case_id=case_id, metadata=metadata)
+
+    cases = get_case_store().list(limit=10)
+    if cases:
+        st.subheader("Recent cases")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Case": case.case_id,
+                        "Opened": case.created_at,
+                        "Wallet": short(case.address, 14, 4),
+                        "Outcome": case.status,
+                        "Exchange": case.entity or "-",
+                        "Confidence": f"{case.confidence:.0f}%" if case.confidence else "-",
+                        "Source": case.source,
+                    }
+                    for case in cases
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
+def investigator_view(max_depth: int, allow_network: bool) -> None:
     st.title("ChainTrace POC")
     st.caption(
         "Trace a suspect wallet hop by hop to the exchange where the money cashed out."
@@ -289,23 +399,18 @@ def main() -> None:
         st.info("Pick a demo wallet in the sidebar and press Trace to see the engine run.")
         return
 
-    st.divider()
-    status_banner(result)
-    summary_strip(result)
+    render_result(result, allow_network)
 
-    graph, paths, flags, risk, evidence = st.tabs(
-        ["Fund flow graph", "Traced paths", "Typology flags", "Risk (ML)", "Evidence"]
+
+def main() -> None:
+    view = st.sidebar.radio(
+        "View", ["Investigator trace", "Complaint feed (real-time)"], label_visibility="collapsed"
     )
-    with graph:
-        graph_tab(result)
-    with paths:
-        paths_tab(result)
-    with flags:
-        flags_tab(result)
-    with risk:
-        risk_tab(result, allow_network)
-    with evidence:
-        evidence_tab(result)
+    max_depth, allow_network = sidebar()
+    if view.startswith("Investigator"):
+        investigator_view(max_depth, allow_network)
+    else:
+        complaint_view(max_depth, allow_network)
 
 
 main()
