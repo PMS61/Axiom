@@ -52,6 +52,6 @@ chaintrace/
 
 ## Status
 
-Phase 5 - a complete, demoable POC. Trace a wallet on the bundled sample data,
-watch it hit an exchange, read the confidence score and the factors behind it,
-and explore the colour-coded fund-flow graph with per-node details.
+Phase 6 - the POC plus the ML hook. A RandomForest trained on a small bundled
+synthetic feature set scores each traced wallet for "illicit likelihood" next
+to the trace result.

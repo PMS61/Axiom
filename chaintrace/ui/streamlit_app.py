@@ -22,6 +22,7 @@ import streamlit.components.v1 as components
 from app.cache import get_cache
 from app.fetchers import get_sample_fetcher
 from app.labels import get_label_store
+from app.ml import feature_importances, score_wallet
 from app.scoring import confidence_band
 from app.trace import (
     STATUS_ATTRIBUTED,
@@ -214,6 +215,31 @@ def flags_tab(result: TraceResult) -> None:
             st.info(line)
 
 
+def risk_tab(result: TraceResult, allow_network: bool) -> None:
+    """The ML hook: an illicit-likelihood score for the suspect wallet."""
+    risk = score_wallet(result.address, allow_network=allow_network)
+
+    left, right = st.columns([1, 2])
+    left.metric("Illicit likelihood", f"{risk.percent:.0f}%")
+    left.caption(
+        f"RandomForest, {risk.model_accuracy:.0%} holdout accuracy on "
+        f"{risk.trained_on} synthetic rows"
+    )
+    right.markdown("**Wallet features fed to the model**")
+    right.dataframe(
+        pd.DataFrame(
+            [
+                {"Feature": name, "Value": value, "Model weight": feature_importances()[name]}
+                for name, value in risk.features.items()
+            ]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+    if risk.note:
+        st.caption(risk.note + " Treat it as a triage hint, not evidence.")
+
+
 def evidence_tab(result: TraceResult) -> None:
     st.write("**Data sources used:** " + (", ".join(result.data_sources) or "none"))
     for note in result.notes:
@@ -267,8 +293,8 @@ def main() -> None:
     status_banner(result)
     summary_strip(result)
 
-    graph, paths, flags, evidence = st.tabs(
-        ["Fund flow graph", "Traced paths", "Typology flags", "Evidence"]
+    graph, paths, flags, risk, evidence = st.tabs(
+        ["Fund flow graph", "Traced paths", "Typology flags", "Risk (ML)", "Evidence"]
     )
     with graph:
         graph_tab(result)
@@ -276,6 +302,8 @@ def main() -> None:
         paths_tab(result)
     with flags:
         flags_tab(result)
+    with risk:
+        risk_tab(result, allow_network)
     with evidence:
         evidence_tab(result)
 
