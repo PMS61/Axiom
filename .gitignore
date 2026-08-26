@@ -17,3 +17,10 @@
 
 # node
 node_modules/
+
+# python / chaintrace POC
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.db
