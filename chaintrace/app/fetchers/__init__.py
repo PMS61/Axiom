@@ -77,12 +77,18 @@ def fetch(address: str, allow_network: bool = True) -> FetchResult:
         else:
             try:
                 txs = fetcher.get_transactions(address)
+                truncated = bool(getattr(fetcher, "truncated", False))
                 result = FetchResult(
                     address=address,
                     chain=chain,
                     transactions=txs,
                     source=getattr(fetcher, "source", fetcher.name),
-                    note="live API",
+                    note=(
+                        f"history truncated at {len(txs)} transactions for {address}"
+                        if truncated
+                        else "live API"
+                    ),
+                    truncated=truncated,
                 )
             except Exception as exc:  # unreachable API, missing key, rate limit
                 result = _sample_result(address, chain, f"live fetch failed: {exc}")

@@ -71,6 +71,7 @@ class FetchResult:
     transactions: list[Tx] = field(default_factory=list)
     source: str = "none"   # "sample" | "esplora" | "mempool" | "etherscan" | "none"
     note: str = ""
+    truncated: bool = False   # history was longer than the per-address cap
 
     def __len__(self) -> int:
         return len(self.transactions)

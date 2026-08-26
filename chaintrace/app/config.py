@@ -31,6 +31,17 @@ ETHERSCAN_API_KEY = os.environ.get("ETHERSCAN_API_KEY", "").strip()
 
 # Seconds to wait on any live API call before giving up and using sample data.
 HTTP_TIMEOUT = float(os.environ.get("CHAINTRACE_HTTP_TIMEOUT", "6"))
+HTTP_MAX_RETRIES = int(os.environ.get("CHAINTRACE_HTTP_RETRIES", "3"))
+
+# Requests per second per API. Esplora publishes no official limit, so this is
+# just politeness; Etherscan's free tier allows 5/sec.
+ESPLORA_RATE = float(os.environ.get("CHAINTRACE_ESPLORA_RATE", "4"))
+ETHERSCAN_RATE = float(os.environ.get("CHAINTRACE_ETHERSCAN_RATE", "4"))
+
+# How many transactions to pull for one address before stopping. A trace that
+# stops early is reported as truncated rather than silently returning a partial
+# (and therefore wrong) picture.
+MAX_TXS_PER_ADDRESS = int(os.environ.get("CHAINTRACE_MAX_TXS", "200"))
 
 # Trace defaults
 DEFAULT_MAX_DEPTH = 5

@@ -142,6 +142,9 @@ Everything has a working default. Set these only if you want live data:
 | `CHAINTRACE_OFFLINE` | `1` = never touch the network. |
 | `CHAINTRACE_DB` | Where the SQLite case database lives. |
 | `CHAINTRACE_HTTP_TIMEOUT` | Seconds before a live API call gives up (default 6). |
+| `CHAINTRACE_HTTP_RETRIES` | Retries on throttling or a 5xx (default 3). |
+| `CHAINTRACE_ESPLORA_RATE` / `CHAINTRACE_ETHERSCAN_RATE` | Requests per second per API (default 4). |
+| `CHAINTRACE_MAX_TXS` | Transactions to pull per address before reporting truncation (default 200). |
 | `CHAINTRACE_MAX_NODES` | Stop expanding the graph past this many addresses (default 400). |
 | `CHAINTRACE_MAX_PATHS` | Keep this many best-ranked paths (default 50). |
 | `CHAINTRACE_SAMPLE_DATA` | Point the offline fetcher at a different sample file. |
@@ -156,9 +159,28 @@ stands in for Redis (`app/cache.py`).
 python -m pytest
 ```
 
-37 tests covering chain detection, the fetch fallback chain, all five trace
-scenarios, the scoring rules, the ML features, case storage, the PDF and the
-API.
+49 tests covering chain detection, the fetch fallback chain, all five trace
+scenarios, the scoring rules, the ML features, case storage, the PDF, the
+API, and pagination/rate limiting/retries against a stubbed HTTP layer.
+
+## Live data
+
+Bitcoin needs no key. Ethereum needs a free `ETHERSCAN_API_KEY`. Turn off
+**Offline mode** in the sidebar and the fetchers page through an address's full
+history - Esplora 25 confirmed transactions at a time, Etherscan 100 - rather
+than reading the first page and silently returning a partial (and therefore
+wrong) picture. If an address is busier than `CHAINTRACE_MAX_TXS`, the trace
+says so in its notes instead of pretending it saw everything.
+
+Every call goes through one rate limiter per API (`app/httpclient.py`), which
+paces requests and retries throttling and 5xx responses with backoff, honouring
+`Retry-After`. That pacing is why a deep live trace is slow: the walk makes at
+least one request per address it visits.
+
+Live mode has never been exercised against the real APIs from this repo's
+development sandbox (no outbound network), but the whole path - pagination,
+normalization, graph, attribution - is covered end to end against a stubbed
+Esplora in `tests/test_http_and_pagination.py`.
 
 ## Real addresses fan out
 

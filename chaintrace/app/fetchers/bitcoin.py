@@ -2,6 +2,11 @@
 
 Both are free and need no API key. Any failure raises FetchError so the caller
 can fall back to the bundled sample data instead of crashing.
+
+Esplora paginates: `/address/:addr/txs/chain` returns 25 confirmed transactions
+at a time and you ask for the next page by passing the last txid you saw. The
+old code read one page and stopped, which silently truncated busy addresses -
+and a trace built on a truncated history is wrong, not merely incomplete.
 """
 
 from __future__ import annotations
@@ -9,11 +14,20 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-import requests
-
-from ..config import ESPLORA_API, HTTP_TIMEOUT, MEMPOOL_API
+from ..config import ESPLORA_API, ESPLORA_RATE, MAX_TXS_PER_ADDRESS, MEMPOOL_API
+from ..httpclient import RateLimiter, get_json
 from ..models import Tx
 from .base import FetchError
+
+# Esplora's page size for confirmed history. A short page means the last page.
+PAGE_SIZE = 25
+
+# One limiter per host, shared by every trace in the process.
+_LIMITERS: dict[str, RateLimiter] = {}
+
+
+def _limiter_for(base_url: str) -> RateLimiter:
+    return _LIMITERS.setdefault(base_url, RateLimiter(ESPLORA_RATE))
 
 
 def _iso(block_time: int | None) -> str:
@@ -61,21 +75,52 @@ class BitcoinFetcher:
     def __init__(self, esplora: str = ESPLORA_API, mempool: str = MEMPOOL_API) -> None:
         self.endpoints = [("esplora", esplora), ("mempool", mempool)]
         self.source = self.name
+        self.truncated = False
+
+    def _fetch_all(self, base_url: str, address: str) -> list[dict[str, Any]]:
+        """Walk every page of this address's history, up to the cap."""
+        root = base_url.rstrip("/")
+        limiter = _limiter_for(root)
+        collected: list[dict[str, Any]] = []
+
+        # Unconfirmed transactions first - they are the freshest lead. Not every
+        # Esplora mirror serves this route, so a failure here is not fatal.
+        try:
+            mempool_txs = get_json(f"{root}/address/{address}/txs/mempool", limiter=limiter)
+            if isinstance(mempool_txs, list):
+                collected.extend(mempool_txs)
+        except Exception:
+            pass
+
+        last_seen: str | None = None
+        while len(collected) < MAX_TXS_PER_ADDRESS:
+            url = f"{root}/address/{address}/txs/chain"
+            if last_seen:
+                url = f"{url}/{last_seen}"
+
+            page = get_json(url, limiter=limiter)
+            if not isinstance(page, list):
+                raise FetchError(f"{root} returned an unexpected payload for {address}")
+            collected.extend(page)
+
+            if len(page) < PAGE_SIZE:
+                return collected            # short page = end of history
+            last_seen = page[-1].get("txid")
+            if not last_seen:
+                return collected
+
+        # We stopped because of the cap, not because history ran out.
+        self.truncated = True
+        return collected[:MAX_TXS_PER_ADDRESS]
 
     def get_transactions(self, address: str) -> list[Tx]:
-        """Recent transactions for `address` (both directions; caller filters)."""
+        """Full transaction history for `address` (both directions; caller filters)."""
         last_error: Exception | None = None
         for source, base in self.endpoints:
             try:
-                response = requests.get(
-                    f"{base.rstrip('/')}/address/{address}/txs", timeout=HTTP_TIMEOUT
-                )
-                response.raise_for_status()
-                payload = response.json()
-                if not isinstance(payload, list):
-                    raise FetchError(f"{source} returned an unexpected payload")
+                raw = self._fetch_all(base, address)
                 self.source = source
-                return [_normalize(item) for item in payload]
+                return [_normalize(item) for item in raw]
             except Exception as exc:  # network down, 404, rate limit, bad JSON...
                 last_error = exc
         raise FetchError(f"no Bitcoin API reachable for {address}: {last_error}")

@@ -249,7 +249,8 @@ def build_graph(
         result = fetch(current, allow_network=allow_network)
         if result.source not in sources and result.source != "none":
             sources.append(result.source)
-        if result.note and result.note not in notes and "live fetch failed" in result.note:
+        interesting = result.truncated or "live fetch failed" in result.note
+        if result.note and interesting and result.note not in notes:
             notes.append(result.note)
 
         # Only transactions where this address is spending - money leaving it.

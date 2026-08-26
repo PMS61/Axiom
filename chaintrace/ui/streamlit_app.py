@@ -64,6 +64,13 @@ def sidebar() -> tuple[int, bool]:
         help="Off: try live Esplora / Etherscan first, fall back to sample data on failure.",
     )
 
+    if not offline:
+        st.sidebar.caption(
+            "Live mode paces calls (~4/s per API) and pages through full address "
+            "history, so a deep trace on a busy address takes a while. Start with "
+            "2-3 hops."
+        )
+
     if st.sidebar.button("Clear cache"):
         get_cache().clear()
         st.sidebar.success("Cache cleared")
