@@ -24,7 +24,7 @@ from typing import Any
 import networkx as nx
 
 from .chains import detect_chain
-from .config import DEFAULT_MAX_DEPTH
+from .config import DEFAULT_MAX_DEPTH, MAX_NODES, MAX_PATHS
 from .fetchers import fetch
 from .labels import BRIDGE, EXCHANGE, MIXER, get_label_store
 
@@ -45,9 +45,13 @@ STATUS_NO_ACTIVITY = "no_activity"      # nothing left this wallet at all
 ROLE_SUSPECT = "suspect"
 ROLE_INTERMEDIATE = "intermediate"
 
-# Safety rails so a wide graph cannot hang the demo.
-MAX_NODES = 400
+# Safety rails so a wide graph cannot hang the demo. MAX_NODES and MAX_PATHS
+# come from app/config.py (both overridable by environment variable).
 MAX_PATHS_PER_TERMINAL = 3
+
+# Enumerating routes to every terminal of a wide graph is the expensive part,
+# so stop scanning well before it matters and rank what we have.
+PATH_SCAN_LIMIT = max(MAX_PATHS * 4, 200)
 
 
 @dataclass
@@ -364,12 +368,22 @@ def trace(
     graph, sources, notes = build_graph(address, max_depth=max_depth, allow_network=allow_network)
 
     # Collect every node that ends a branch, then enumerate routes to it.
+    # Nodes come out in BFS insertion order, so the nearest terminals - the ones
+    # an investigator cares about - are scanned first.
     paths: list[TracePath] = []
+    terminals_scanned = 0
     for node in graph.nodes:
         if node == address:
             continue
         if _terminal_kind(graph, node, max_depth) is None:
             continue
+        if len(paths) >= PATH_SCAN_LIMIT:
+            notes.append(
+                f"stopped enumerating routes after {len(paths)} paths "
+                f"({terminals_scanned} terminal nodes scanned)"
+            )
+            break
+        terminals_scanned += 1
         routes = nx.all_simple_paths(graph, address, node, cutoff=max_depth)
         for count, route in enumerate(routes):
             if count >= MAX_PATHS_PER_TERMINAL:
@@ -378,6 +392,12 @@ def trace(
 
     # Best first: exchanges before mixers, then fewest hops.
     paths.sort(key=lambda p: (_KIND_RANK.get(p.terminal_kind, 9), p.hops))
+
+    # Keep the ranked head. Hundreds of dead-end branches are noise, and every
+    # consumer downstream (UI, JSON, PDF) has to render whatever we return.
+    if len(paths) > MAX_PATHS:
+        notes.append(f"showing the {MAX_PATHS} best-ranked of {len(paths)} paths found")
+        paths = paths[:MAX_PATHS]
 
     if not graph.out_degree(address):
         status = STATUS_NO_ACTIVITY

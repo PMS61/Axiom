@@ -68,3 +68,34 @@ def test_unknown_wallet_reports_no_activity():
     result = trace("A_WALLET_WE_HAVE_NEVER_SEEN", **OFFLINE)
     assert result.status == STATUS_NO_ACTIVITY
     assert result.paths == []
+
+
+def test_wide_graph_is_bounded(monkeypatch):
+    """A real busy address fans out into hundreds of branches.
+
+    Streamlit refuses to render more than 500 elements in one container, so the
+    engine has to hand back a bounded, ranked set rather than everything it saw.
+    """
+    from app.config import MAX_NODES, MAX_PATHS
+    from app.models import FetchResult, Tx
+
+    def fan_out(address, allow_network=True):
+        # Every address pays six new ones - six-way branching at every hop.
+        outputs = [f"{address}x{index}" for index in range(6)]
+        tx = Tx(
+            txid=f"tx{abs(hash(address)) % 99999}",
+            timestamp="2026-08-10T14:22:00Z",
+            chain="bitcoin",
+            inputs=[address],
+            outputs=outputs,
+            amounts={output: 1000.0 for output in outputs},
+        )
+        return FetchResult(address=address, chain="bitcoin", transactions=[tx], source="sample")
+
+    monkeypatch.setattr("app.trace.fetch", fan_out)
+    result = trace("WIDE_WALLET", max_depth=5, allow_network=False)
+
+    assert len(result.nodes) <= MAX_NODES + 6   # the node cap trips mid-transaction
+    assert len(result.paths) <= MAX_PATHS
+    assert any("best-ranked" in note for note in result.notes)
+    assert any("too wide" in note for note in result.notes)

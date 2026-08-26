@@ -17,7 +17,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 
-SAMPLE_TRANSACTIONS_FILE = DATA_DIR / "sample_transactions.json"
+SAMPLE_TRANSACTIONS_FILE = Path(
+    os.environ.get("CHAINTRACE_SAMPLE_DATA", DATA_DIR / "sample_transactions.json")
+)
 LABELED_ADDRESSES_FILE = DATA_DIR / "labeled_addresses.json"
 TRAINING_SAMPLE_FILE = DATA_DIR / "training_sample.csv"
 
@@ -33,6 +35,12 @@ HTTP_TIMEOUT = float(os.environ.get("CHAINTRACE_HTTP_TIMEOUT", "6"))
 # Trace defaults
 DEFAULT_MAX_DEPTH = 5
 DEFAULT_CACHE_TTL = 300  # seconds
+
+# Safety rails. Real addresses fan out hard - a five-hop walk from a busy
+# wallet reaches thousands of nodes and yields hundreds of paths, which is slow
+# to fetch and impossible to read. These bound both.
+MAX_NODES = int(os.environ.get("CHAINTRACE_MAX_NODES", "400"))
+MAX_PATHS = int(os.environ.get("CHAINTRACE_MAX_PATHS", "50"))
 
 # SQLite by default so the POC needs no database server. Swap the URL/driver in
 # app/storage.py to move to PostgreSQL without touching the rest of the code.

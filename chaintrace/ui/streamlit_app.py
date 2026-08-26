@@ -150,12 +150,24 @@ def graph_tab(result: TraceResult) -> None:
         st.dataframe(frame, use_container_width=True, hide_index=True)
 
 
+# Streamlit allows at most 500 elements inside one container, and a real
+# address fans out into hundreds of branches, so both loops below are capped.
+MAX_PATHS_SHOWN = 10
+
+
 def paths_tab(result: TraceResult) -> None:
     if not result.paths:
         st.info("No paths to show.")
         return
 
-    for index, path in enumerate(result.paths, start=1):
+    shown = result.paths[:MAX_PATHS_SHOWN]
+    if len(result.paths) > len(shown):
+        st.caption(
+            f"Showing the {len(shown)} best-ranked of {len(result.paths)} paths. "
+            "The full set is in the Evidence tab."
+        )
+
+    for index, path in enumerate(shown, start=1):
         headline = path.entity or short(path.terminal, 16, 6)
         title = (
             f"Path {index} - {path.terminal_kind.replace('_', ' ')} at {headline} "
@@ -204,24 +216,44 @@ def paths_tab(result: TraceResult) -> None:
             )
 
 
+SEVERITY_ORDER = {"high": 0, "warn": 1, "info": 2}
+
+
 def flags_tab(result: TraceResult) -> None:
-    flags = [
-        {**flag, "path": index}
-        for index, path in enumerate(result.paths, start=1)
-        for flag in path.flags
-    ]
+    # The same flag turns up on every path that shares an address, so collapse
+    # by (code, address) before rendering.
+    unique: dict[tuple[str, str], dict] = {}
+    for path in result.paths:
+        for flag in path.flags:
+            unique.setdefault((flag["code"], flag.get("address", "")), flag)
+
+    flags = sorted(unique.values(), key=lambda f: SEVERITY_ORDER.get(f["severity"], 9))
     if not flags:
         st.success("No mixer, bridge or structuring typologies detected on the traced paths.")
         return
 
-    for flag in flags:
-        line = f"**{SEVERITY_ICON.get(flag['severity'], '')} - {flag['title']}** ({short(flag.get('address', ''), 14, 6)}): {flag['detail']}"
-        if flag["severity"] == "high":
-            st.error(line)
-        elif flag["severity"] == "warn":
-            st.warning(line)
-        else:
-            st.info(line)
+    # The most serious few as alerts, the rest as one table - a table is a
+    # single element, so this stays well under Streamlit's 500-per-container cap.
+    for flag in [f for f in flags if f["severity"] == "high"][:5]:
+        st.error(
+            f"**{flag['title']}** ({short(flag.get('address', ''), 14, 6)}): {flag['detail']}"
+        )
+
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Severity": SEVERITY_ICON.get(flag["severity"], flag["severity"]),
+                    "Flag": flag["title"],
+                    "Address": short(flag.get("address", ""), 14, 6),
+                    "Detail": flag["detail"],
+                }
+                for flag in flags
+            ]
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 def risk_tab(result: TraceResult, allow_network: bool) -> None:

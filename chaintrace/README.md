@@ -142,6 +142,9 @@ Everything has a working default. Set these only if you want live data:
 | `CHAINTRACE_OFFLINE` | `1` = never touch the network. |
 | `CHAINTRACE_DB` | Where the SQLite case database lives. |
 | `CHAINTRACE_HTTP_TIMEOUT` | Seconds before a live API call gives up (default 6). |
+| `CHAINTRACE_MAX_NODES` | Stop expanding the graph past this many addresses (default 400). |
+| `CHAINTRACE_MAX_PATHS` | Keep this many best-ranked paths (default 50). |
+| `CHAINTRACE_SAMPLE_DATA` | Point the offline fetcher at a different sample file. |
 
 Deliberate POC substitutions, each behind an interface so it can be swapped:
 SQLite stands in for PostgreSQL (`app/storage.py`), and an in-memory dict
@@ -156,6 +159,15 @@ python -m pytest
 37 tests covering chain detection, the fetch fallback chain, all five trace
 scenarios, the scoring rules, the ML features, case storage, the PDF and the
 API.
+
+## Real addresses fan out
+
+A busy mainnet address branches into thousands of addresses within a few hops.
+Two caps keep that usable, and both say so in the result notes when they trip:
+the walk stops expanding at `CHAINTRACE_MAX_NODES` addresses, and only the
+`CHAINTRACE_MAX_PATHS` best-ranked routes are returned. The dashboard renders
+at most 10 path blocks and collapses flags into one table, because Streamlit
+refuses to draw more than 500 elements inside a single container.
 
 ## What this POC is not
 
