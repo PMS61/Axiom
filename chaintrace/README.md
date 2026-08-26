@@ -37,10 +37,21 @@ chaintrace/
 └── requirements.txt
 ```
 
+## Demo walkthrough
+
+1. Launch the dashboard and pick `SUSPECT_WALLET_DEMO_1` in the sidebar, then
+   press **Trace**. The money splits: one branch cashes out at *SampleExchange
+   Alpha* (green, 87% confidence), the other disappears into a mixer (red).
+2. `SUSPECT_WALLET_DEMO_2` - the trail breaks in a mixer, marked "trail broken
+   here".
+3. `0xSuspectWalletDemo3333...` - an Ethereum trace that crosses a bridge
+   (purple) before cashing out.
+4. `SUSPECT_WALLET_DEMO_4` - a dead end: the funds never moved on.
+5. `SUSPECT_WALLET_DEMO_5` - still moving at the 5-hop limit. Raise **Max hops**
+   in the sidebar to 8 and it reaches *SampleExchange Zeta*.
+
 ## Status
 
-Phase 4 - attribution, confidence and typology flags. A trace that reaches an
-exchange reports the attributed VASP with a 5-99 confidence score and the full
-list of factors behind it; mixer and bridge hops are flagged, and a trace that
-dies in a mixer is marked "trail broken here". The dashboard is still the
-Phase 1 skeleton.
+Phase 5 - a complete, demoable POC. Trace a wallet on the bundled sample data,
+watch it hit an exchange, read the confidence score and the factors behind it,
+and explore the colour-coded fund-flow graph with per-node details.
