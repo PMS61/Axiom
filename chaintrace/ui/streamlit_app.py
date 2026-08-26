@@ -103,8 +103,14 @@ def summary_strip(result: TraceResult) -> None:
     col1.metric("Attributed exchange", result.attributed_entity or "-")
     col2.metric("Hops", result.hops if result.hops is not None else "-")
     confidence = result.confidence
-    col3.metric("Confidence", f"{confidence:.0f}%" if confidence else "-",
-                confidence_band(confidence) if confidence else None)
+    # delta_color="off": the band is a label, not a movement, so it should not
+    # render as a green upward arrow on a low score.
+    col3.metric(
+        "Confidence",
+        f"{confidence:.0f}%" if confidence else "-",
+        confidence_band(confidence) if confidence else None,
+        delta_color="off",
+    )
     col4.metric("Trace time", f"{result.elapsed_ms:.0f} ms")
 
 

@@ -5,7 +5,7 @@ fastapi==0.115.6          # backend API (complaint intake endpoint)
 uvicorn==0.34.0           # ASGI server for FastAPI
 streamlit==1.41.1         # investigator dashboard
 networkx==3.4.2           # transaction graph + BFS tracing
-requests==2.32.3          # live blockchain API calls (optional, falls back to sample data)
+requests==2.33.1           # live blockchain API calls (optional, falls back to sample data)
 pandas==2.2.3             # small tabular helpers (ML features, tables in UI)
 scikit-learn==1.6.0       # RandomForest "illicit likelihood" flag
 matplotlib==3.10.0        # graph rendering fallback
