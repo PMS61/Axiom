@@ -1,97 +1,61 @@
-# Plan 5 — Closing the What/How/When Adaptive Loop
+# Plan 05 — Four-Member Loop and Early Integration
 
-## Branch strategy
+**Status: active integration plan. Supersedes the What/How/When bridges and content/trend merge dependencies.**
 
-Build this plan on its own branch (e.g. `plan/05-loop-integration`), but **do not create it until Plan 2a and Plan 3 are both merged to `master`** — this plan wires their interfaces together (Bridge 2 needs Plan 2a's course pipeline profile slot; Bridge 1 needs Plan 3's recalibrated trend scoring). Branching early and rebasing repeatedly against two moving targets costs more than waiting. Plan 4 is already merged, so Bridge 3's write side is already done (see below) by the time this branch opens. (Plan 2 was split into 2a/content-pipeline and 2b/narration-video-chat after this doc was originally written — this plan's dependency is on 2a only; Plan 2b can merge independently and doesn't gate this plan.)
+Follow [the final brief](../AXIOM_FINAL_BRIEF.md). The loop is **M1 defines → M4 estimates → M2 schedules → M3 updates → M4 estimates again**. Integration starts with early stubs from every member; it does not wait for completed modules.
 
-## Context
+## Shared contracts
 
-The project's original research brief (superseded by this `plans/` directory, no longer in the repo) already named Axiom's architecture correctly: it is "a closed loop, not a bag of independent features" — What (trend engine) → How (material generators) → When (scheduler). This framing is also recorded as a standing note for this project: the three pillars are one intentional loop, not separate features to be improved in isolation.
+| Boundary | Producer | Consumer | Required artifact |
+|---|---|---|---|
+| Formula | M1 | M4, M2 | Versioned variable registry, units/ranges/source rules, evaluator |
+| Adaptive profile | M3 | M4, M2, reports | Immutable snapshot with version/cutoff; skill/history and calendar projections |
+| Task estimates | M4 | M2 | Task revision, variable estimates, duration, uncertainty, provenance, versions, readiness status |
+| Schedule | M2 | Execution UI, reports | Placements, unscheduled reasons, objective/solver status, estimate/profile/formula references |
+| Learning observations | Execution/assessment/settings handlers | M3 | Idempotent actual-duration/difficulty events and user corrections |
+| Weekly evidence | M3, M4, M2 | M1 + M2 evaluation/reporting | Profile deltas, prediction errors, and adaptive/baseline results with evidence labels |
 
-Today, exactly **one** of the three loop edges actually exists in code:
+Keep common contracts in proposed `client/src/lib/research-contracts/`. Runtime validation is required at persisted/LLM boundaries. Document fixture values as provisional, not formula decisions or validated measurements.
 
-```
-What ──(roadmap-agent.ts)──> How        ✅ implemented
-How  ──────────?───────────> When       ❌ tasks flow to the scheduler, but nothing
-                                            about how content was generated (mastery,
-                                            performance) flows back
-When ──────────?───────────> What       ❌ scheduler completion data never reaches
-                                            trend ranking
-```
+## Stub milestone: all four members
 
-The roadmap agent already bridges What→How: it takes a goal + profile + `existingMastery` and produces a DAG of course/assessment nodes with prerequisite locking (`recomputeNodeStates()`). That edge works and should be left alone.
+1. **M1:** registry and evaluator stub, with candidate/context-dependent variables distinguished from task estimates.
+2. **M3:** profile version 1 fixture, a relevant-history read interface, and an event receiver that produces version 2 in fixture mode.
+3. **M4:** deterministic valid estimates for those fixtures; no LLM/network dependency; explicit `stub` provenance.
+4. **M2:** scheduling adapter that accepts M4's artifact and M3's calendar view, plus a fixed-interval baseline stub under the same experiment interface.
 
-The other two edges are exactly the two items the original brief names explicitly — "Mastery-Weighted Trend Ranking (When → What)" and "Performance-Aware Generation (When → How)" — and this plan is their concrete implementation plan, sequenced against Plans 2a/3/4.
+Run a shared learning-task fixture through all four stubs before replacing any with full implementations. Stubs retain the production contract; swaps do not require M2 to learn a different response shape. Retain the fixture suite as a compatibility check.
 
-## Why this has to be last
+## Runtime sequence
 
-This plan does not introduce new capability by itself — it wires capability that Plans 2, 3, and 4 create:
+1. Read M1's active formula contract and a single M3 profile snapshot.
+2. M4 estimates each eligible task revision using the profile's observation cutoff. Persist or return an immutable estimation artifact outside the profile.
+3. M2 validates matching versions, obtains calendar/focus context from the same snapshot, evaluates M1's formula, and schedules. Candidate-time variables are resolved for each candidate by their registered source, not guessed once by the LLM.
+4. Persist the schedule and all input references before execution.
+5. Learner execution/assessment handlers submit actual observations to M3. Preserve the original estimate even if the task is later edited.
+6. M3 alone updates task memory, skill, and windows, then publishes a new profile version.
+7. M4 re-estimates eligible future tasks on the next agreed planning trigger. M2 reschedules future work under its policy; preserve completed/in-progress history.
+8. Produce a weekly report showing initial-profile changes and the agreed fixed-interval comparison. M1 + M2 own interpretation.
 
-- The When→What edge needs a readable mastery/interest signal, and needs Plan 3's trend-ranking function to have a slot for a personalization boost.
-- The How→When feedback (performance data flowing from assessments/course completion back into mastery) needs a mastery table to exist as the write target.
-- The When→How edge (performance-aware generation) needs Plan 2a's course pipeline to accept a profile parameter in the first place.
+A fresh profile version is an input change, not permission to rewrite past predictions. Re-estimation triggers include task revision, profile change, formula change, and explicit planning requests. Avoid a write/estimate/reschedule feedback loop with no new observation.
 
-**Plan 4 shipped first (commit `a23c4a6`) and already satisfies the first two of these** — `user_mastery` exists, both write points are live, and `toTrendPersonalizationPayload()`/`toCoursePersonalizationPayload()` are built. What's actually still blocking this plan is narrower than originally scoped: only Plan 2a's pipeline profile-slot and Plan 3's trend-ranking hook. Attempting this plan before those two land means wiring against interfaces that don't exist yet or will change shape. This is explicitly the integration milestone, not a parallel workstream. (Plan 2b — narration/video/avatar/chat — is not a dependency here at all.)
+## Failure and consistency rules
 
-## Concrete data flow to implement
+- Missing required variables: return a blocked estimate with reasons; do not substitute zero effort.
+- LLM outage: M4 returns a validated, labelled fallback if policy permits, or a blocked result. Stub outputs cannot enter measured study runs.
+- Unschedulable task: M2 returns a reason; no force-placement into non-availability or capacity violations.
+- Stale formula/task/profile versions: refresh the relevant artifact before placement; never mix history and windows from different profile snapshots.
+- Duplicate feedback: M3 deduplicates by event ID. Schema migration is separate from snapshot reads.
 
-```
-                    ┌─────────────────────────────────────────────┐
-                    │         user_mastery table (Plan 4 — LIVE)    │
-                    │   user_id · topic · score · source · updated  │
-                    └───────────────┬───────────────────┬──────────┘
-                                     │ read                │ write
-                     ┌───────────────▼──────┐   ┌──────────▼───────────────┐
-   Trend ranking ◄───┤ toTrendPersonalization│   │ Scheduler completion      │
-   (Plan 3, item E)  │ Payload()             │   │ (computeCalibratedMulti-  │
-                     └───────────────────────┘   │  pliers, engine.ts)       │
-                                                  │ Assessment results        │
-                                                  │ (evaluateAssessment)      │
-                                                  │ Roadmap mastery updates   │
-                     ┌───────────────────────┐   │ (recomputeNodeStates)     │
-   Course generation ◄┤ toCoursePersonaliza- │   └───────────────────────────┘
-   (Plan 2a, staged   │ tionPayload()         │
-    pipeline)         └───────────────────────┘
-```
+## Shared acceptance scenario
 
-### Bridge 1 — When → What (Mastery-Weighted Trend Ranking)
+Use a fixture learner and two comparable learning tasks:
 
-- Trigger point: every `fetchTopTrends()` call (`app/actions/trends.ts`), after the existing score/insight pipeline runs.
-- Read `toTrendPersonalizationPayload(profile)` (`lib/personalization.ts`, live since Plan 4) to get the user's lowest-mastery topics and declared interest domains.
-- Apply a ranking boost (not a hard filter — a struggling-but-relevant topic should surface higher, not replace the global trend signal entirely) before returning results to the dashboard.
-- This is additive to Plan 3's own scoring-accuracy work — Plan 3 fixes whether `trend_score` itself means anything; this bridge decides how personal ranking sits on top of that already-fixed score. Sequence Plan 3's core scoring fixes before this bridge, so personalization isn't layered on top of a score still being recalibrated.
+1. Profile version 1 has no matching history. M4 provides a labelled cold-start estimate; M2 produces an adaptive schedule and the baseline.
+2. The learner completes task A; observed active duration and difficulty differ from its prediction. The handler sends one event to M3.
+3. M3 records task A and publishes version 2, with supported skill/window changes where justified.
+4. M4 reads version 2 and adjusts task B's estimates using task A's evidence. It performs no profile write.
+5. M2 schedules B using the updated artifact; version 1's estimate/schedule remain reproducible from saved inputs.
+6. The weekly report shows the profile change, estimate error, and observed versus replay comparison labels.
 
-### Bridge 2 — When → How (Performance-Aware Generation)
-
-- Trigger point: whenever a course/assessment/flashcard/short-bit/etc. is generated for a specific topic (Plan 2a's Stage 1/2 — Cheatsheet was removed and Story folded into Course under Plan 2a's scope decision), pull `masteryByTopic[topic]` via `toCoursePersonalizationPayload()`.
-- Low mastery on a topic → generation prompt asks for more foundational framing, more worked examples, slower pacing. High mastery → generation skips basics, assumes more prior knowledge, can move faster. This is a prompt-construction change in Plan 2a's pipeline, not a new subsystem — the hook already exists in Plan 2a's design (profile parameter reserved at Stage 1/2), this bridge is what actually populates and uses it in production instead of leaving it null.
-
-### Bridge 3 — How/When → mastery table (the write side, easy to overlook)
-
-**Done — shipped as part of Plan 4 (commit `a23c4a6`), no work remaining here.** Recorded for completeness since this is where the end-to-end flow gets verified:
-
-1. ✅ `evaluateAssessmentAction` (`app/actions/assessment.ts`) writes to `user_mastery` with `source: "assessment"` — this write always overwrites (it's a graded measurement).
-2. ✅ `completeNodeAction` (`app/actions/roadmap.ts`) writes to `user_mastery` with `source: "roadmap"` — the merge policy was decided explicitly rather than left as undefined behavior: a `"roadmap"`-sourced write never overwrites an existing `"assessment"`-sourced score for the same topic, since the roadmap signal is a coarse "task completed" flag (always 1), not a graded score.
-3. `engine.ts`'s `computeCalibratedMultipliers()` stays a *type*-level signal (learning/problem_solving/writing/etc.), not topic-level — confirmed correct to keep it out of `user_mastery` and live-computed rather than persisted, per Plan 4's own note. Use it specifically for pacing/format decisions (e.g. "this user under-completes writing-type tasks" → generate lighter writing-heavy content), not for topic-selection ranking.
-
-## What "done" looks like
-
-A concrete end-to-end scenario that should work once this plan lands:
-
-1. User completes an assessment on "React Hooks" scoring 40%.
-2. `mastery["React Hooks"] = 0.4` is written.
-3. Next trends fetch: "React" (mapped topic, per `topicMapper.ts`) gets a ranking boost even if its raw `trend_score` is middling, because the user has low mastery there.
-4. User generates a new course on "React Hooks" (or the roadmap agent auto-suggests it, already prioritized higher via `existingMastery` in its own prompt): the course pipeline reads `mastery["React Hooks"] = 0.4` and generates more foundational content than it would for a topic scored 0.9.
-5. User completes the new course's assessment at 75% — mastery updates, next generation/ranking cycle reflects it.
-
-This scenario is the acceptance test for the whole plan — if it doesn't hold end-to-end, the loop isn't actually closed regardless of how much of Plans 2–4 shipped individually.
-
-## Suggested sequencing
-
-1. ~~Confirm Plan 4's mastery table and projection functions are live~~ — **done**, shipped in commit `a23c4a6`.
-2. ~~Implement the three write points (Bridge 3)~~ — **done**, shipped alongside Plan 4.
-3. Confirm Plan 3's core scoring/grounding fixes are merged before layering Bridge 1 on top (soft dependency — avoids compounding an unfixed score with unvalidated personalization).
-4. Confirm Plan 2a's staged pipeline has the profile-parameter slot merged (hard dependency for Bridge 2; Plan 2b is not a dependency).
-5. Implement Bridge 1 (When→What).
-6. Implement Bridge 2 (When→How).
-7. Run the end-to-end acceptance scenario above manually, then as a repeatable test.
+Follow with sparse/missing-feedback, duplicate-event, unavailable-window, and incompatible-formula fixtures. These are integration checks; learning-domain evaluation is specified in [Plan 01](01-research-paper-scheduler.md).

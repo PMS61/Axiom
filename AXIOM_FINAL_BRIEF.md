@@ -1,91 +1,70 @@
-# Axiom — Final Project Brief (Completed System)
+# Axiom — Final Research Direction
 
-**Prepared for: Pitch Deck**
-**Status: describes what is built and working today, in `client/src/lib/` and `client/src/app/`, as of this brief. Future work lives separately in `plans/`.**
+**Agreed direction: 5 October 2026. Status: research specification, not a claim that the complete system is implemented or validated.**
 
----
+Axiom is a **cognitive load based adaptive scheduler**, developed by a team of four and tested in the **learning domain**. It estimates the effort a learning task requires for a particular learner, schedules it using a cognitive load formula, and learns from the learner's actual behaviour. A weekly report shows how that behaviour has changed the initial profile and how the adaptive schedule compares with a fixed-interval baseline.
 
-## 1. The Problem
+This document is the authoritative project direction. The plans in [plans/README.md](plans/README.md) describe the research implementation. The application is intentionally limited to the scheduler study workflow; accounts, authentication, unrelated learning tools, and content/trend features are outside scope.
 
-Every learner today juggles three tools that don't talk to each other:
+## Team ownership
 
-1. **What to learn** — trend-spotting is manual: scrolling Hacker News, Reddit, and tech newsletters, guessing what's worth the time investment.
-2. **How to learn it** — course platforms are static and generic. The same course plays the same way for a beginner and someone halfway to mastery.
-3. **When to learn it** — calendars and to-do lists have no concept of mental effort. They'll schedule three hard problem sets back-to-back with the same indifference as three errands.
+| Member | Owns | Boundary |
+|---|---|---|
+| M1 | Cognitive load formula: structure, variables, definitions, units, and valid ranges | Defines what must be estimated; does not estimate per-task values |
+| M2 | An optimal scheduling method based on M1's formula and M4's estimates | Owns placement, feasibility, objective, and solver validation; does not update the adaptive profile |
+| M3 | Adaptive behaviour and the dynamic user profile | **Only member whose module writes to the profile**, including initialization and user corrections |
+| M4 | Accurate estimation of the formula's task variables using the adaptive profile and an LLM's general task knowledge | Reads a profile snapshot; returns estimates and evidence; does not update the profile |
 
-None of these three systems share data. A trending topic never becomes a course. A course never adjusts to how well the learner is actually doing. A schedule never knows what it's scheduling is cognitively expensive versus trivial.
+**M1 and M2 jointly own evaluation**, including the fixed-interval baseline, experiment protocol, metrics, and interpretation. M3 supplies profile changes and observations; M4 supplies estimation predictions and error data.
 
-## 2. What Axiom Is
+## The loop
 
-Axiom is a single closed loop across all three:
-
+```mermaid
+flowchart LR
+  M1["M1: define formula and variables"] --> M4["M4: estimate task variables"]
+  M4 --> M2["M2: schedule tasks"]
+  M2 --> O["Learner executes tasks and gives feedback"]
+  O --> M3["M3: update dynamic profile"]
+  M3 --> M4
 ```
-   WHAT                      HOW                       WHEN
-Trend Engine  ──────►  Roadmap + Content  ──────►  Cognitive Scheduler
-(discover)              Generators (teach)           (place in time)
-```
 
-It's a Next.js application, not a slideware concept — every piece named below is implemented, running code.
+M1 publishes a versioned contract. Each run records the formula version, profile version, task revision, estimator version, and scheduling configuration. Replaying saved estimates can reproduce a scheduling run; a fresh LLM call is not assumed to produce identical estimates.
 
-## 3. What's Built, Pillar by Pillar
+## What M3 adapts
 
-### WHAT — Trend Discovery
-- Aggregates live signals from **Hacker News, Reddit, and NewsAPI** in parallel.
-- Maps raw article/post titles to ~60 canonical tech topics (AI, web dev, cloud, data, security, languages, mobile, blockchain, career/meta) via a keyword engine.
-- Scores every topic on **frequency, engagement, and recency** (exponential recency decay, 24h half-life), ranks and surfaces the top movers on a live dashboard.
-- Classifies each trend's **direction** (rising/stable/declining) and **momentum** (accelerating/steady/slowing) from real signal history — not a static label.
-- An "Explore" mode lets a user type any topic and get an AI-generated market overview: relevance score, effort/ROI estimate, job demand, a full prerequisite-graph breakdown into subtopics, all grounded in the live trend data where available.
-- Users declare interest domains and a profile type; wiring that into what actually surfaces (rather than just being captured) is next in line — see `plans/03`.
+- **Non-availability windows:** commitments and periods in which tasks cannot be placed.
+- **Peak focus windows and minimum focus windows:** time periods associated with higher and lower focus, with supporting observations and confidence.
+- **Skill level:** topic-specific evidence of learning progress, rather than equating task completion with mastery.
+- **Memory of every performed task:** task identity and revision, topic, task type and scope, when it was performed, actual active duration, reported difficulty, completion state, and available assessment evidence.
 
-### HOW — Adaptive Content Generation
-- **Roadmap Agent** — turns a stated goal into a personalized Directed Acyclic Graph of learning nodes (courses + assessments), respecting prerequisites, sized to the learner's available daily time and declared experience level, fast-tracking topics with a recorded mastery score above 0.75. This mastery signal is real and measured, not a placeholder: every assessment grade and every completed roadmap node writes to a shared mastery table that the next roadmap generation reads back.
-- **Course Agent** — generates full slide-deck courses from a topic: title, section, content, code, image, table, list, quote, and Mermaid-diagram slide types, composed automatically into a coherent crash course. Depth/pacing adapting to the same mastery signal is next in line — see `plans/02`.
-- **Assessment Agent** — generates mixed-format quizzes (MCQ, short answer, long answer, coding with test cases) per topic, and evaluates free-form answers with AI-graded feedback and rubric scoring.
-- **Cheatsheet, Flashcard, Short-Bit, and Story Agents** — the same topic can be consumed as an exam cheat-sheet, a spaced-repetition flashcard deck, a bite-size micro-learning card, or a narrative web-novel chapter — four different learning styles from one content pipeline.
-- Every generator is LLM-backed (Gemini) with structured-JSON contracts, retry logic, and rate-limit handling already production-hardened.
+M3 preserves task-level observations and exposes a bounded relevant-history view to M4. Similar future tasks can therefore receive different duration or difficulty estimates for different learners. Missing feedback stays missing; interrupted tasks are not automatically evidence of low skill. Explicit non-availability is a hard restriction; low-focus windows are not automatically unavailable.
 
-### WHEN — Cognitive-Load Scheduling
-This is Axiom's core technical differentiator: a **fully deterministic, explainable scheduler** — the opposite of a black-box AI planner.
+All profile changes go through M3's module. The current research prototype uses a browser-local profile and has no account or authentication requirement. M4 may store an estimation artifact outside the profile, but may not alter history, skill, windows, or calibration state.
 
-- **Axiom energy model** — every task's cognitive cost is computed from difficulty and priority (`E_task = 0.6·difficulty² + 0.8·priority`), against a daily 50-axiom budget split across morning/afternoon/evening.
-- **Ultradian bandwidth curve** — models real attention rhythm across the day (peaks ~10am and ~3pm, troughs post-lunch and evening), personalized further by the user's own declared peak-focus and low-energy windows.
-- **Deterministic placement engine** — sorts tasks by urgency, priority, and sequence, then places each into the highest-fitness available slot across a 7-day / 96-slot-per-day window, respecting sleep, fixed commitments, and hard exclusions.
-- **Anti-starvation & diversity enforcement** — Shannon-entropy diversity scoring keeps a day from becoming monotonous; a rule guarantees a lower-priority task gets interleaved after three consecutive high-priority ones.
-- **Burnout risk detection** — classifies upcoming days as safe/watch/warning/critical from rolling axiom-usage windows, before overload happens, not after.
-- **Feedback-driven calibration** — section-time weights and per-task-type effort multipliers adjust automatically from the learner's actual completion history, not just their stated preferences.
-- **Full reasoning chain** — every placement decision emits a human-readable explanation (why this slot, what was rejected and why), rendered live in the UI. Nothing is a black box.
-- Conflict resolution UI lets a learner defer, sacrifice, or extend a deadline when a task can't be placed feasibly — the system never silently overloads a day.
+## Evaluation and weekly report
 
-### Product Surface
-- Full dashboard: weekly matrix view, task list, roadmap DAG visualization, trend dashboard + explore mode, profile/onboarding flow, feedback/adherence reporting, report export.
-- Auth and persistence: JWT-cookie sessions, Vercel Postgres, demo-mode seeding for instant trial.
+There are two distinct references:
 
-## 4. Why This Is Different
+1. **Fixed-interval scheduling baseline:** a static study timetable with an agreed session/break pattern and task-order rule. Its definition is frozen before evaluation. It obeys the same externally known availability restrictions and receives the same eligible task set as the adaptive arm. It does not use learned focus windows or task-history calibration.
+2. **Initial profile baseline:** the learner's versioned starting profile, retained to explain behavioural changes over time.
 
-| | Typical AI planner | Static calendar/to-do app | **Axiom** |
-|---|---|---|---|
-| Explainable | No — black box | Yes, but nothing to explain | **Yes — full reasoning chain per decision** |
-| Reproducible (same input → same output) | No | Yes | **Yes — fully deterministic** |
-| Models cognitive effort, not just time | No | No | **Yes — energy/axiom model** |
-| Connects discovery → content → schedule | No | No | **Yes — one loop, not three tools** |
-| Adapts content depth to demonstrated mastery | Rarely | No | Roadmap node selection does today, on a real measured mastery signal; course-content depth is next in line (see `plans/02`) |
+The weekly report shows initial versus current availability and focus windows, skill evidence, and actual versus predicted duration/difficulty for comparable tasks. It also shows adaptive versus fixed-interval scheduling outcomes, with sample counts, missing data, and whether values are observed or simulated. A baseline replay is a counterfactual comparison, not evidence that the learner actually performed both schedules.
 
-The scheduler's determinism is a deliberate, defensible choice, not a limitation: every schedule Axiom produces can be audited, reproduced, and explained — a real gap in every commercial AI scheduling tool on the market today.
+M1 and M2 agree measures for adherence, completion, deadline misses, reported difficulty/overload, and estimation error before collecting study results. Synthetic checks establish feasibility and integration; learning-domain observations are needed to assess usefulness for learners. No improvement percentages or optimality claims are published without recorded evidence.
 
-## 5. Tech Stack
+## Early integration requirement
 
-- **Frontend/App**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4
-- **AI**: Gemini API, structured-JSON generation contracts across 6 content agents
-- **Data**: Vercel Postgres, JWT-cookie auth
-- **3D/Visual**: Three.js, React Three Fiber, Drei (foundation already in place for the in-progress course-narration work)
+Every member ships a stub early, before a full implementation:
 
-## 6. What's Next (kept out of this brief, tracked separately)
+| Member | First stub |
+|---|---|
+| M1 | Versioned variable registry and an explicitly provisional formula evaluator |
+| M2 | Feasible scheduling adapter plus fixed-interval baseline implementation |
+| M3 | Readable versioned profile fixture, task-history fixture, and an event/update entry point |
+| M4 | Deterministic variable estimates matching M1's registry, with provenance and missing-data flags |
 
-Five workstreams are planned in `plans/`. **One is done**: the unified personalization layer (`plans/04`) — a shared mastery table and learner profile now backing the roadmap agent, described above. Four remain, each being built on its own git branch since they're largely independent of each other:
+M2 builds against these real interfaces immediately. Stub values and fixture results are labelled and excluded from claims of accuracy. Contract changes require a version change and an updated shared fixture.
 
-- `plans/01` — a formal research paper on the scheduler, with a real optimizer implementation replacing the current heuristic for comparison. Fully independent — its own branch, mergeable in any order.
-- `plans/02` — agentic course generation with 3D narrated video export and a doubt chatbox. Own branch, builds directly on the personalization layer already merged.
-- `plans/03` — trend-prediction accuracy and grounding improvements. Own branch, independent of `plans/02`, also builds on the personalization layer.
-- `plans/05` — closing the remaining two loop edges (trend ranking and course generation reading the mastery signal live). Its branch opens only after `plans/02` and `plans/03` both merge, since it wires their interfaces together.
+## Current prototype
 
-None of the remaining four is claimed as done here — this brief is deliberately scoped to what a user can use today.
+The Next.js research workbench provides a natural-language learning-goal page, M4's task breakdown with metrics, visible profile memory used for estimation, an M3-owned browser-local profile and feedback capture, an initial weekly behaviour report, and labelled M1/M2 stubs. Gemini is optional; without a configured key, the page returns a labelled deterministic stub. The adaptive optimizer and measured fixed-interval comparison remain planned research work, and no effectiveness or optimality result is claimed.

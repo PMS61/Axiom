@@ -1,10 +1,5 @@
-/* ═══════════════════════════════════════════════════════════
-   THE AXIOM — Root Page
-   Shows the landing page. Dashboard is at /dashboard.
-   ═══════════════════════════════════════════════════════════ */
+import TaskEstimatorClient from "@/components/TaskEstimatorClient";
 
-import LandingPage from "@/components/LandingPage";
-
-export default function Home() {
-  return <LandingPage />;
+export default function ResearchWorkbenchPage() {
+  return <TaskEstimatorClient />;
 }
