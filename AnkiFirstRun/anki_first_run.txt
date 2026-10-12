@@ -1,0 +1,99 @@
+Loading local parquet benchmark files:
+  Train: train_data.parquet
+  Test:  test_data.parquet
+train seqs 20875, test seqs 5275
+Fitting lagged logistic + dt, HLR ...
+Fitting Dyn learned-lambda (200 iters) ...
+Fitting Dyn lambda~0 (no decay) (200 iters) ...
+Fitting Dyn lambda large (no memory) (200 iters) ...
+Fitting Dyn +kappa (decay slows) (200 iters) ...
+
+=== DATA SUMMARY ===
+test events 30425, overall recall 0.901, median gap 3.00 d, 90th pct gap 35.00 d, max gap 2157.0 d
+
+=== GAP BINS (log loss / calibration bias = mean p - recall rate / AUC) ===
+bin             n  recall               LagLogit+dt        HLR (paper loss)      Dyn learned-lambda  Dyn lambda~0 (no decay  Dyn lambda large (no m  Dyn +kappa (decay slow
+0-1d         8548   0.922   LL 0.271 b+0.021 A0.642 LL 0.714 b+0.077 A0.500 LL 0.276 b-0.045 A0.620 LL 0.337 b-0.100 A0.627 LL 0.294 b-0.083 A0.658 LL 0.275 b-0.044 A0.629
+1-3d         5195   0.899   LL 0.331 b+0.040 A0.678 LL 0.545 b+0.095 A0.419 LL 0.308 b+0.002 A0.680 LL 0.381 b-0.053 A0.701 LL 0.322 b-0.045 A0.669 LL 0.309 b+0.003 A0.669
+3-14d       10962   0.895   LL 0.324 b+0.016 A0.683 LL 0.447 b+0.081 A0.413 LL 0.317 b+0.009 A0.661 LL 0.362 b-0.041 A0.710 LL 0.332 b-0.039 A0.651 LL 0.317 b+0.009 A0.659
+14-60d       3191   0.873   LL 0.345 b+0.036 A0.740 LL 0.429 b+0.050 A0.424 LL 0.359 b+0.060 A0.724 LL 0.403 b+0.043 A0.735 LL 0.360 b+0.003 A0.719 LL 0.359 b+0.060 A0.722
+60d+         2529   0.898   LL 0.274 b-0.021 A0.825 LL 2.183 b-0.439 A0.597 LL 0.338 b+0.063 A0.669 LL 0.332 b+0.050 A0.810 LL 0.309 b+0.002 A0.678 LL 0.338 b+0.064 A0.704
+
+=== PAIRED DIFFERENCE vs LagLogit+dt per bin (negative LogLoss diff / positive AUC diff = Dynamic better) ===
+-- Dyn learned-lambda
+   0-1d       dLogLoss +0.0052 [-0.0249, +0.0897]    dAUC -0.0225 [-0.1448, +0.0254]
+   1-3d       dLogLoss -0.0232 [-0.0355, -0.0055]*   dAUC +0.0023 [-0.0190, +0.0394]
+   3-14d      dLogLoss -0.0070 [-0.0125, +0.0012]    dAUC -0.0220 [-0.1208, +0.0837]
+   14-60d     dLogLoss +0.0135 [-0.0530, +0.0407]    dAUC -0.0167 [-0.1418, -0.0147]
+   60d+       dLogLoss +0.0640 [-0.3432, +0.1184]    dAUC -0.1559 [-0.3343, +0.1601]
+-- Dyn lambda~0 (no decay)
+   0-1d       dLogLoss +0.0658 [+0.0148, +0.2178]*   dAUC -0.0153 [-0.0706, +0.0371]
+   1-3d       dLogLoss +0.0493 [+0.0033, +0.0602]*   dAUC +0.0226 [+0.0180, +0.1234]
+   3-14d      dLogLoss +0.0380 [-0.0222, +0.0915]    dAUC +0.0269 [+0.0243, +0.1293]
+   14-60d     dLogLoss +0.0575 [+0.0334, +0.0716]*   dAUC -0.0054 [-0.1299, +0.0992]
+   60d+       dLogLoss +0.0583 [-0.3252, +0.0695]    dAUC -0.0144 [-0.1476, +0.1242]
+-- Dyn lambda large (no memory)
+   0-1d       dLogLoss +0.0229 [+0.0104, +0.0824]*   dAUC +0.0162 [-0.0877, +0.0364]
+   1-3d       dLogLoss -0.0097 [-0.0204, -0.0063]*   dAUC -0.0089 [-0.0357, +0.0226]
+   3-14d      dLogLoss +0.0081 [-0.0098, +0.0202]    dAUC -0.0322 [-0.1885, +0.0801]
+   14-60d     dLogLoss +0.0147 [-0.0453, +0.0231]    dAUC -0.0217 [-0.1239, -0.0095]
+   60d+       dLogLoss +0.0346 [-0.3479, +0.0979]    dAUC -0.1470 [-0.3158, +0.1852]
+-- Dyn +kappa (decay slows)
+   0-1d       dLogLoss +0.0036 [-0.0250, +0.0785]    dAUC -0.0132 [-0.1179, +0.0291]
+   1-3d       dLogLoss -0.0226 [-0.0345, -0.0048]*   dAUC -0.0092 [-0.0293, +0.0235]
+   3-14d      dLogLoss -0.0067 [-0.0117, +0.0012]    dAUC -0.0243 [-0.1688, +0.0878]
+   14-60d     dLogLoss +0.0143 [-0.0522, +0.0420]    dAUC -0.0185 [-0.2851, -0.0159]
+   60d+       dLogLoss +0.0639 [-0.3389, +0.1206]    dAUC -0.1203 [-0.2552, +0.1514]
+   (* = CI excludes 0. Small bins have wide CIs; do not over-read a single bin.)
+
+=== LAMBDA ABLATION (overall, paired vs learned lambda; negative dLogLoss = fixed is BETTER) ===
+  Dyn lambda~0 (no decay)        dLogLoss +0.0498 [+0.0123, +0.0680]   dAUC +0.0357 [+0.0059, +0.2029]
+  Dyn lambda large (no memory)   dLogLoss +0.0104 [-0.0079, +0.0219]   dAUC -0.0058 [-0.0211, +0.0376]
+  Learned lambda 'beats both' only if both rows have POSITIVE dLogLoss with CIs above 0.
+
+=== KAPPA vs learned-lambda (overall): dLogLoss -0.0001 [-0.0017, +0.0004]   dAUC +0.0006 [-0.0117, +0.0142]
+
+=== LAMBDA REPORT (same code, this dataset) ===
+-- Dyn learned-lambda
+param           mean     2.5%    97.5%     ESS   Rhat
+lam            0.211    0.202    0.219       7   1.09
+sigma2         0.211    0.179    0.253       3   1.87
+b0             2.813    2.789    2.836       7   1.06
+g0            -1.007   -1.804   -0.441      25   1.08
+tau2_alpha     0.807    0.363    1.712      21   1.03
+tau2_beta      0.143    0.131    0.154       4   1.87
+tau2_gamma     0.967    0.367    1.820      25   1.01
+   time scale 1/lambda = 4.7 days (lambda 95% CI 0.202-0.219); ESS<100 or R-hat>1.1 means run longer before trusting the interval
+-- Dyn lambda~0 (no decay)
+param           mean     2.5%    97.5%     ESS   Rhat
+lam            0.001    0.001    0.001      25   0.96
+sigma2         0.016    0.010    0.026       3   2.25
+b0             2.724    2.653    2.798       5   0.98
+g0            -0.932   -3.467    1.543      25   0.99
+tau2_alpha     1.279    0.502    3.992      25   0.96
+tau2_beta      0.067    0.053    0.089       3   2.02
+tau2_gamma    17.399    5.438   43.455       5   1.43
+   time scale 1/lambda = 1000.0 days (lambda 95% CI 0.001-0.001); ESS<100 or R-hat>1.1 means run longer before trusting the interval
+-- Dyn lambda large (no memory)
+param           mean     2.5%    97.5%     ESS   Rhat
+lam            5.000    5.000    5.000      25    nan
+sigma2         0.480    0.455    0.492       6   1.15
+b0             1.951    1.886    2.011       3   2.57
+g0            -0.334   -0.719    0.102      25   0.96
+tau2_alpha     0.514    0.187    1.635      25   0.96
+tau2_beta      0.049    0.040    0.058       3   2.59
+tau2_gamma     0.438    0.212    0.786      25   0.99
+   time scale 1/lambda = 0.2 days (lambda 95% CI 5.000-5.000); ESS<100 or R-hat>1.1 means run longer before trusting the interval
+-- Dyn +kappa (decay slows)
+param           mean     2.5%    97.5%     ESS   Rhat
+lam            0.193    0.184    0.199       7   1.40
+kappa         -0.254   -0.291   -0.198       3   2.84
+sigma2         0.285    0.267    0.303       6   1.01
+b0             2.758    2.737    2.775       6   0.99
+g0            -0.814   -1.689    0.180      25   0.97
+tau2_alpha     0.970    0.286    3.276      24   0.96
+tau2_beta      0.127    0.120    0.133      19   0.97
+tau2_gamma     1.423    0.469    3.638      25   0.96
+   time scale 1/lambda = 5.2 days (lambda 95% CI 0.184-0.199); ESS<100 or R-hat>1.1 means run longer before trusting the interval
+
+Saved custom_dlm_results_gapbins.csv and custom_dlm_results_gapbins.png
