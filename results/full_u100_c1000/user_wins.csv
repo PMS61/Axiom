@@ -1,0 +1,9 @@
+reference,model,users,users_lower_log_loss,share
+fsrs_opt,fsrs_default,100,28,0.28
+fsrs_opt,hlr,100,7,0.07
+fsrs_opt,ours,100,22,0.22
+fsrs_opt,ours_kappa,100,25,0.25
+ours,fsrs_default,100,68,0.68
+ours,fsrs_opt,100,78,0.78
+ours,hlr,100,14,0.14
+ours,ours_kappa,100,52,0.52

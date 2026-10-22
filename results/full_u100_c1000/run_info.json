@@ -1,0 +1,66 @@
+{
+  "run_name": "full_u100_c1000",
+  "args": {
+    "n_users": 100,
+    "max_cards": 1000,
+    "seed": 0,
+    "iters": 2000,
+    "burn": 1000,
+    "models": [
+      "fsrs_default",
+      "fsrs_opt",
+      "hlr",
+      "ours",
+      "ours_kappa"
+    ],
+    "run_name": "full_u100_c1000",
+    "data_dir": "data/anki10k",
+    "out_dir": "results",
+    "workers": 8,
+    "resume": true
+  },
+  "git": {
+    "commit": "0b6259e5f5bf9fb4cf82017cd01a3b01c9fcfed6",
+    "dirty": true
+  },
+  "packages": {
+    "fsrs": "6.3.2",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "torch": "2.14.1+cpu",
+    "numba": "0.68.0",
+    "python": "3.12.13"
+  },
+  "counts": {
+    "users": 100,
+    "cards": 99074,
+    "events": 768658,
+    "train": 606364,
+    "test": 162294,
+    "scored": 95400
+  },
+  "users_zero_train": [],
+  "models": {
+    "fsrs_default": {
+      "resumed": true
+    },
+    "fsrs_opt": {
+      "resumed": true
+    },
+    "hlr": {
+      "resumed": true
+    },
+    "ours": {
+      "fit_seconds": 27529.624,
+      "predict_seconds": 1266.342,
+      "resumed": true
+    },
+    "ours_kappa": {
+      "fit_seconds": 26129.754,
+      "predict_seconds": 1339.69,
+      "resumed": false
+    }
+  },
+  "total_seconds": 27478.179,
+  "finished_at": "2026-10-22T06:11:04+00:00"
+}

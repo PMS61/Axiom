@@ -17,3 +17,12 @@
 
 # node
 node_modules/
+.venv/
+data/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# benchmark timing studies (local only)
+results/timing_*/
+results/**/*.parquet

@@ -1,0 +1,71 @@
+[14:56:57] download: 100 users, seed 0, into data/anki10k
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D746/data.parquet
+Retrying in 1s [Retry 1/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D746/data.parquet
+Retrying in 2s [Retry 2/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D746/data.parquet
+Retrying in 4s [Retry 3/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D6230/data.parquet
+Retrying in 1s [Retry 1/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D6230/data.parquet
+Retrying in 2s [Retry 2/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D6230/data.parquet
+Retrying in 4s [Retry 3/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D8408/data.parquet
+Retrying in 1s [Retry 1/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D8408/data.parquet
+Retrying in 2s [Retry 2/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D8408/data.parquet
+Retrying in 4s [Retry 3/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D8408/data.parquet
+Retrying in 8s [Retry 4/5].
+'[Errno -3] Temporary failure in name resolution' thrown while requesting HEAD https://huggingface.co/datasets/open-spaced-repetition/anki-revlogs-10k/resolve/main/revlogs/user_id%3D8408/data.parquet
+Retrying in 8s [Retry 5/5].
+[15:14:21] load: 100 user files
+[15:14:26] split: max_cards=1000, seed=0
+[15:14:28] events: 768658 total, 606364 train, 162294 test, 95400 scored
+[15:14:28] fsrs_default: fit
+[15:14:28] fsrs_default: predict
+[15:16:07] fsrs_default: done, fit 0.0s, predict 99.0s, saved pred_fsrs_default.parquet
+[15:16:07] fsrs_opt: fit
+[15:27:00] fsrs_opt: predict
+[15:28:39] fsrs_opt: done, fit 652.7s, predict 98.9s, saved pred_fsrs_opt.parquet
+[15:28:39] hlr: fit
+[15:29:24] hlr: predict
+[15:29:24] hlr: done, fit 45.0s, predict 0.3s, saved pred_hlr.parquet
+[15:29:24] ours: fit
+[15:34:01] download: 100 users, seed 0, into data/anki10k
+[15:34:01] load: 100 user files
+[15:34:06] split: max_cards=1000, seed=0
+[15:34:08] events: 768658 total, 606364 train, 162294 test, 95400 scored
+[15:34:08] fsrs_default: --resume, skipping (found pred_fsrs_default.parquet)
+[15:34:08] fsrs_opt: --resume, skipping (found pred_fsrs_opt.parquet)
+[15:34:08] hlr: --resume, skipping (found pred_hlr.parquet)
+[15:34:08] ours: fit
+[restart after laptop shutdown 19:47:47]
+[19:47:51] download: 100 users, seed 0, into data/anki10k
+[19:47:51] load: 100 user files
+[19:47:57] split: max_cards=1000, seed=0
+[19:47:59] events: 768658 total, 606364 train, 162294 test, 95400 scored
+[19:47:59] fsrs_default: --resume, skipping (found pred_fsrs_default.parquet)
+[19:47:59] fsrs_opt: --resume, skipping (found pred_fsrs_opt.parquet)
+[19:47:59] hlr: --resume, skipping (found pred_hlr.parquet)
+[19:48:00] ours: fit
+[03:41:45] ours: predict
+[04:02:51] ours: done, fit 27529.6s, predict 1266.3s, saved pred_ours.parquet
+[04:02:52] wrote results/full_u100_c1000/predictions.parquet (95400 rows)
+[04:02:52] wrote results/full_u100_c1000/run_info.json (total 28805.0s)
+[chain 04:03:02] starting ours_kappa
+[04:03:06] download: 100 users, seed 0, into data/anki10k
+[04:03:06] load: 100 user files
+[04:03:12] split: max_cards=1000, seed=0
+[04:03:14] events: 768658 total, 606364 train, 162294 test, 95400 scored
+[04:03:14] fsrs_default: --resume, skipping (found pred_fsrs_default.parquet)
+[04:03:14] fsrs_opt: --resume, skipping (found pred_fsrs_opt.parquet)
+[04:03:14] hlr: --resume, skipping (found pred_hlr.parquet)
+[04:03:14] ours: --resume, skipping (found pred_ours.parquet)
+[04:03:14] ours_kappa: fit
+[11:18:44] ours_kappa: predict
+[11:41:04] ours_kappa: done, fit 26129.8s, predict 1339.7s, saved pred_ours_kappa.parquet
+[11:41:04] wrote results/full_u100_c1000/predictions.parquet (95400 rows)
+[11:41:04] wrote results/full_u100_c1000/run_info.json (total 27478.2s)
