@@ -1,0 +1,20 @@
+{
+  "source": "synthetic",
+  "scenarios": [
+    "full"
+  ],
+  "replicates": 1,
+  "chains": 4,
+  "iterations": 8000,
+  "warmup": 4000,
+  "seed": 20261027,
+  "users": 4,
+  "items": 5,
+  "events": 32,
+  "holdout": 0.25,
+  "variants": [
+    "full",
+    "no_dynamics"
+  ],
+  "workers": 4
+}

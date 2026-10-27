@@ -1,0 +1,507 @@
+.workspace {
+  --surface: #fff;
+  --canvas: #f6f7f9;
+  --border: #dde1e7;
+  --text: #202631;
+  --muted: #606b7b;
+  --accent: #2457a7;
+  --danger: #a53930;
+  --success: #266246;
+  --warning-bg: #fff7e6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--canvas);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.workspace h1,
+.workspace h2,
+.workspace h3 {
+  font-family: inherit;
+  letter-spacing: normal;
+}
+.workspace button,
+.workspace input,
+.workspace select {
+  font: inherit;
+}
+.workspace button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 7px 12px;
+  border-radius: 4px;
+  color: var(--text);
+}
+.workspace button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.workspace button:hover:enabled {
+  border-color: var(--accent);
+}
+.workspace a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.workspace a:hover {
+  text-decoration: underline;
+}
+.workspace input,
+.workspace select {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+  min-width: 0;
+}
+.workspace :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.workspace label {
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted);
+  margin: 0;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 28px;
+}
+.header h1 {
+  font-size: 19px;
+  font-weight: 650;
+  margin: 0 0 3px;
+}
+.header :where(h1) span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.header p {
+  font-size: 11px;
+  color: var(--muted);
+}
+.environment {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.environment small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.ready,
+.pass {
+  color: var(--success);
+}
+.warning,
+.fail {
+  color: var(--danger);
+}
+.layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+}
+.settings {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 24px 20px;
+}
+.settings h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+}
+.workspace fieldset {
+  margin: 22px 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.workspace legend {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 9px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 7px 0;
+  color: var(--text);
+  font-size: 11px;
+}
+.check input {
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+.inputGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+  margin-top: 14px;
+}
+.note {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 10px 0 16px;
+  max-width: 1000px;
+}
+.launch {
+  padding: 14px 0 0;
+  border-top: 1px solid var(--border);
+}
+.launch p {
+  margin: 9px 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.workspace .primary {
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+  width: 100%;
+  font-weight: 600;
+}
+.upload {
+  border: 1px solid var(--border);
+  padding: 12px;
+  margin-top: 14px;
+  font-size: 11px;
+}
+.upload input {
+  font-size: 10px;
+}
+.upload p {
+  margin-top: 10px;
+  color: var(--muted);
+}
+.protocol {
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+  padding-top: 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.protocol summary {
+  cursor: pointer;
+  color: var(--text);
+}
+.protocol p {
+  margin: 12px 0;
+}
+.content {
+  padding: 24px 28px 50px;
+  min-width: 0;
+}
+.runBar {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+.runBar label {
+  flex: 1;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+}
+.runBar button {
+  white-space: nowrap;
+}
+.runStatus {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 14px 16px;
+  margin-top: 22px;
+}
+.runStatus > div {
+  flex: 1;
+}
+.runStatus strong {
+  display: block;
+  text-transform: capitalize;
+  font-size: 12px;
+}
+.runStatus output {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.runStatus progress {
+  width: 100px;
+  height: 6px;
+  accent-color: var(--accent);
+}
+.runStatus > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.runMeta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 10px;
+  margin: 12px 0;
+}
+.caution {
+  background: var(--warning-bg);
+  border-left: 3px solid var(--danger);
+  padding: 10px 14px;
+  font-size: 11px;
+  margin: 16px 0;
+}
+.error {
+  padding: 12px;
+  background: var(--warning-bg);
+  color: var(--danger);
+  margin: 14px 0;
+  font-size: 11px;
+}
+.error button {
+  float: right;
+  border: 0;
+  padding: 0 5px;
+  background: transparent;
+}
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  gap: 18px;
+  margin-top: 25px;
+  overflow-x: auto;
+}
+.tabs button {
+  border: 0;
+  background: transparent;
+  padding: 10px 2px;
+  border-radius: 0;
+  font-size: 12px;
+  border-bottom: 2px solid transparent;
+}
+.tabs .selectedTab {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.sectionTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin: 25px 0 8px;
+}
+.sectionTitle h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.sectionTitle a {
+  font-size: 11px;
+}
+.tableWrap {
+  overflow: auto;
+  max-height: 650px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.workspace table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.workspace th {
+  background: var(--canvas);
+  font-weight: 600;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.workspace th,
+.workspace td {
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--border);
+}
+.workspace td {
+  white-space: nowrap;
+}
+.workspace tr:hover td {
+  background: var(--canvas);
+}
+.workspace code {
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+}
+.filters {
+  display: flex;
+  align-items: end;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 15px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 16px 0;
+}
+.filters > label:not(.check) {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 150px;
+  font-size: 11px;
+}
+.empty {
+  padding: 45px 20px;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  margin-top: 25px;
+  max-width: 850px;
+}
+.empty h2 {
+  color: var(--text);
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+.empty p + p {
+  margin-top: 10px;
+}
+.plotSelect {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 550px;
+  font-size: 11px;
+  margin: 20px 0;
+}
+.figure {
+  background: var(--surface);
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+.figure > a {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+.report {
+  background: var(--surface);
+  padding: 32px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.8;
+  overflow: auto;
+}
+.report h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+.report h2 {
+  font-size: 17px;
+  margin: 30px 0 12px;
+}
+.report p {
+  margin: 12px 0;
+  max-width: 1000px;
+}
+.report table {
+  margin: 20px 0;
+}
+.artifacts {
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-top: 16px;
+  columns: 2;
+  padding: 16px;
+}
+.artifacts li {
+  padding: 5px 0;
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+  font-size: 11px;
+}
+@media (max-width: 1050px) {
+  .layout {
+    grid-template-columns: 255px minmax(0, 1fr);
+  }
+  .content {
+    padding: 20px 18px;
+  }
+  .header {
+    padding: 16px 20px;
+  }
+  .environment small {
+    max-width: 220px;
+  }
+  .runStatus {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .runStatus > div {
+    flex-basis: 100%;
+  }
+  .artifacts {
+    columns: 1;
+  }
+}
+@media (max-width: 700px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .settings {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .environment {
+    text-align: left;
+  }
+  .environment small {
+    max-width: none;
+  }
+  .runBar {
+    flex-wrap: wrap;
+  }
+  .runBar label {
+    flex-basis: 100%;
+  }
+  .tabs {
+    gap: 14px;
+  }
+  .report {
+    padding: 18px;
+  }
+}
