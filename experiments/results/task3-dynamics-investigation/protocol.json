@@ -1,0 +1,28 @@
+{
+  "iterations": 8000,
+  "warmup": 4000,
+  "chains": 4,
+  "workers": 4,
+  "seed": 20261028,
+  "base_sampler": "joint_blocked",
+  "mh_steps": 5,
+  "cohorts": 2,
+  "controls": [
+    "static",
+    "fixed_dynamics",
+    "free_diffusion",
+    "free_decay_diffusion",
+    "full"
+  ],
+  "interweave": [
+    false,
+    true
+  ],
+  "synthetic_seed": 20261101,
+  "fixed_real": {
+    "lam": 0.05,
+    "sigma2": 0.5,
+    "kappa": 0
+  },
+  "note": "CLI diagnostic pilot; fixed controls change the fitted model; no prior tuning or SBC."
+}

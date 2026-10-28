@@ -387,9 +387,8 @@ export default function ResearchWorkspace() {
                 Requires at least six training and two test events per card.
                 Histories that fail adjacent-gap checks or have overlapping
                 partition dates are excluded and counted in selection artifacts.
-                These checks do not establish whole-history consistency or
-                complete lifetime histories; source provenance remains
-                unverified.
+                Same-day outcome order and source provenance remain unverified.
+                These checks do not establish complete lifetime histories.
               </p>
             </div>
           ) : (

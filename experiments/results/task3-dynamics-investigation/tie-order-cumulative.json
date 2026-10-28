@@ -1,0 +1,17 @@
+{
+  "infeasible_day_floor_histories": 0,
+  "maximum_residual_range": 0.9997106481480387,
+  "selected": [
+    {
+      "cohort": 0,
+      "failed": 0,
+      "max_residual_range": 0.8078356481481705
+    },
+    {
+      "cohort": 1,
+      "failed": 0,
+      "max_residual_range": 0.7820833333332757
+    }
+  ],
+  "note": "Descending-gap within-day ordering is diagnostic only; not authenticated or applied to model input."
+}

@@ -70,6 +70,20 @@ def job(train,test,control,interweave,seed,chain,iterations,warmup,fixed):
                 prediction_cpu=time.process_time()-start,seed=seed,sampling=model.sampling_info)
 
 
+def recovery_record(fit,row,truth):
+    return {**row,'fit':fit,'truth':truth,'error':row['mean']-truth,
+            'covered':row['low']<=truth<=row['high']}
+
+
+def verified_npz(path, samples):
+    if path.exists():
+        with np.load(path) as saved:
+            if set(saved.files)!=set(samples) or any(not np.array_equal(saved[k],v) for k,v in samples.items()):
+                raise ValueError(f'Repeated partial fit draws differ: {path.name}')
+        return
+    np.savez_compressed(path,**samples)
+
+
 def verified_json(path, data):
     """Retain a saved dataset byte-for-byte when deterministic regeneration agrees."""
     if not path.exists():
@@ -127,7 +141,7 @@ def restore_checkpoint(source,out,config):
     shutil.copy2(original,out/'investigate-before-resume.py')
     atomic_json(out/'resume-origin.json',dict(source=str(source.resolve()),completed_fits=[r['fit'] for r in results],
                 prior_artifact_hashes=manifest,note='All completed NPZs are copied unchanged. Aggregate CSVs continue in the new directory. Original directory is untouched.'))
-    for m in metadata:m['execution_segment']='before_interruption'
+    for m in metadata:m.setdefault('execution_segment',source.name)
     return results,rows,recovery,metadata
 
 
@@ -146,7 +160,7 @@ def execute(out,iterations=8000,warmup=4000,resume_from=None):
     for name in hashes:(snapshot/Path(name).name).write_bytes((ROOT/name).read_bytes())
     atomic_json(out/'provenance.json',dict(revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),source_hashes=hashes,
                 packages={p:importlib.metadata.version(p) for p in ('numpy','scipy','arviz','polyagamma','pyarrow')},
-                execution_segment='after_interruption' if resume_from else 'initial',platform=platform.platform(),
+                execution_segment=out.name,platform=platform.platform(),
                 resume_from=str(resume_from.resolve()) if resume_from else None,
                 source_run='task3-anki-joint_blocked',source_protocol_sha256=hashlib.sha256((ROOT/'experiments/task3-anki-joint_blocked.json').read_bytes()).hexdigest()))
     completed={r['fit'] for r in results}
@@ -179,8 +193,8 @@ def execute(out,iterations=8000,warmup=4000,resume_from=None):
                         chains=[f.result() for f in futures]
                         samples={k:np.stack([c['samples'][k] for c in chains]) for k in chains[0]['samples']}
                         warm={k:np.stack([c['warmup'][k] for c in chains]) for k in chains[0]['warmup']}
-                        np.savez_compressed(out/f'{label}-draws.npz',**samples)
-                        np.savez_compressed(out/f'{label}-warmup.npz',**warm)
+                        verified_npz(out/f'{label}-draws.npz',samples)
+                        verified_npz(out/f'{label}-warmup.npz',warm)
                         variant='no_dynamics' if control=='static' else 'full'
                         draws=nested_summaries(scalar_draws(samples,variant),samples,train)
                         for k in fixed: draws.pop(k,None)
@@ -196,7 +210,7 @@ def execute(out,iterations=8000,warmup=4000,resume_from=None):
                                     min_ess_per_cpu=min(r['ess_per_cpu_second'] for r in diag),
                                     prediction_cpu=sum(c['prediction_cpu'] for c in chains),**metrics(y,pred))
                         results.append(result)
-                        for c,ch in enumerate(chains): metadata.append(dict(fit=label,chain=c,seed=ch['seed'],cpu=ch['cpu'],sampling=ch['sampling'],execution_segment='after_interruption' if resume_from else 'initial'))
+                        for c,ch in enumerate(chains): metadata.append(dict(fit=label,chain=c,seed=ch['seed'],cpu=ch['cpu'],sampling=ch['sampling'],execution_segment=out.name))
                         if truth is not None and control=='full':
                             expected=truth_values(truth)
                             expected.update({f'psi_last[{j}]': states[j][cut-1] for j,cut in enumerate(cuts)})
@@ -208,8 +222,7 @@ def execute(out,iterations=8000,warmup=4000,resume_from=None):
                             for r in diag:
                                 if r['parameter'] in expected:
                                     value=expected[r['parameter']]
-                                    recovery.append(dict(fit=label,parameter=r['parameter'],truth=value,error=r['mean']-value,
-                                                         covered=r['low']<=value<=r['high'],**r))
+                                    recovery.append(recovery_record(label,r,value))
                         plots(out,label,draws,warm)
                         write_csv(out/'results.csv',results);write_csv(out/'diagnostics.csv',rows);write_csv(out/'recovery.csv',recovery)
                         atomic_json(out/'chain-metadata.json',metadata)
@@ -225,7 +238,11 @@ def main():
     args=p.parse_args()
     if args.out.exists(): p.error('Output exists; choose a new directory.')
     if not 50<=args.warmup<args.iterations or args.iterations-args.warmup<100: p.error('Invalid warmup/draw budget.')
-    execute(args.out,args.iterations,args.warmup,args.resume_from)
+    try:
+        execute(args.out,args.iterations,args.warmup,args.resume_from)
+    except Exception as error:
+        if args.out.is_dir(): atomic_json(args.out/'status.json',dict(state='failed',message=str(error)))
+        raise
 
 
 if __name__=='__main__':main()

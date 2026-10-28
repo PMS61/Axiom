@@ -224,3 +224,12 @@ a cumulative check. Existing real-data cohorts remain provisional.
 
 `npm run test:diagnostics` also runs transformation, Jacobian, prior-density,
 frozen-adaptation and nested-generator tests in `model_diagnostics/test_innovation.py`.
+
+The later tie-order audit explains all observed adjacent and cumulative timing
+discrepancies by putting the longest gap first within card/day groups. This is
+an ordering sensitivity check, not an authenticated reconstruction: multiple
+short-gap outcomes can still have ambiguous within-day order. Existing source
+selections/results remain unchanged, and broader real-data inference requires
+producer provenance or explicit order sensitivity. The interrupted dynamics run
+continues in `.task3-runs/task3-dynamics-continuation`, preserving the first ten
+completed fits from the original directory.

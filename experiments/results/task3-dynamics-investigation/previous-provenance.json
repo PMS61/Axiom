@@ -1,0 +1,30 @@
+{
+  "revision": "5bbbf022969f926ed9fc5e762a64940835ce09d0",
+  "source_hashes": {
+    "model_diagnostics/__init__.py": "5d136e7a90f8883f8437d320b284fb983a6485a2fd2b060c7ae6cde32b974e75",
+    "model_diagnostics/model.py": "e443b697cd086d38eb325f7cd7a0ce8527574201e416c5c9f23b4412a80fea4e",
+    "model_diagnostics/data.py": "c901455767f2c9c4261c8ef44d0ba9e1780a35e4329c6dec7dd36f3b87d1eaf2",
+    "model_diagnostics/analysis.py": "25fa2c006e50d1176ce7dd3564aef5bee18398718554ceffe2d2a3c0f262da0c",
+    "model_diagnostics/run.py": "4d47457751c162aaa170ee53a04186786a20b8aca8872c43055dd1e38613595a",
+    "model_diagnostics/test_diagnostics.py": "adc957dd066477d1411be6bbaf523951955437c1f67f996d9a9d57e5a90ff5c1",
+    "model_diagnostics/compare.py": "4e597e0ff55cb79eba3ab259870c1672f36c7e252f1429d00f2a61ebf0d72cb1",
+    "model_diagnostics/anki.py": "89083c56476fdf032112194d398b53621cffdfc524fa4a16d677a437da5ecbfe",
+    "model_diagnostics/provenance_audit.py": "a5ed785f8f728de60c02b3ae7d646fb13e8f65b9ae4fb8d1cb81cbd936736926",
+    "model_diagnostics/innovation.py": "ecbb4fd3bc7765b9e4ff572401e1c347634043aa22e6027c2953405060cd5188",
+    "model_diagnostics/investigate.py": "b422ce7c3397270718ae51d1cac0190c83c31eb4c77725e7f88f53094500e134",
+    "model_diagnostics/test_innovation.py": "9679859d1f117c1ba884a525108306ba4cfb25f84bb52925c01f9940fa336fa5",
+    "model_diagnostics/investigation_report.py": "37d73884d98fc43344d97b74c396690789b203e85191335753dd91a0f9227249"
+  },
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.17.1",
+    "arviz": "0.23.4",
+    "polyagamma": "2.0.2",
+    "pyarrow": "26.0.0"
+  },
+  "execution_segment": "after_interruption",
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "resume_from": "/home/prathamesh/Github/Axiom/.task3-runs/task3-dynamics-investigation",
+  "source_run": "task3-anki-joint_blocked",
+  "source_protocol_sha256": "921ed8074aabc6daba5cd7ad702208ab6086afe9ce73580566aae5c1ce107456"
+}

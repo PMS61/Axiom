@@ -1,0 +1,249 @@
+{
+  "files": {
+    "train_data.parquet": {
+      "rows": 2131995,
+      "sha256": "9565e1d83c6eb62a4c00c634d3c856c1f94d56844a445cb2dd8245dc3dbf9a05",
+      "pandas_metadata": {
+        "index_columns": [],
+        "column_indexes": [],
+        "columns": [
+          {
+            "name": "item_id",
+            "field_name": "item_id",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "timestamp",
+            "field_name": "timestamp",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "rating",
+            "field_name": "rating",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "state",
+            "field_name": "state",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "duration",
+            "field_name": "duration",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "delta_t",
+            "field_name": "delta_t",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "elapsed_seconds",
+            "field_name": "elapsed_seconds",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "user_id",
+            "field_name": "user_id",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "y",
+            "field_name": "y",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          }
+        ],
+        "attributes": {},
+        "creator": {
+          "library": "pyarrow",
+          "version": "26.0.0"
+        },
+        "pandas_version": "3.0.6"
+      },
+      "git_blob": "d21f525b2d4bdc876b1941ff51fd49ee7e1fdcf4",
+      "committed_blob": "d21f525b2d4bdc876b1941ff51fd49ee7e1fdcf4"
+    },
+    "test_data.parquet": {
+      "rows": 532999,
+      "sha256": "ac428c288373230d4462bb0df9a1796476a11e0a19840c9a2fb97b9dbc188ac7",
+      "pandas_metadata": {
+        "index_columns": [],
+        "column_indexes": [],
+        "columns": [
+          {
+            "name": "item_id",
+            "field_name": "item_id",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "timestamp",
+            "field_name": "timestamp",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "rating",
+            "field_name": "rating",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "state",
+            "field_name": "state",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "duration",
+            "field_name": "duration",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "delta_t",
+            "field_name": "delta_t",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "elapsed_seconds",
+            "field_name": "elapsed_seconds",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "user_id",
+            "field_name": "user_id",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          },
+          {
+            "name": "y",
+            "field_name": "y",
+            "pandas_type": "int64",
+            "numpy_type": "int64",
+            "metadata": null
+          }
+        ],
+        "attributes": {},
+        "creator": {
+          "library": "pyarrow",
+          "version": "26.0.0"
+        },
+        "pandas_version": "3.0.6"
+      },
+      "git_blob": "fa050b175e56ca0d9dc06cbdaeb8b7acf91b3211",
+      "committed_blob": "fa050b175e56ca0d9dc06cbdaeb8b7acf91b3211"
+    }
+  },
+  "rows": 2664994,
+  "histories": 316334,
+  "audit_source_sha256": "fe03ff56093b8f456cc779df612426698f5d0549afcb856540ddc07c8986fffc",
+  "tie_order_sensitivity": {
+    "order": "DIAGNOSTIC ONLY: longest elapsed gap first within each card/day",
+    "adjacent_mismatches": 0,
+    "mismatch_histories": 0,
+    "infeasible_day_floor_histories": 0,
+    "selected_cohorts": [
+      {
+        "cohort": 0,
+        "infeasible_day_floor_paths": 0,
+        "maximum_residual_range_days": 0.8078356481481705
+      },
+      {
+        "cohort": 1,
+        "infeasible_day_floor_paths": 0,
+        "maximum_residual_range_days": 0.7820833333332757
+      }
+    ],
+    "limitation": "Not authenticated chronology. Does not resolve the order of multiple short-gap outcomes, and is never applied to model datasets."
+  },
+  "selected_cohort_timing": [
+    {
+      "cohort": 0,
+      "histories": 30,
+      "infeasible_day_floor_paths": 0,
+      "maximum_residual_range_days": 0.9326504629629611
+    },
+    {
+      "cohort": 1,
+      "histories": 30,
+      "infeasible_day_floor_paths": 1,
+      "maximum_residual_range_days": 1.2446527777777523
+    }
+  ],
+  "state_counts": {
+    "2": 1273203,
+    "1": 965903,
+    "3": 415024,
+    "4": 10864
+  },
+  "binary_rating_mismatches": 0,
+  "infeasible_day_floor_histories": 62313,
+  "source_order_negative_card_day_steps": 0,
+  "adjacent_intervals": 2348660,
+  "adjacent_day_ties": 945560,
+  "adjacent_mismatches": 177986,
+  "timestamp_exceeds_elapsed": 83238,
+  "elapsed_exceeds_timestamp": 94748,
+  "mismatch_histories": 59271,
+  "mismatch_by_state": {
+    "2": 78239,
+    "3": 76998,
+    "1": 22395,
+    "4": 354
+  },
+  "ties_by_state": {
+    "1": 561444,
+    "3": 300399,
+    "2": 82784,
+    "4": 933
+  },
+  "delta_matches_calendar": 2116592,
+  "delta_matches_elapsed_floor": 1860526,
+  "delta_matches_elapsed_round": 2592475,
+  "elapsed_nonpositive": 336,
+  "cumulative_discrepancy_over_day_histories": 58523,
+  "first_observed_day_zero_users": 23,
+  "users": 30,
+  "global_timestamp_monotone": true,
+  "partition_day_ranges": [
+    [
+      0,
+      1247
+    ],
+    [
+      1247,
+      2671
+    ]
+  ],
+  "train_fraction": 0.7999999249529267,
+  "evidence_limit": "No preparation script or upstream fingerprint found. Schema resemblance cannot authenticate day_offset or chronological ties. Timing mismatch is evidence of incompatible local fields/retained history, not proof of corrupt upstream data."
+}

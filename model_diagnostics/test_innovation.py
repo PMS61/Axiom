@@ -22,6 +22,21 @@ class InnovationTests(unittest.TestCase):
         self.assertGreater(timing_residual_range(days,seconds),1)
         self.assertLess(timing_residual_range([0,0,1],[0,100,86400]),1)
 
+    def test_feasible_gap_order_does_not_authenticate_same_day_outcomes(self):
+        from .provenance_audit import timing_residual_range
+        days=np.array([0,2,2,2])
+        # The long gap is misplaced among same-day events in the stored order.
+        stored=np.array([0,.03,1.8,.04])*86400
+        ordered=np.array([0,1.8,.04,.03])*86400
+        other=np.array([0,1.8,.03,.04])*86400
+        self.assertGreater(timing_residual_range(days,stored),1)
+        self.assertLess(timing_residual_range(days,ordered),1)
+        self.assertLess(timing_residual_range(days,other),1)
+        # The final two recall outcomes can exchange order in feasible paths;
+        # elapsed-time feasibility therefore cannot authenticate their lag order.
+        r=np.array([0,1,0,1]);alternative=r[[0,1,3,2]]
+        self.assertFalse(np.array_equal(r,alternative))
+
     def test_roundtrip_and_triangular_jacobian(self):
         m=self.model
         # Include very short/long Anki timing and unequal history lengths.
@@ -109,6 +124,25 @@ class InnovationTests(unittest.TestCase):
             csv=Path(folder)/'results.csv'
             csv.write_text('fit,passed,cpu\nreal-0-full-centered,True,2.5\n')
             self.assertEqual(read_checkpoint_csv(csv),[{'fit':'real-0-full-centered','passed':True,'cpu':2.5}])
+
+    def test_recovery_export_and_partial_fit_draw_verification(self):
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from .investigate import recovery_record, verified_npz
+        row=dict(parameter='lam',mean=.3,low=.1,high=.5,passed=False)
+        recovered=recovery_record('nested-full',row,.35)
+        self.assertEqual(recovered['parameter'],'lam')
+        self.assertAlmostEqual(recovered['error'],-.05)
+        self.assertTrue(recovered['covered'])
+        self.assertFalse(recovered['passed'])
+        with TemporaryDirectory() as folder:
+            path=Path(folder)/'draws.npz'
+            samples={'b0':np.arange(24).reshape(4,6)}
+            verified_npz(path,samples);before=path.read_bytes()
+            verified_npz(path,samples)
+            self.assertEqual(before,path.read_bytes())
+            with self.assertRaises(ValueError):verified_npz(path,{'b0':samples['b0']+1})
+            self.assertEqual(before,path.read_bytes())
 
     def test_nested_generator_uses_timing_not_observed_outcomes(self):
         template=[{**s,'item':j} for j,s in enumerate(self.seqs)]

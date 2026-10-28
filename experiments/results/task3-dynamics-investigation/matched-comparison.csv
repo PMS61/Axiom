@@ -1,0 +1,13 @@
+execution_segment,fit,centered,centered_pass,interwoven_pass,ess_cpu_ratio,log_loss_delta,brier_delta
+before_interruption,real-0-free_diffusion-interwoven,real-0-free_diffusion-centered,False,True,1.0863878619429137,-0.0008680251407534034,-0.0003097671691797421
+before_interruption,real-0-free_decay_diffusion-interwoven,real-0-free_decay_diffusion-centered,False,False,0.9423207629905076,-0.0012250045344525673,-0.00033285552687370434
+before_interruption,real-0-full-interwoven,real-0-full-centered,False,False,0.8558749945105154,-0.0015679860592843209,-0.0005212697596341798
+after_interruption,nested_synthetic-0-free_diffusion-interwoven,nested_synthetic-0-free_diffusion-centered,False,True,1.8550062634251911,-0.002104325660862272,-0.0009063835911113094
+after_interruption,nested_synthetic-0-free_decay_diffusion-interwoven,nested_synthetic-0-free_decay_diffusion-centered,False,True,1.5204349078951358,-0.001974561684522591,-0.0007276259550665076
+task3-dynamics-completed,nested_synthetic-0-full-interwoven,nested_synthetic-0-full-centered,False,False,5.703609685104465,-0.0002552115842824332,-0.0002534773983371985
+task3-dynamics-completed,real-1-free_diffusion-interwoven,real-1-free_diffusion-centered,False,True,1.1630508348715087,9.332612915113891e-05,0.0002400614487712005
+task3-dynamics-completed,real-1-free_decay_diffusion-interwoven,real-1-free_decay_diffusion-centered,False,False,1.2426942314914475,-0.0005440865685910623,0.00022072381793966644
+task3-dynamics-completed,real-1-full-interwoven,real-1-full-centered,False,False,2.140116016398042,-0.005876263239214863,0.0010165025017918605
+task3-dynamics-completed,nested_synthetic-1-free_diffusion-interwoven,nested_synthetic-1-free_diffusion-centered,False,True,4.6539787038572635,-0.0027450106857427325,-0.0010522289652732941
+task3-dynamics-completed,nested_synthetic-1-free_decay_diffusion-interwoven,nested_synthetic-1-free_decay_diffusion-centered,False,True,4.701444519606728,0.0012263223547260838,0.00046283633996987983
+task3-dynamics-completed,nested_synthetic-1-full-interwoven,nested_synthetic-1-full-centered,False,False,4.47781472829833,-0.008012590979058709,-0.0029190319403780696

@@ -56,7 +56,27 @@ def audit(root=ROOT):
             mapping=json.loads(path.read_text())['mapping']
             values=[float(ranges.loc[(m['user'],m['source_item']),'max']-ranges.loc[(m['user'],m['source_item']),'min']) for m in mapping]
             selected.append(dict(cohort=cohort,histories=len(values),infeasible_day_floor_paths=sum(v>1.00001 for v in values),maximum_residual_range_days=max(values)))
+    alternative=source.sort_values(keys+['timestamp','elapsed_seconds'],ascending=[True,True,True,False],kind='stable').copy()
+    alt_groups=alternative.groupby(keys,sort=False)
+    alt_diff=alt_groups.timestamp.diff()
+    alt_bad=alt_diff.notna() & ((alt_diff-alternative.elapsed_seconds/86400).abs()>1.00001)
+    alternative['_residual']=alternative.timestamp-(alt_groups.elapsed_seconds.cumsum()-alt_groups.elapsed_seconds.transform('first'))/86400
+    alt_ranges=alternative.groupby(keys)['_residual'].agg(['min','max'])
+    alt_width=alt_ranges['max']-alt_ranges['min']
+    alt_selected=[]
+    for cohort in range(2):
+        path=root/f'.task3-runs/task3-anki-joint_blocked/anki-{cohort}-selection.json'
+        if path.exists():
+            mapping=json.loads(path.read_text())['mapping']
+            values=[float(alt_width.loc[m['user'],m['source_item']]) for m in mapping]
+            alt_selected.append(dict(cohort=cohort,infeasible_day_floor_paths=sum(v>1.00001 for v in values),maximum_residual_range_days=max(values)))
+    tie_sensitivity=dict(order='DIAGNOSTIC ONLY: longest elapsed gap first within each card/day',
+                        adjacent_mismatches=int(alt_bad.sum()),mismatch_histories=int(alternative.loc[alt_bad].groupby(keys).ngroups),
+                        infeasible_day_floor_histories=int((alt_width>1.00001).sum()),selected_cohorts=alt_selected,
+                        limitation='Not authenticated chronology. Does not resolve the order of multiple short-gap outcomes, and is never applied to model datasets.')
     return dict(files=files, rows=len(source), histories=groups.ngroups,
+                audit_source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                tie_order_sensitivity=tie_sensitivity,
                 selected_cohort_timing=selected,
                 state_counts={str(k):int(v) for k,v in source.state.value_counts().items()},
                 binary_rating_mismatches=int((source.y!=(source.rating>1).astype(int)).sum()),
