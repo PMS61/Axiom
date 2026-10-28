@@ -262,3 +262,40 @@ order audit counts a lower bound on selected-cohort predictor ambiguity using tw
 feasible permutations; neither permutation is treated as authenticated history or
 used as sampler input. `npm run test:diagnostics` includes the new kernel's
 conditional-density, coefficient-response, Gaussian-draw and preservation checks.
+
+## Task 3 completed sensitivity and final deliverable
+
+The [final Task 3 report](experiments/TASK3_FINAL_REPORT.md) consolidates the
+convergence ladder, controlled ablations, identifiability, recovery and
+predictive/computational limitations. The final bounded study measures feasible
+within-day order POSTERIOR sensitivity on the exact two current Anki cohorts,
+and separately labels alternative hierarchy priors as MODEL sensitivity on the
+two fixed-truth synthetic datasets. It uses the tested CLI-only coefficient/path
+kernel; it does not extend chains until they pass. The remaining decay/practice
+bottleneck is characterized using unchanged saved chains and the rate-design
+map. No new sampler remedy is claimed.
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv-diagnostics/bin/python \
+  -m model_diagnostics.completion_study --out .task3-runs/NEW-completion
+.venv-diagnostics/bin/python -m model_diagnostics.completion_report \
+  --source .task3-runs/NEW-completion \
+  --out experiments/results/NEW-completion
+```
+
+These commands refuse existing destinations. The default source is the preserved
+coefficient study. Twelve fits / 48 chains use 8000/4000 iterations/warmup:
+recorded plus two feasible orders on each real cohort, and IG(2,b) hierarchy
+priors with b=0.1,1,4 on each synthetic dataset. The four unchanged references
+must reproduce all saved retained/available warmup arrays exactly. All 142
+monitors and the original diagnostic gate remain. Raw row mappings, original
+Parquet partition/row indices, cut points, truths, arrays and source/package/data
+fingerprints remain local. Comparisons use one new CPU execution segment.
+Changed order/prior targets are sensitivity analyses, not sampler improvements,
+authenticated chronology, component efficacy or prior-drawn SBC.
+
+`npm run test:diagnostics` includes split/row/gap/permutation preservation,
+lag reconstruction, explicit prior conditional checks, independent oracle density
+ratios and incomplete/overwrite rejection for this analysis. Source snapshots
+record the files used when computation begins; report curation separately hashes
+its analysis source. Do not overwrite earlier runs to refresh that snapshot.
