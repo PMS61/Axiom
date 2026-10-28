@@ -1,0 +1,126 @@
+[
+  {
+    "scenario": "short_gaps",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 0,
+    "fit_wall_seconds": 25.722761385997728,
+    "fit_cpu_seconds": 25.194543429,
+    "predict_wall_seconds": 0.007729758999630576,
+    "predict_cpu_seconds": 0.00767325600000035,
+    "sampling": {
+      "lambda_acceptance": 0.39295,
+      "kappa_sweep_move_fraction": 0.83475,
+      "lambda_step": 2.0,
+      "kappa_step": 1.0,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20661070
+  },
+  {
+    "scenario": "short_gaps",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 1,
+    "fit_wall_seconds": 26.069548392999423,
+    "fit_cpu_seconds": 25.577844388,
+    "predict_wall_seconds": 0.0042211859981762245,
+    "predict_cpu_seconds": 0.004182221000000652,
+    "sampling": {
+      "lambda_acceptance": 0.37635,
+      "kappa_sweep_move_fraction": 0.85375,
+      "lambda_step": 2.0,
+      "kappa_step": 0.9979325456418314,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20668989
+  },
+  {
+    "scenario": "short_gaps",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 2,
+    "fit_wall_seconds": 24.74692693600082,
+    "fit_cpu_seconds": 24.233196565,
+    "predict_wall_seconds": 0.004317191996960901,
+    "predict_cpu_seconds": 0.004307943999997121,
+    "sampling": {
+      "lambda_acceptance": 0.40915,
+      "kappa_sweep_move_fraction": 0.88425,
+      "lambda_step": 1.9917358444380753,
+      "kappa_step": 0.9979325456418314,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20676908
+  },
+  {
+    "scenario": "short_gaps",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 3,
+    "fit_wall_seconds": 24.317227355000796,
+    "fit_cpu_seconds": 23.834134596000002,
+    "predict_wall_seconds": 0.005772307002189336,
+    "predict_cpu_seconds": 0.005750221000003108,
+    "sampling": {
+      "lambda_acceptance": 0.4048,
+      "kappa_sweep_move_fraction": 0.8785,
+      "lambda_step": 2.0,
+      "kappa_step": 0.9979279949241007,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20684827
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "source": "anki",
+  "scenarios": [
+    "anki"
+  ],
+  "replicates": 2,
+  "users": 3,
+  "items": 10,
+  "events": 60,
+  "chains": 4,
+  "iterations": 8000,
+  "warmup": 4000,
+  "seed": 20261028,
+  "holdout": 0.25,
+  "variants": [
+    "full",
+    "no_practice",
+    "no_hierarchy",
+    "no_dynamics"
+  ],
+  "workers": 4,
+  "sampler": "blocked",
+  "mh_steps": 5
+}

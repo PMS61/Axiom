@@ -70,7 +70,8 @@ class DynamicRetentionModel:
         # and is refined by FFBS sweeps.
         self.psi = [np.zeros(len(s['r'])) for s in self.seqs]
 
-        self.samples = {'beta': [], 'gamma': [], 'phi': [], 'sigma_w2': []}
+        self.samples = {'beta': [], 'gamma': [], 'phi': [], 'sigma_w2': [],
+                        'last_psi': []}
         self._psi_sum = [np.zeros(len(s['r'])) for s in self.seqs]
         self._psi_n = 0
 
@@ -218,6 +219,7 @@ class DynamicRetentionModel:
                 self.samples['gamma'].append(self.gamma.copy())
                 self.samples['phi'].append(self.phi)
                 self.samples['sigma_w2'].append(self.sigma_w2)
+                self.samples['last_psi'].append(np.array([p[-1] for p in self.psi]))
                 for idx, psi in enumerate(self.psi):
                     self._psi_sum[idx] += psi
                 self._psi_n += 1

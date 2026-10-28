@@ -22,7 +22,7 @@ Use TypeScript for new React/Next.js code unless a nearby file is already JavaSc
 
 ## Testing Guidelines
 
-No automated test script is currently configured. Before opening a PR, run `npm run lint` and `npm run build`, then manually exercise the affected route in `npm run dev`. If you add a test framework, wire it into `package.json` and document the command here. Prefer colocated tests with clear names such as `schedule.test.ts` or `TaskBlock.test.tsx`.
+Run `npm run test:bayesian` from `client/` for the Bayesian demo's Node built-in tests and Python unittest checks (requires Python 3 with NumPy). Run `npm run test:diagnostics` for the research pipeline tests after installing `requirements-diagnostics.txt` in `.venv-diagnostics`; setup and protocol are in `RESEARCH_WORKSPACE.md`. Before opening a PR, run `npm run lint` and `npm run build`, then manually exercise the affected route in `npm run dev`. If you add a test framework, wire it into `package.json` and document the command here. Prefer colocated tests with clear names such as `schedule.test.ts` or `TaskBlock.test.tsx`.
 
 ## Commit & Pull Request Guidelines
 

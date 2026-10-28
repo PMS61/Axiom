@@ -1,0 +1,7 @@
+{
+  "source_hashes": {
+    "model_diagnostics/compare.py": "4e597e0ff55cb79eba3ab259870c1672f36c7e252f1429d00f2a61ebf0d72cb1",
+    "model_diagnostics/run.py": "4d47457751c162aaa170ee53a04186786a20b8aca8872c43055dd1e38613595a"
+  },
+  "data_scope": "960 observed reviews; no synthetic outcomes or known parameter truth"
+}

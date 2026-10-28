@@ -1,0 +1,7 @@
+scenario,replicate,a,b,correlation
+anki,0,lam,kappa,0.6027357035090227
+anki,0,lam,sigma2,0.3300252360246897
+anki,0,b0,population_level,0.42377677406935593
+anki,1,lam,kappa,0.07598567720416478
+anki,1,lam,sigma2,0.10899043373154689
+anki,1,b0,population_level,0.2772115990194428
