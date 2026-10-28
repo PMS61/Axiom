@@ -1,0 +1,1570 @@
+[
+  {
+    "fit": "real-0-full-centered",
+    "chain": 0,
+    "seed": 20261059,
+    "cpu": 30.52952944,
+    "sampling": {
+      "lambda_acceptance": 0.26655000000000006,
+      "kappa_sweep_move_fraction": 0.76125,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.037966397512692,
+          0.37306911567633166
+        ],
+        [
+          0.37306911567633166,
+          0.2110760483466
+        ]
+      ],
+      "joint_scale": 0.4130127876616636,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-centered",
+    "chain": 1,
+    "seed": 20268978,
+    "cpu": 30.444324935,
+    "sampling": {
+      "lambda_acceptance": 0.251,
+      "kappa_sweep_move_fraction": 0.7425,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.8983683870644313,
+          0.35229566949305435
+        ],
+        [
+          0.35229566949305435,
+          0.2420126806674219
+        ]
+      ],
+      "joint_scale": 0.40328720471763235,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-centered",
+    "chain": 2,
+    "seed": 20276897,
+    "cpu": 37.364428117,
+    "sampling": {
+      "lambda_acceptance": 0.24325000000000002,
+      "kappa_sweep_move_fraction": 0.72,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.0298912886856528,
+          0.43257897831030045
+        ],
+        [
+          0.43257897831030045,
+          0.2518365399417915
+        ]
+      ],
+      "joint_scale": 0.42969459275239824,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-centered",
+    "chain": 3,
+    "seed": 20284816,
+    "cpu": 29.416096963,
+    "sampling": {
+      "lambda_acceptance": 0.2043,
+      "kappa_sweep_move_fraction": 0.655,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.058990354344857,
+          0.40378765294394875
+        ],
+        [
+          0.40378765294394875,
+          0.29347151762264045
+        ]
+      ],
+      "joint_scale": 0.38592027178555954,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-interwoven",
+    "chain": 0,
+    "seed": 20261059,
+    "cpu": 70.543608002,
+    "sampling": {
+      "lambda_acceptance": 0.22255,
+      "kappa_sweep_move_fraction": 0.90975,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.2732574893580186,
+          0.4697232568749197
+        ],
+        [
+          0.4697232568749197,
+          0.30857062977183264
+        ]
+      ],
+      "joint_scale": 0.34633617542178524,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5749987786069934,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.223
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-interwoven",
+    "chain": 1,
+    "seed": 20268978,
+    "cpu": 62.54074905899999,
+    "sampling": {
+      "lambda_acceptance": 0.21810000000000002,
+      "kappa_sweep_move_fraction": 0.9205,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.1313419467614023,
+          0.4188681552969478
+        ],
+        [
+          0.41886815529694776,
+          0.29060890775964193
+        ]
+      ],
+      "joint_scale": 0.369860218643832,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5379833178686448,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24005
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-interwoven",
+    "chain": 2,
+    "seed": 20276897,
+    "cpu": 86.033541292,
+    "sampling": {
+      "lambda_acceptance": 0.22460000000000002,
+      "kappa_sweep_move_fraction": 0.91825,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.214362209027618,
+          0.4552858058532366
+        ],
+        [
+          0.4552858058532366,
+          0.3191693967079213
+        ]
+      ],
+      "joint_scale": 0.35500354220688085,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5256369068730888,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.2375
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-interwoven",
+    "chain": 3,
+    "seed": 20284816,
+    "cpu": 68.829754839,
+    "sampling": {
+      "lambda_acceptance": 0.25305,
+      "kappa_sweep_move_fraction": 0.927,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.2992429890924766,
+          0.47135727033153463
+        ],
+        [
+          0.47135727033153463,
+          0.3260053684520433
+        ]
+      ],
+      "joint_scale": 0.3149727299510828,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5395274823895819,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.23355
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-coefficient",
+    "chain": 0,
+    "seed": 20261059,
+    "cpu": 84.37121769400001,
+    "sampling": {
+      "lambda_acceptance": 0.23555,
+      "kappa_sweep_move_fraction": 0.927,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.240137571524675,
+          0.47286817791081553
+        ],
+        [
+          0.4728681779108154,
+          0.31406888946859235
+        ]
+      ],
+      "joint_scale": 0.34331511767398926,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.526069926932155,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.25165,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-coefficient",
+    "chain": 1,
+    "seed": 20268978,
+    "cpu": 99.385311821,
+    "sampling": {
+      "lambda_acceptance": 0.23195000000000005,
+      "kappa_sweep_move_fraction": 0.9205,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.161330982603387,
+          0.46191106848428104
+        ],
+        [
+          0.461911068484281,
+          0.3200128416361475
+        ]
+      ],
+      "joint_scale": 0.3517703345421644,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5354139271770431,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.23850000000000002,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-coefficient",
+    "chain": 2,
+    "seed": 20276897,
+    "cpu": 104.65287249500001,
+    "sampling": {
+      "lambda_acceptance": 0.23605,
+      "kappa_sweep_move_fraction": 0.91925,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.218235759179564,
+          0.46795345269367095
+        ],
+        [
+          0.4679534526936709,
+          0.32911383173551534
+        ]
+      ],
+      "joint_scale": 0.33344747953461285,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5708149786227646,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.23010000000000003,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-0-full-coefficient",
+    "chain": 3,
+    "seed": 20284816,
+    "cpu": 87.805330918,
+    "sampling": {
+      "lambda_acceptance": 0.23425000000000004,
+      "kappa_sweep_move_fraction": 0.92375,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.993367923946417,
+          0.3903513059186831
+        ],
+        [
+          0.39035130591868317,
+          0.3013595787275526
+        ]
+      ],
+      "joint_scale": 0.35280543111297447,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5337188797821916,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.23890000000000003,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-centered",
+    "chain": 0,
+    "seed": 20262068,
+    "cpu": 14.598338791999993,
+    "sampling": {
+      "lambda_acceptance": 0.17085,
+      "kappa_sweep_move_fraction": 0.5655,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.6123657733119765,
+          0.3611647840205649
+        ],
+        [
+          0.36116478402056496,
+          0.6871144941098314
+        ]
+      ],
+      "joint_scale": 0.5672006301826972,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-centered",
+    "chain": 1,
+    "seed": 20269987,
+    "cpu": 14.07513096400001,
+    "sampling": {
+      "lambda_acceptance": 0.25605,
+      "kappa_sweep_move_fraction": 0.70725,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.1130363395197205,
+          0.2571205942776053
+        ],
+        [
+          0.2571205942776052,
+          0.6672019626944836
+        ]
+      ],
+      "joint_scale": 0.4925696292941164,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-centered",
+    "chain": 2,
+    "seed": 20277906,
+    "cpu": 18.201951983000015,
+    "sampling": {
+      "lambda_acceptance": 0.1953,
+      "kappa_sweep_move_fraction": 0.63125,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.4442761158655153,
+          0.3861335842436311
+        ],
+        [
+          0.3861335842436311,
+          0.6332069729075557
+        ]
+      ],
+      "joint_scale": 0.5783431150306373,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-centered",
+    "chain": 3,
+    "seed": 20285825,
+    "cpu": 15.35271007099999,
+    "sampling": {
+      "lambda_acceptance": 0.20015000000000002,
+      "kappa_sweep_move_fraction": 0.6325,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.5282812992205301,
+          0.35468943500597006
+        ],
+        [
+          0.35468943500597,
+          0.718232019696595
+        ]
+      ],
+      "joint_scale": 0.4759276398430534,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-interwoven",
+    "chain": 0,
+    "seed": 20262068,
+    "cpu": 30.54579404400002,
+    "sampling": {
+      "lambda_acceptance": 0.24470000000000003,
+      "kappa_sweep_move_fraction": 0.9095,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.5288647533977329,
+          0.1175255962548497
+        ],
+        [
+          0.11752559625484973,
+          0.726975517716043
+        ]
+      ],
+      "joint_scale": 0.40418277750390025,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.8210681809704644,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.20810000000000003
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-interwoven",
+    "chain": 1,
+    "seed": 20269987,
+    "cpu": 28.497283545000016,
+    "sampling": {
+      "lambda_acceptance": 0.25600000000000006,
+      "kappa_sweep_move_fraction": 0.93525,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.6606886130589782,
+          0.290996597230431
+        ],
+        [
+          0.290996597230431,
+          0.6871844592096125
+        ]
+      ],
+      "joint_scale": 0.4218943144940937,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.7000675091122244,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.25145
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-interwoven",
+    "chain": 2,
+    "seed": 20277906,
+    "cpu": 25.885357778999975,
+    "sampling": {
+      "lambda_acceptance": 0.22745,
+      "kappa_sweep_move_fraction": 0.91675,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.4281340605868733,
+          0.1357577960215792
+        ],
+        [
+          0.13575779602157917,
+          0.7390071894602994
+        ]
+      ],
+      "joint_scale": 0.44293282829291303,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.7031769684350663,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24940000000000004
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-interwoven",
+    "chain": 3,
+    "seed": 20285825,
+    "cpu": 29.959099191000007,
+    "sampling": {
+      "lambda_acceptance": 0.2255,
+      "kappa_sweep_move_fraction": 0.9165,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.541426599410104,
+          0.2528999536593752
+        ],
+        [
+          0.25289995365937523,
+          0.8053237052390019
+        ]
+      ],
+      "joint_scale": 0.4352343711485084,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.7027734081996979,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.253
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-coefficient",
+    "chain": 0,
+    "seed": 20262068,
+    "cpu": 36.930063589999975,
+    "sampling": {
+      "lambda_acceptance": 0.27015000000000006,
+      "kappa_sweep_move_fraction": 0.91925,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.3555902475422632,
+          0.08744761689572028
+        ],
+        [
+          0.08744761689572032,
+          0.706476134976979
+        ]
+      ],
+      "joint_scale": 0.418117669642202,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.7889350766472506,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.19594999999999999,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-coefficient",
+    "chain": 1,
+    "seed": 20269987,
+    "cpu": 35.300324488,
+    "sampling": {
+      "lambda_acceptance": 0.18715,
+      "kappa_sweep_move_fraction": 0.9065,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.5921806263081144,
+          0.2184940494918429
+        ],
+        [
+          0.21849404949184284,
+          0.7467745445887508
+        ]
+      ],
+      "joint_scale": 0.5137106118425223,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.6898638778990241,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.26045000000000007,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-coefficient",
+    "chain": 2,
+    "seed": 20277906,
+    "cpu": 46.67000417800003,
+    "sampling": {
+      "lambda_acceptance": 0.2601,
+      "kappa_sweep_move_fraction": 0.923,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.5217865961386583,
+          0.1408658281437673
+        ],
+        [
+          0.1408658281437673,
+          0.7580165080212713
+        ]
+      ],
+      "joint_scale": 0.3981669188153522,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.7951218755883429,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.21000000000000002,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "real-1-full-coefficient",
+    "chain": 3,
+    "seed": 20285825,
+    "cpu": 37.93631515199996,
+    "sampling": {
+      "lambda_acceptance": 0.22885000000000003,
+      "kappa_sweep_move_fraction": 0.9225,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.570736311579627,
+          0.16230795976440193
+        ],
+        [
+          0.1623079597644019,
+          0.7710403755583163
+        ]
+      ],
+      "joint_scale": 0.4154177428457328,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.7436730619416625,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24190000000000003,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-centered",
+    "chain": 0,
+    "seed": 20261059,
+    "cpu": 31.931352220000008,
+    "sampling": {
+      "lambda_acceptance": 0.22850000000000004,
+      "kappa_sweep_move_fraction": 0.70525,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.2500336422428555,
+          0.2349669863438751
+        ],
+        [
+          0.23496698634387517,
+          0.31688996128590474
+        ]
+      ],
+      "joint_scale": 0.33712958893431366,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-centered",
+    "chain": 1,
+    "seed": 20268978,
+    "cpu": 40.257599717999994,
+    "sampling": {
+      "lambda_acceptance": 0.24135,
+      "kappa_sweep_move_fraction": 0.72925,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.0100390599580202,
+          0.1344230491217743
+        ],
+        [
+          0.1344230491217743,
+          0.39440431224518674
+        ]
+      ],
+      "joint_scale": 0.2847120607085811,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-centered",
+    "chain": 2,
+    "seed": 20276897,
+    "cpu": 31.915977000999987,
+    "sampling": {
+      "lambda_acceptance": 0.23695000000000002,
+      "kappa_sweep_move_fraction": 0.722,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.050130267498471,
+          0.20220349941878607
+        ],
+        [
+          0.20220349941878607,
+          0.22263318274958938
+        ]
+      ],
+      "joint_scale": 0.3890054774742338,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-centered",
+    "chain": 3,
+    "seed": 20284816,
+    "cpu": 34.50946851200001,
+    "sampling": {
+      "lambda_acceptance": 0.29790000000000005,
+      "kappa_sweep_move_fraction": 0.81,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.0169359724996268,
+          0.147655947863058
+        ],
+        [
+          0.14765594786305802,
+          0.5147323179690959
+        ]
+      ],
+      "joint_scale": 0.244171917995345,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-interwoven",
+    "chain": 0,
+    "seed": 20261059,
+    "cpu": 70.498048229,
+    "sampling": {
+      "lambda_acceptance": 0.23405,
+      "kappa_sweep_move_fraction": 0.88375,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.075975386223583,
+          0.34796653994134613
+        ],
+        [
+          0.34796653994134613,
+          0.6410932185894614
+        ]
+      ],
+      "joint_scale": 0.2856966498128537,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5815167078417557,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.18135
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-interwoven",
+    "chain": 1,
+    "seed": 20268978,
+    "cpu": 67.002316339,
+    "sampling": {
+      "lambda_acceptance": 0.23485000000000003,
+      "kappa_sweep_move_fraction": 0.91975,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.9256160551835361,
+          0.30163642845367034
+        ],
+        [
+          0.3016364284536704,
+          0.5779540783420916
+        ]
+      ],
+      "joint_scale": 0.2982462334260563,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5014803401217721,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.23005
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-interwoven",
+    "chain": 2,
+    "seed": 20276897,
+    "cpu": 68.83132772699997,
+    "sampling": {
+      "lambda_acceptance": 0.2305,
+      "kappa_sweep_move_fraction": 0.92225,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.0702608000312213,
+          0.30063286716889676
+        ],
+        [
+          0.3006328671688967,
+          0.6086849073650918
+        ]
+      ],
+      "joint_scale": 0.27081435190231656,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.48230514170582345,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24365
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-interwoven",
+    "chain": 3,
+    "seed": 20284816,
+    "cpu": 87.31623006400002,
+    "sampling": {
+      "lambda_acceptance": 0.22545000000000004,
+      "kappa_sweep_move_fraction": 0.911,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.043818158063358,
+          0.2779579115122467
+        ],
+        [
+          0.2779579115122467,
+          0.6090272302612657
+        ]
+      ],
+      "joint_scale": 0.2764990306613243,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5205372733036459,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.2449
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-coefficient",
+    "chain": 0,
+    "seed": 20261059,
+    "cpu": 89.03224848400004,
+    "sampling": {
+      "lambda_acceptance": 0.23025000000000007,
+      "kappa_sweep_move_fraction": 0.9135,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.1169483228718757,
+          0.40972345796164433
+        ],
+        [
+          0.40972345796164433,
+          0.622363652863882
+        ]
+      ],
+      "joint_scale": 0.29134749125891196,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.4532468256475027,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24350000000000002,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-coefficient",
+    "chain": 1,
+    "seed": 20268978,
+    "cpu": 110.58978020400002,
+    "sampling": {
+      "lambda_acceptance": 0.22745,
+      "kappa_sweep_move_fraction": 0.91375,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.9518948181932891,
+          0.3434921388171916
+        ],
+        [
+          0.34349213881719154,
+          0.6213719245604548
+        ]
+      ],
+      "joint_scale": 0.2945553903442491,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.46848471178276746,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24195000000000003,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-coefficient",
+    "chain": 2,
+    "seed": 20276897,
+    "cpu": 90.55449915100002,
+    "sampling": {
+      "lambda_acceptance": 0.2257,
+      "kappa_sweep_move_fraction": 0.90225,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.971368863806178,
+          0.3057022565324927
+        ],
+        [
+          0.3057022565324928,
+          0.5408306784919948
+        ]
+      ],
+      "joint_scale": 0.3117118955803457,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.47846258339041275,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.22295,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-0-full-coefficient",
+    "chain": 3,
+    "seed": 20284816,
+    "cpu": 85.09128221999998,
+    "sampling": {
+      "lambda_acceptance": 0.24395000000000006,
+      "kappa_sweep_move_fraction": 0.9215,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.998314960687861,
+          0.2819867910477989
+        ],
+        [
+          0.2819867910477989,
+          0.5692751640993805
+        ]
+      ],
+      "joint_scale": 0.29178649202765045,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.43380550753060915,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24875000000000003,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-centered",
+    "chain": 0,
+    "seed": 20262068,
+    "cpu": 14.693213223000043,
+    "sampling": {
+      "lambda_acceptance": 0.1718,
+      "kappa_sweep_move_fraction": 0.565,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.188292894094483,
+          0.1301741656796768
+        ],
+        [
+          0.1301741656796768,
+          0.6007967391919878
+        ]
+      ],
+      "joint_scale": 0.6628283429039326,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-centered",
+    "chain": 1,
+    "seed": 20269987,
+    "cpu": 13.154907997999999,
+    "sampling": {
+      "lambda_acceptance": 0.22815000000000002,
+      "kappa_sweep_move_fraction": 0.68525,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.3855512331256827,
+          -0.13873074496777082
+        ],
+        [
+          -0.1387307449677708,
+          0.7523007685590642
+        ]
+      ],
+      "joint_scale": 0.4073234839996924,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-centered",
+    "chain": 2,
+    "seed": 20277906,
+    "cpu": 13.581831684999997,
+    "sampling": {
+      "lambda_acceptance": 0.25260000000000005,
+      "kappa_sweep_move_fraction": 0.725,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.647423329496852,
+          -0.0568009066410544
+        ],
+        [
+          -0.0568009066410544,
+          0.7425047214621266
+        ]
+      ],
+      "joint_scale": 0.40401720716951867,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-centered",
+    "chain": 3,
+    "seed": 20285825,
+    "cpu": 17.212932531999968,
+    "sampling": {
+      "lambda_acceptance": 0.18295,
+      "kappa_sweep_move_fraction": 0.5835,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.0372130424023365,
+          0.17345990487727933
+        ],
+        [
+          0.17345990487727939,
+          0.5912606245038187
+        ]
+      ],
+      "joint_scale": 0.6756698689352839,
+      "adaptation_draws": 4000,
+      "interweave": false,
+      "fixed": {},
+      "innovation_step": 0.15,
+      "innovation_adaptations": 0,
+      "innovation_acceptance": null
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-interwoven",
+    "chain": 0,
+    "seed": 20262068,
+    "cpu": 21.626305107000007,
+    "sampling": {
+      "lambda_acceptance": 0.23520000000000002,
+      "kappa_sweep_move_fraction": 0.91925,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.2455891973463482,
+          0.07335139106428033
+        ],
+        [
+          0.07335139106428033,
+          0.7155882909528364
+        ]
+      ],
+      "joint_scale": 0.498424968202146,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.6112038627454079,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.24020000000000005
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-interwoven",
+    "chain": 1,
+    "seed": 20269987,
+    "cpu": 24.944988525000042,
+    "sampling": {
+      "lambda_acceptance": 0.1976,
+      "kappa_sweep_move_fraction": 0.9095,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.3563108229316678,
+          0.09721191590226229
+        ],
+        [
+          0.0972119159022623,
+          0.6826194235117508
+        ]
+      ],
+      "joint_scale": 0.5769451989661315,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5366375870408644,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.26589999999999997
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-interwoven",
+    "chain": 2,
+    "seed": 20277906,
+    "cpu": 26.153783554999904,
+    "sampling": {
+      "lambda_acceptance": 0.25975,
+      "kappa_sweep_move_fraction": 0.93775,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.2427872385029421,
+          0.13906174311577177
+        ],
+        [
+          0.13906174311577174,
+          0.6453196401766212
+        ]
+      ],
+      "joint_scale": 0.5116122842217747,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.576124981358114,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.246
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-interwoven",
+    "chain": 3,
+    "seed": 20285825,
+    "cpu": 31.406648909999944,
+    "sampling": {
+      "lambda_acceptance": 0.23085000000000003,
+      "kappa_sweep_move_fraction": 0.89975,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.232710496944051,
+          0.0685032832389661
+        ],
+        [
+          0.06850328323896612,
+          0.6519389475063971
+        ]
+      ],
+      "joint_scale": 0.5643811166115847,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.6062306977355065,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.21740000000000004
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-coefficient",
+    "chain": 0,
+    "seed": 20262068,
+    "cpu": 34.04691249399997,
+    "sampling": {
+      "lambda_acceptance": 0.21305000000000002,
+      "kappa_sweep_move_fraction": 0.9215,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.2357870384296064,
+          0.040334316614903575
+        ],
+        [
+          0.04033431661490357,
+          0.7681529973141524
+        ]
+      ],
+      "joint_scale": 0.5061725980195508,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5829718232751337,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.26970000000000005,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-coefficient",
+    "chain": 1,
+    "seed": 20269987,
+    "cpu": 33.18278379599997,
+    "sampling": {
+      "lambda_acceptance": 0.24680000000000002,
+      "kappa_sweep_move_fraction": 0.9245,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.3002877138777666,
+          0.1413813565720647
+        ],
+        [
+          0.14138135657206474,
+          0.6663617851340454
+        ]
+      ],
+      "joint_scale": 0.5269833976152521,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5919285753487092,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.23360000000000003,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-coefficient",
+    "chain": 2,
+    "seed": 20277906,
+    "cpu": 32.71447377599998,
+    "sampling": {
+      "lambda_acceptance": 0.2393,
+      "kappa_sweep_move_fraction": 0.91675,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.4401675016159763,
+          0.05758443663896869
+        ],
+        [
+          0.05758443663896873,
+          0.7432941027071005
+        ]
+      ],
+      "joint_scale": 0.4893646389656195,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.5907859024294118,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.23585000000000003,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  },
+  {
+    "fit": "nested_synthetic-1-full-coefficient",
+    "chain": 3,
+    "seed": 20285825,
+    "cpu": 40.42168260300002,
+    "sampling": {
+      "lambda_acceptance": 0.25535,
+      "kappa_sweep_move_fraction": 0.9095,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "joint_blocked",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          1.2431324439583467,
+          0.13930089050426944
+        ],
+        [
+          0.1393008905042695,
+          0.6782183744529731
+        ]
+      ],
+      "joint_scale": 0.49337397101870606,
+      "adaptation_draws": 4000,
+      "interweave": true,
+      "fixed": {},
+      "innovation_step": 0.6513015369872595,
+      "innovation_adaptations": 4000,
+      "innovation_acceptance": 0.20670000000000002,
+      "coefficient_interweave": true,
+      "coefficient_moves": 8000
+    },
+    "execution_segment": "task3-coefficient-investigation"
+  }
+]

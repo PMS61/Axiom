@@ -1,0 +1,44 @@
+{
+  "revision": "a7877dc68364eb683d250aa800b117320399bc12",
+  "source_hashes": {
+    "model_diagnostics/__init__.py": "5d136e7a90f8883f8437d320b284fb983a6485a2fd2b060c7ae6cde32b974e75",
+    "model_diagnostics/model.py": "e443b697cd086d38eb325f7cd7a0ce8527574201e416c5c9f23b4412a80fea4e",
+    "model_diagnostics/data.py": "c901455767f2c9c4261c8ef44d0ba9e1780a35e4329c6dec7dd36f3b87d1eaf2",
+    "model_diagnostics/analysis.py": "25fa2c006e50d1176ce7dd3564aef5bee18398718554ceffe2d2a3c0f262da0c",
+    "model_diagnostics/run.py": "4d47457751c162aaa170ee53a04186786a20b8aca8872c43055dd1e38613595a",
+    "model_diagnostics/test_diagnostics.py": "adc957dd066477d1411be6bbaf523951955437c1f67f996d9a9d57e5a90ff5c1",
+    "model_diagnostics/compare.py": "4e597e0ff55cb79eba3ab259870c1672f36c7e252f1429d00f2a61ebf0d72cb1",
+    "model_diagnostics/anki.py": "89083c56476fdf032112194d398b53621cffdfc524fa4a16d677a437da5ecbfe",
+    "model_diagnostics/provenance_audit.py": "fe03ff56093b8f456cc779df612426698f5d0549afcb856540ddc07c8986fffc",
+    "model_diagnostics/innovation.py": "ecbb4fd3bc7765b9e4ff572401e1c347634043aa22e6027c2953405060cd5188",
+    "model_diagnostics/investigate.py": "63451faa990264194c2660bc8c03ee48b8277e434f5fb220e2c0f4028ba928e6",
+    "model_diagnostics/test_innovation.py": "f70d01af25683543461ccc9e0cb162345bd04827cd4d8f16dc406d6705046623",
+    "model_diagnostics/investigation_report.py": "1c5fdce908f14c2725f4ebd3b3b057a79ea6a5000994390630945237f74096b6",
+    "model_diagnostics/coefficient_innovation.py": "740073886c3956306a5a2563978c5ee5f64411598584c314750d302b88ceadd7",
+    "model_diagnostics/test_coefficient_innovation.py": "ec09ef29fb8514398b5c0658978d42e1db89cf4adf2c7166659db5f3ae685ba2",
+    "model_diagnostics/coefficient_study.py": "f08e7522b859c487de7938cc1c858cd9942a01dbf91846840197e55c981eeb89"
+  },
+  "dataset_artifact_hashes": {
+    "real-0-dataset.json": "96a4344f708678448bac13affd73149da77dccdc674283b16c072cc6871730c8",
+    "real-0-split.json": "5c7de03549b5137271e85a7febc7b82475fac75834b857affd8f6ca520721897",
+    "real-1-dataset.json": "84a59be182c85beea044cfbd9bc45759d2c2b86fadc53081c1020e02879b9cdf",
+    "real-1-split.json": "2afaaa679956376a824c62840b46a09ea57a94fb116a9709d386c1ab1b31a339",
+    "nested_synthetic-0-dataset.json": "a5bdd2d5d52d83473ebdfd91f0fa2a3b821bf0100a5439a5dcf61ac217a3f6cc",
+    "nested_synthetic-0-split.json": "db558cbd2d2116fd42530c26ec8cd695afa2853a4a69e4330a3eeb491a7d7e1e",
+    "nested_synthetic-0-truth.json": "fbc5fe1d864dce3163be7f736e8b785c95562bd635efc3b03348ce7c3b427edf",
+    "nested_synthetic-1-dataset.json": "680c64988b2f23f3bfe9457f96d07dba54b13c4e8d1238a45a179161dab2c0d2",
+    "nested_synthetic-1-split.json": "a1995b5b06ef7ee5456e12e744eba3d60d118de40134f7ec3f47f230c31b0295",
+    "nested_synthetic-1-truth.json": "3235b494a5f29c4b548949988149d8b29a751f125cf484fb2b9723e8daf14a4f"
+  },
+  "baseline_source": "/home/prathamesh/Github/Axiom/.task3-runs/task3-dynamics-completed",
+  "baseline_provenance_sha256": "9cd2f2e361d1b7f495e0da0876144f2ab7f846bda4136468d068f12e265bc646",
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.17.1",
+    "arviz": "0.23.4",
+    "polyagamma": "2.0.2",
+    "pyarrow": "26.0.0"
+  },
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "execution_segment": "task3-coefficient-investigation"
+}
