@@ -1,0 +1,45 @@
+{
+  "source_files": {
+    "AnkiFirstRun/train_data.parquet": "9565e1d83c6eb62a4c00c634d3c856c1f94d56844a445cb2dd8245dc3dbf9a05",
+    "AnkiFirstRun/test_data.parquet": "ac428c288373230d4462bb0df9a1796476a11e0a19840c9a2fb97b9dbc188ac7"
+  },
+  "audit_source_sha256": "38e327c9a7502c011c8fa4c9c92104e97556b68fe691bddcbd5feccf4a0cf23b",
+  "cohorts": [
+    {
+      "cohort": 0,
+      "histories": 30,
+      "events": 607,
+      "both_orders_strictly_feasible": 30,
+      "histories_with_different_feasible_outcome_order": 9,
+      "histories_with_different_feasible_lag_predictors": 9,
+      "histories_with_different_feasible_practice_predictors": 9,
+      "different_feasible_outcome_positions": 24,
+      "different_feasible_lag_positions": 22,
+      "different_feasible_practice_positions": 39,
+      "same_day_groups": 66,
+      "candidate_ambiguous_groups": 15,
+      "max_longest_first_residual_range": 0.8078356481481705,
+      "max_alternative_residual_range": 0.8078356481481705,
+      "selection_sha256": "ffc9475f9ccc63a3dbc9c9d34455b433c2f1c717d344a2612f5d3ee39736311e"
+    },
+    {
+      "cohort": 1,
+      "histories": 30,
+      "events": 353,
+      "both_orders_strictly_feasible": 30,
+      "histories_with_different_feasible_outcome_order": 6,
+      "histories_with_different_feasible_lag_predictors": 6,
+      "histories_with_different_feasible_practice_predictors": 6,
+      "different_feasible_outcome_positions": 12,
+      "different_feasible_lag_positions": 12,
+      "different_feasible_practice_positions": 13,
+      "same_day_groups": 32,
+      "candidate_ambiguous_groups": 18,
+      "max_longest_first_residual_range": 0.7820833333332757,
+      "max_alternative_residual_range": 0.7820833333332757,
+      "selection_sha256": "718310331c6d5e0e9085f1731d1cc3717a31baa5acf7617a5a07d2f593adc8b5"
+    }
+  ],
+  "permutation": "Stable longest-gap-first within card/day versus keeping that first event and reversing the remaining events.",
+  "interpretation": "A lower bound from two feasible permutations, not exhaustive sensitivity and not recovered chronology. Outcome/predictor positions refer to review index; no model datasets are changed. No posterior/efficacy conclusion is drawn."
+}

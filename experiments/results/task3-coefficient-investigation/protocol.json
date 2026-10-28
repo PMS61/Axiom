@@ -1,0 +1,23 @@
+{
+  "iterations": 8000,
+  "warmup": 4000,
+  "chains": 4,
+  "workers": 4,
+  "seed": 20261028,
+  "kernels": [
+    "centered",
+    "interwoven",
+    "coefficient"
+  ],
+  "kinds": [
+    "real",
+    "nested_synthetic"
+  ],
+  "cohorts": 2,
+  "mh_steps": 5,
+  "coefficient_moves_per_sweep": 1,
+  "model": "full",
+  "fixed": {},
+  "gate": "Every scalar: rank folded split Rhat <1.01 AND bulk/tail ESS >=400; undefined fails.",
+  "note": "No adaptive stopping/extensions, prior changes, dropped monitors/chains, or reordered real data. Fixed-truth conditional-design recovery, not SBC."
+}

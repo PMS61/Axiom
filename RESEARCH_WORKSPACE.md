@@ -233,3 +233,32 @@ selections/results remain unchanged, and broader real-data inference requires
 producer provenance or explicit order sensitivity. The interrupted dynamics run
 continues in `.task3-runs/task3-dynamics-continuation`, preserving the first ten
 completed fits from the original directory.
+
+## Task 3 coefficient/path interweaving pilot
+
+The CLI-only [coefficient/path report](experiments/TASK3_COEFFICIENT_REPORT.md)
+derives an exact Gaussian PG coefficient update at fixed latent innovations,
+reconstructing the latent path jointly and retaining the original hierarchical
+prior and scale conditionals. It adds one such move per sweep after the existing
+innovation parameter transition. This is a sampler intervention for the same full
+OU target; it does not alter priors, fixed parameters, data order or identification.
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv-diagnostics/bin/python \
+  -m model_diagnostics.coefficient_study --out .task3-runs/NEW-COEFFICIENT-STUDY
+.venv-diagnostics/bin/python -m model_diagnostics.coefficient_report \
+  --source .task3-runs/NEW-COEFFICIENT-STUDY \
+  --out experiments/results/NEW-COEFFICIENT-STUDY
+.venv-diagnostics/bin/python -m model_diagnostics.selected_order_audit \
+  --out .task3-runs/NEW-ORDER-AUDIT/audit.json
+```
+
+The fixed comparison reruns centered and innovation baselines plus the new kernel
+on the same two real and two known-truth nested datasets, with four chains,
+8000/4000 iterations/warmup and every preceding monitor. Baseline arrays must
+reproduce exactly; CPU is measured anew in one execution segment. Existing runs
+are never overwritten. Real chronology remains provisional. The separate read-only
+order audit counts a lower bound on selected-cohort predictor ambiguity using two
+feasible permutations; neither permutation is treated as authenticated history or
+used as sampler input. `npm run test:diagnostics` includes the new kernel's
+conditional-density, coefficient-response, Gaussian-draw and preservation checks.

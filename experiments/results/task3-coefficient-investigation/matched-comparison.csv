@@ -1,0 +1,9 @@
+fit,baseline,execution_segment,coefficient_pass,baseline_pass,ess_cpu_ratio,min_bulk_ratio,cpu_ratio,log_loss_delta,brier_delta
+real-0-full-coefficient,real-0-full-centered,task3-coefficient-investigation,True,False,3.7197761418713418,10.954102659619647,2.9448284632818966,-0.0021576748601949136,-0.0006536934281096418
+real-0-full-coefficient,real-0-full-interwoven,task3-coefficient-investigation,True,False,4.3698205226520255,5.7093393283418505,1.3065386321351424,-0.0005896888009105927,-0.00013242366847546205
+real-1-full-coefficient,real-1-full-centered,task3-coefficient-investigation,True,False,2.814878161304391,7.094479775186194,2.520350568885252,-0.0058064770625011475,0.0007401837018134461
+real-1-full-coefficient,real-1-full-interwoven,task3-coefficient-investigation,True,False,1.336258239496646,1.8241695527188684,1.3651325011893012,6.978617671371534e-05,-0.00027631879997841446
+nested_synthetic-0-full-coefficient,nested_synthetic-0-full-centered,task3-coefficient-investigation,False,False,5.281367127113883,14.29813289496301,2.7072787312130164,0.0012363120639239389,0.00042643606413272916
+nested_synthetic-0-full-coefficient,nested_synthetic-0-full-interwoven,task3-coefficient-investigation,False,False,0.8478915593275598,1.08356431089393,1.277951524547875,0.001491523648206372,0.0006799134624699277
+nested_synthetic-1-full-coefficient,nested_synthetic-1-full-centered,task3-coefficient-investigation,True,False,4.053056946434662,9.701275610044693,2.39357002338163,-0.009613059687088144,-0.0035421688873351065
+nested_synthetic-1-full-coefficient,nested_synthetic-1-full-interwoven,task3-coefficient-investigation,True,False,0.9681050710255966,1.3049711059346942,1.3479643325824402,-0.0016004687080294344,-0.0006231369469570369
