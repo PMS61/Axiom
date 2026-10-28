@@ -1,0 +1,16 @@
+[
+  {
+    "cohort": 0,
+    "observations": 426,
+    "columns": 37,
+    "rank": 33,
+    "nullity": 4
+  },
+  {
+    "cohort": 1,
+    "observations": 242,
+    "columns": 37,
+    "rank": 33,
+    "nullity": 4
+  }
+]

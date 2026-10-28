@@ -1,0 +1,15 @@
+{
+  "results": [
+    {
+      "order": "stored_day_order",
+      "adjacent_mismatches": 177986,
+      "histories_with_mismatch": 59271
+    },
+    {
+      "order": "diagnostic_only_longest_gap_first_within_day",
+      "adjacent_mismatches": 0,
+      "histories_with_mismatch": 0
+    }
+  ],
+  "note": "Read-only ordering sensitivity, not authenticated chronology or a proposed repair. Model datasets are unchanged. Descending elapsed order cannot resolve multiple short-gap outcomes within the same day."
+}

@@ -1,12 +1,16 @@
 # Task 3 — actual Anki observations, 28 October 2026
 
-## Follow-up integrity correction
+## Follow-up integrity and ordering correction
 
 The [dynamics investigation](TASK3_DYNAMICS_REPORT.md) finds that the earlier
-adjacent-gap eligibility check is insufficient for whole-history consistency:
-one of the 60 selected histories fails a cumulative day-floor check. The saved
-cohorts and results below are preserved as a matched provisional-data pilot,
-not an authenticated complete-history extract.
+adjacent-gap eligibility check is insufficient for whole-history consistency.
+More importantly, putting the longest gap first within each card/day group
+removes **all** adjacent and cumulative timing discrepancies across the extract.
+Lost within-day order can therefore explain the anomalies without missing
+between-day reviews. Original chronology among multiple short-gap same-day
+outcomes remains unauthenticated; no input was reordered. The saved cohorts and
+results below remain a matched pilot on the recorded order, not an authenticated
+complete-history extract or a uniquely clean subset of the data.
 
 ## Scope
 
