@@ -1,0 +1,26 @@
+{
+  "revision": "5bbbf022969f926ed9fc5e762a64940835ce09d0",
+  "dirty": true,
+  "source_hashes": {
+    "model_diagnostics/__init__.py": "5d136e7a90f8883f8437d320b284fb983a6485a2fd2b060c7ae6cde32b974e75",
+    "model_diagnostics/model.py": "29f0bf4b629b34785395cc4e9db303794205bb59902bc77ea3af50a67b4edd63",
+    "model_diagnostics/data.py": "c901455767f2c9c4261c8ef44d0ba9e1780a35e4329c6dec7dd36f3b87d1eaf2",
+    "model_diagnostics/analysis.py": "25fa2c006e50d1176ce7dd3564aef5bee18398718554ceffe2d2a3c0f262da0c",
+    "model_diagnostics/run.py": "aeb1c9eb96f2436bb67592cde14ce9b5252111980c9e169466433f87130f4b67",
+    "model_diagnostics/test_diagnostics.py": "fe7ba4785ad8f15a5d6874573f6a277af1292e269fe1afbd8db39488f5515ea6",
+    "model_diagnostics/compare.py": "d0dfa89827bdd9e803b68b05deeaffa8f9e62b00e1e0dd16827a92cf58836b05",
+    "AnkiFirstRun/dynamic_retention_model_optimised.py": "f56e31b4c400ad1c8884406abbae75da5e93f5b1d88d47c4fa265eff5b80c027"
+  },
+  "python": "3.14.8",
+  "platform": "Linux-7.3.0-4-cachyos-x86_64-with-glibc2.44",
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.17.1",
+    "matplotlib": "3.11.2",
+    "arviz": "0.23.4",
+    "polyagamma": "2.0.2"
+  },
+  "created_utc": "2026-10-27T16:03:00Z",
+  "config_sha256": "76329a85d96c82af5ba6faf5a2c70abd84b512e1cf1c54417ae029f685011a1f",
+  "short_gaps-0-data_sha256": "b4e58b85109428c98cc7cf6b2e26d99f00fab4adf72f405290c221283aeb07ce"
+}

@@ -1,0 +1,2 @@
+scenario,replicate,variant,log_loss,brier,mae,auc,calibration_bias,test_events,max_rhat,min_ess_bulk,min_ess_tail,passed,failed_parameters,fit_cpu_seconds,sum_chain_wall_seconds,prediction_cpu_seconds
+short_gaps,0,full,0.6205282627929843,0.21663444378375027,0.4215136004328823,0.6887116948092558,0.003863901673245629,160,1.036531042537263,106.96191105755155,112.15974517952127,False,1,100.420607593,102.07102458099689,0.022478716999998483

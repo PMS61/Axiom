@@ -1,5 +1,14 @@
 # Task 3 — observed findings, 27 October 2026
 
+## Sampler follow-up
+
+The subsequent 80-chain matched sampler investigation is documented in
+[TASK3_SAMPLER_REPORT.md](TASK3_SAMPLER_REPORT.md), with per-fit and per-parameter
+comparisons in [sampler-comparison](results/task3-sampler-comparison/report.md).
+The [actual Anki follow-up](TASK3_ANKI_REPORT.md) evaluates the available real
+observations separately. The initial-study evidence below is preserved as its
+reference snapshot.
+
 ## Decision
 
 The diagnostics workspace is implemented and the synthetic study is complete. The current sampler is **not ready for inferential claims** under the tested budgets. All 40 fits in the main study fail the prespecified whole-fit gate. A longer run improves mixing but still fails for both compared variants. No model component is yet empirically justified by these experiments.
