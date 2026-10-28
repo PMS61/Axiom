@@ -1,0 +1,21 @@
+{
+  "source": "synthetic",
+  "scenarios": [
+    "short_gaps"
+  ],
+  "replicates": 1,
+  "chains": 4,
+  "iterations": 8000,
+  "warmup": 4000,
+  "seed": 20261027,
+  "users": 4,
+  "items": 5,
+  "events": 32,
+  "holdout": 0.25,
+  "variants": [
+    "full"
+  ],
+  "workers": 4,
+  "sampler": "blocked",
+  "mh_steps": 5
+}

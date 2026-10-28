@@ -1,0 +1,2 @@
+scenario,replicate,variant,delta_log_loss,low,high,clusters,converged
+full,0,no_dynamics,-0.01037681448357002,-0.035149958638963086,0.009838877042528175,4,False

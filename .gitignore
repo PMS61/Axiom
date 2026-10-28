@@ -18,6 +18,8 @@
 # node
 node_modules/
 .venv/
+.venv-diagnostics/
+.task3-runs/
 data/
 __pycache__/
 .pytest_cache/

@@ -1,5 +1,18 @@
 # Axiom
 
+## Bayesian scheduler demo
+
+The branch now opens directly into a research workspace at `/` and
+`/bayesian-demo`: dataset import, sampler settings, independent chains,
+convergence diagnostics, ablations, synthetic recovery, plots and exportable
+technical reports. Read [RESEARCH_WORKSPACE.md](RESEARCH_WORKSPACE.md) for setup
+and [Task 3 findings](experiments/TASK3_FINDINGS.md) for measured results.
+
+On the `BayesianScheduler` branch, open `/bayesian-demo/recall` for the local,
+account-free research prototype using the branch's Python retention models.
+See [BAYESIAN_DEMO.md](BAYESIAN_DEMO.md) for setup, a three-minute walkthrough,
+verification commands and research limitations.
+
 Axiom is a cognitive task scheduler and learning planner built with Next.js. It turns goals, coursework, and everyday tasks into schedules that account for cognitive load, energy windows, deadlines, and user feedback. The app also includes roadmap generation, trend discovery, report tracking, and syllabus-driven study workflows.
 
 ## Features

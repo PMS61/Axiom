@@ -1,0 +1,15 @@
+{
+  "source": "synthetic",
+  "scenarios": ["full", "no_practice", "no_hierarchy", "no_dynamics", "short_gaps"],
+  "replicates": 2,
+  "chains": 4,
+  "iterations": 2400,
+  "warmup": 1200,
+  "seed": 20261027,
+  "users": 4,
+  "items": 5,
+  "events": 32,
+  "holdout": 0.25,
+  "variants": ["full", "no_practice", "no_hierarchy", "no_dynamics"],
+  "workers": 4
+}
