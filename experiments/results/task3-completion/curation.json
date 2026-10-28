@@ -1,0 +1,9 @@
+{
+  "raw_source": "/home/prathamesh/Github/Axiom/.task3-runs/task3-completion-sensitivity",
+  "baseline": "/home/prathamesh/Github/Axiom/.task3-runs/task3-coefficient-investigation",
+  "raw_results_sha256": "6ce576c9d9ddd97a9714068994f758e01ffa712836b6b741b8ec9a68df5541ed",
+  "analysis_source_sha256": "88a69c7c0d7b3c9b5a51fda954d2a97f88be7534a3e16d496407c0032edddff0",
+  "raw_arrays_remain_local": true,
+  "baseline_arrays_identical": 64,
+  "all_monitor_sets_preserved": true
+}

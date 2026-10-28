@@ -1,0 +1,36 @@
+{
+  "iterations": 8000,
+  "warmup": 4000,
+  "chains": 4,
+  "workers": 4,
+  "seed": 20261028,
+  "fits": 12,
+  "sampler": "coefficient/path plus innovation, joint_blocked; unchanged algorithm",
+  "order_analysis": [
+    "recorded",
+    "longest",
+    "reverse"
+  ],
+  "cohorts": [
+    0,
+    1
+  ],
+  "hierarchy_MODEL_priors": {
+    "original": [
+      2,
+      1
+    ],
+    "lower_scale": [
+      2,
+      0.1
+    ],
+    "higher_scale": [
+      2,
+      4
+    ]
+  },
+  "rationale": "IG shape 2 held fixed; hierarchy prior means 0.1, 1, 4 bracket scale uncertainty. Apply to ALL hierarchy variances, not selected gamma only. Chosen before new fits. Not SBC or a sampler improvement.",
+  "decay_analysis": "Read-only chainwise effective-rate ridge and design-information characterization; no new remedy claimed.",
+  "gate": "Every original 142 scalar monitors: finite rank folded split Rhat <1.01 and bulk/tail ESS >=400. No thinning, stopping, extensions or selection.",
+  "limits": "Two feasible permutations are not authenticated chronology or exhaustive orders. Same data membership and split; recorded reference retained. Fixed-truth conditional-design sensitivity, not calibrated coverage."
+}

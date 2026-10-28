@@ -1,0 +1,122 @@
+[
+  {
+    "stem": "real-0",
+    "cohort": 0,
+    "kind": "order",
+    "condition": "recorded",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "real-0-longest",
+    "cohort": 0,
+    "kind": "order",
+    "condition": "longest",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "real-0-reverse",
+    "cohort": 0,
+    "kind": "order",
+    "condition": "reverse",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "real-1",
+    "cohort": 1,
+    "kind": "order",
+    "condition": "recorded",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "real-1-longest",
+    "cohort": 1,
+    "kind": "order",
+    "condition": "longest",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "real-1-reverse",
+    "cohort": 1,
+    "kind": "order",
+    "condition": "reverse",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "nested_synthetic-0",
+    "cohort": 0,
+    "kind": "MODEL",
+    "condition": "original",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "nested_synthetic-0",
+    "cohort": 0,
+    "kind": "MODEL",
+    "condition": "lower_scale",
+    "prior": [
+      2,
+      0.1
+    ]
+  },
+  {
+    "stem": "nested_synthetic-0",
+    "cohort": 0,
+    "kind": "MODEL",
+    "condition": "higher_scale",
+    "prior": [
+      2,
+      4
+    ]
+  },
+  {
+    "stem": "nested_synthetic-1",
+    "cohort": 1,
+    "kind": "MODEL",
+    "condition": "original",
+    "prior": [
+      2,
+      1
+    ]
+  },
+  {
+    "stem": "nested_synthetic-1",
+    "cohort": 1,
+    "kind": "MODEL",
+    "condition": "lower_scale",
+    "prior": [
+      2,
+      0.1
+    ]
+  },
+  {
+    "stem": "nested_synthetic-1",
+    "cohort": 1,
+    "kind": "MODEL",
+    "condition": "higher_scale",
+    "prior": [
+      2,
+      4
+    ]
+  }
+]
