@@ -1,3 +1,15 @@
+export const samplers = [
+  "reference",
+  "joint",
+  "blocked",
+  "joint_blocked",
+] as const;
+export const samplerLabels: Record<(typeof samplers)[number], string> = {
+  reference: "Reference: scalar decay, sequential effects",
+  joint: "Joint decay proposal",
+  blocked: "Blocked Gaussian effects",
+  joint_blocked: "Joint decay + blocked effects",
+};
 export const variants = [
   "full",
   "no_practice",
@@ -12,7 +24,7 @@ export const scenarios = [
   "short_gaps",
 ] as const;
 export type RunConfig = {
-  source: "synthetic" | "upload";
+  source: "synthetic" | "upload" | "anki";
   scenarios: string[];
   variants: string[];
   replicates: number;
@@ -25,6 +37,8 @@ export type RunConfig = {
   events: number;
   holdout: number;
   workers: number;
+  sampler: (typeof samplers)[number];
+  mh_steps: number;
   sequences?: unknown;
 };
 export const defaultConfig: RunConfig = {
@@ -41,6 +55,8 @@ export const defaultConfig: RunConfig = {
   events: 32,
   holdout: 0.25,
   workers: 2,
+  sampler: "reference",
+  mh_steps: 5,
 };
 export type RunStatus = {
   state: "queued" | "running" | "complete" | "failed" | "cancelled";

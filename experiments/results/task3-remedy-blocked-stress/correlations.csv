@@ -1,0 +1,4 @@
+scenario,replicate,a,b,correlation
+short_gaps,0,lam,kappa,0.23635019472471994
+short_gaps,0,lam,sigma2,0.025038629628153373
+short_gaps,0,b0,population_level,0.4434536120239448

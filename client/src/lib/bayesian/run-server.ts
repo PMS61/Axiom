@@ -20,7 +20,7 @@ export const root = path.resolve(
 export const runsRoot = path.join(root, ".task3-runs");
 export const runSchema = z
   .object({
-    source: z.enum(["synthetic", "upload"]),
+    source: z.enum(["synthetic", "upload", "anki"]),
     scenarios: z
       .array(
         z.enum([
@@ -29,6 +29,7 @@ export const runSchema = z
           "no_hierarchy",
           "no_dynamics",
           "short_gaps",
+          "anki",
         ]),
       )
       .min(1)
@@ -47,6 +48,10 @@ export const runSchema = z
     events: z.number().int().min(8).max(60),
     holdout: z.number().min(0.1).max(0.4),
     workers: z.number().int().min(1).max(4),
+    sampler: z
+      .enum(["reference", "joint", "blocked", "joint_blocked"])
+      .default("reference"),
+    mh_steps: z.number().int().min(1).max(20).default(5),
     sequences: z
       .array(
         z
@@ -84,6 +89,11 @@ export const runSchema = z
       if (new Set(v[field]).size !== v[field].length)
         ctx.addIssue({ code: "custom", message: `Duplicate ${field}.` });
     }
+    if (v.source === "synthetic" && v.scenarios.includes("anki"))
+      ctx.addIssue({
+        code: "custom",
+        message: "Choose synthetic generating conditions.",
+      });
     if (v.source === "upload" && !v.sequences)
       ctx.addIssue({
         code: "custom",
@@ -104,7 +114,7 @@ export async function pythonPath() {
   return process.env.AXIOM_DIAGNOSTICS_PYTHON || "python3";
 }
 export function runPath(id: string) {
-  if (!/^[a-zA-Z0-9-]{1,64}$/.test(id)) throw new Error("Invalid run ID.");
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(id)) throw new Error("Invalid run ID.");
   return path.join(runsRoot, id);
 }
 export async function readJson(file: string) {
@@ -119,12 +129,18 @@ export async function listRuns(): Promise<RunListItem[]> {
   const entries = await readdir(runsRoot, { withFileTypes: true });
   const runs = await Promise.all(
     entries
-      .filter((e) => e.isDirectory() && /^[a-zA-Z0-9-]{1,64}$/.test(e.name))
+      .filter((e) => e.isDirectory() && /^[a-zA-Z0-9_-]{1,64}$/.test(e.name))
       .map(async (e) => {
         const folder = runPath(e.name);
-        let status: RunStatus = (await readJson(
-          path.join(folder, "status.json"),
-        )) || { state: "queued", message: "Preparing worker." };
+        const [savedStatus, savedConfig, queuedInput] = await Promise.all([
+          readJson(path.join(folder, "status.json")),
+          readJson(path.join(folder, "config.json")),
+          readJson(path.join(folder, "input.json")),
+        ]);
+        // CLI investigations and exports use a different artifact schema.
+        // Queued browser jobs have input.json before the worker saves config.json.
+        if (!savedStatus || (!savedConfig && !queuedInput)) return null;
+        let status: RunStatus = savedStatus;
         const pid = await readJson(path.join(folder, "pid.json"));
         if (pid && ["queued", "running"].includes(status.state)) {
           try {
@@ -144,7 +160,9 @@ export async function listRuns(): Promise<RunListItem[]> {
         };
       }),
   );
-  return runs.sort((a, b) => b.created.localeCompare(a.created));
+  return runs
+    .filter((run): run is RunListItem => run !== null)
+    .sort((a, b) => b.created.localeCompare(a.created));
 }
 
 export async function launchRun(config: z.infer<typeof runSchema>) {

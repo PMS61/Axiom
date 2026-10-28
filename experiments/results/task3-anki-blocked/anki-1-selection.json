@@ -1,0 +1,36 @@
+{
+  "source": "local Anki Parquet files",
+  "cohort": 1,
+  "selection_seed": 20261028,
+  "provided_partition_preserved": true,
+  "time_unit": "days from elapsed_seconds / 86400",
+  "timestamp_ties": "stable source row order; original intra-day ordering not independently verified",
+  "candidates_with_test": 68992,
+  "eligible_users": 6,
+  "eligible_sequences": 1096,
+  "exclusions": {
+    "short_history": 62538,
+    "long_history": 614,
+    "partition_overlap": 14,
+    "invalid_elapsed": 0,
+    "inconsistent_time": 4730
+  },
+  "users": 3,
+  "sequences": 30,
+  "training_events": 242,
+  "test_events": 111,
+  "minimum_gap_days": 5.787037037037037e-05,
+  "maximum_gap_days": 2141.435914351852,
+  "gaps_below_old_minimum": 43,
+  "gaps_above_old_maximum": 21,
+  "files": {
+    "AnkiFirstRun/train_data.parquet": {
+      "sha256": "9565e1d83c6eb62a4c00c634d3c856c1f94d56844a445cb2dd8245dc3dbf9a05",
+      "rows": 2131995
+    },
+    "AnkiFirstRun/test_data.parquet": {
+      "sha256": "ac428c288373230d4462bb0df9a1796476a11e0a19840c9a2fb97b9dbc188ac7",
+      "rows": 532999
+    }
+  }
+}

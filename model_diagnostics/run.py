@@ -13,8 +13,9 @@ import traceback
 import numpy as np
 from .analysis import (atomic_json, diagnostics, metrics, overview_plots, paired_bootstrap,
                        plots, scalar_draws, truth_values, write_csv)
+from .anki import ANKI_BOUNDS, load_cohort
 from .data import SCENARIOS, simulate, split_suffix, validate_sequences
-from .model import DiagnosticModel, VARIANTS
+from .model import DiagnosticModel, VARIANTS, SAMPLERS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,30 +23,33 @@ ROOT = Path(__file__).resolve().parents[1]
 def validate_config(config):
     defaults = dict(source='synthetic', scenarios=['full'], replicates=1, chains=4,
                     iterations=2000, warmup=1000, seed=20261027, users=4, items=5,
-                    events=32, holdout=.25, variants=list(VARIANTS), workers=2)
+                    events=32, holdout=.25, variants=list(VARIANTS), workers=2, sampler='reference', mh_steps=5)
     unknown = set(config) - set(defaults) - {'sequences'}
     if unknown: raise ValueError(f'Unknown settings: {sorted(unknown)}')
     c = {**defaults, **config}
     limits = dict(replicates=(1, 3), chains=(4, 4), iterations=(200, 8000),
                   warmup=(50, 6000), users=(2, 8), items=(2, 10), events=(8, 60),
-                  seed=(0, 2**31-1), workers=(1, 4))
+                  seed=(0, 2**31-1), workers=(1, 4), mh_steps=(1, 20))
     for k, (lo, hi) in limits.items():
         if type(c[k]) is not int or not lo <= c[k] <= hi: raise ValueError(f'{k} must be an integer in [{lo}, {hi}]')
+    if c['sampler'] not in SAMPLERS: raise ValueError('Unknown sampler.')
     if c['iterations'] - c['warmup'] < 100: raise ValueError('Keep at least 100 post-warmup draws per chain.')
     if type(c['holdout']) not in (int, float) or not .1 <= c['holdout'] <= .4: raise ValueError('Holdout fraction must be in [0.1, 0.4].')
     if not c['variants'] or len(set(c['variants'])) != len(c['variants']) or any(v not in VARIANTS for v in c['variants']) or 'full' not in c['variants']:
         raise ValueError('Select full plus any unique supported ablations.')
-    if c['source'] != 'upload' and (not c['scenarios'] or len(set(c['scenarios'])) != len(c['scenarios']) or any(s not in SCENARIOS for s in c['scenarios'])):
+    if c['source'] == 'synthetic' and (not c['scenarios'] or len(set(c['scenarios'])) != len(c['scenarios']) or any(s not in SCENARIOS for s in c['scenarios'])):
         raise ValueError('Select unique supported synthetic scenarios.')
     if c['source'] == 'upload':
         validate_sequences(c.get('sequences'))
         c['scenarios'], c['replicates'] = ['uploaded'], 1
-    elif c['source'] != 'synthetic': raise ValueError('Source must be synthetic or upload.')
+    elif c['source'] == 'anki':
+        c['scenarios'] = ['anki']
+    elif c['source'] != 'synthetic': raise ValueError('Source must be synthetic, upload or anki.')
     return c
 
 
-def chain_job(train, test, variant, seed, chain, iterations, warmup, out):
-    model = DiagnosticModel(train, variant=variant, seed=seed, chain=chain)
+def chain_job(train, test, variant, seed, chain, iterations, warmup, out, sampler='reference', mh_steps=5, dt_bounds=(.01, 365.)):
+    model = DiagnosticModel(train, variant=variant, seed=seed, chain=chain, sampler=sampler, mh_steps=mh_steps, dt_bounds=dt_bounds)
     model.cancel_file = str(Path(out) / 'CANCEL')
     start, cpu = time.perf_counter(), time.process_time()
     model.run(n_iter=iterations, burn_in=warmup, thin=1)
@@ -64,6 +68,7 @@ def report(out, summary):
     lines = ['# Bayesian dynamic latent-state model: diagnostics and ablations', '',
              f"Run `{out.name}`. Source: **{c['source']}**. {c['chains']} independent chains, "
              f"{c['iterations']} iterations each; {c['warmup']} discarded warmup; no thinning.", '',
+             f"Sampler: `{c['sampler']}`; {c['mh_steps']} MH proposals per decay sweep. Joint covariance and scale adapt only during warmup. Blocked effects use the exact Gaussian conditional under unchanged priors.", '',
              '## Scope and model', '',
              'This study targets `AnkiFirstRun/dynamic_retention_model_optimised.py`, the pure NumPy time-aware OU model, '
              'not the event-indexed AR(1) model used by the original recall demo. The optimized-named file actually '
@@ -155,8 +160,8 @@ def report(out, summary):
               'implementation under assumed ground truth; it does not establish real-world usefulness.', '',
               'Inspect chains for drift, poor rank overlap and long autocorrelation first. Extend warmup '
               'and retained draws using saved settings. If diagnostics remain poor, investigate blocked '
-              'population/effect updates, non-centered random effects, and jointly proposing decay/diffusion; '
-              'these are recommendations, not implemented remedies. Use short-gap scenarios and multiple '
+              'population/effect updates and joint decay proposals using the sampler selector. Non-centered '
+              'random effects remain a separate unimplemented hypothesis. Use short-gap scenarios and multiple '
               'practice ranges to probe weak identification. Run more independent synthetic datasets '
               'and a prior-drawn SBC study before claiming calibrated inference.', '',
               'No previously observed ESS/R̂ values are reconstructed without their original chain files '
@@ -167,6 +172,9 @@ def report(out, summary):
               'Per-fit trace/ACF, pooled rank and posterior-pair plots are alongside CSV diagnostics, '
               'predictions, draws, recovery summaries and chain metadata. Report status is never '
               'changed to converged just because computation finished.']
+    if c['source'] == 'anki':
+        lines = [line.replace('Uploaded data have no known ground truth.', 'Real Anki observations have no known parameter truth.') for line in lines]
+        lines[2:2] = ['Real Anki observations: fixed disjoint user cohorts from local Parquet files. The provided train/test partition is preserved (holdout setting is ignored). Exact recorded elapsed_seconds / 86400 supplies gaps, with explicit bounds [1 second, 3650 days] rather than clipping. Item IDs are user-nested. No known parameter truth or recovery claims. See selection.json artifacts for selection/exclusion counts and source hashes.', '']
     (out / 'report.md').write_text('\n'.join(lines) + '\n')
 
 
@@ -181,7 +189,7 @@ def execute(config, out):
     provenance = dict(revision=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                       dirty=bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True).strip()),
                       source_hashes=hashes, python=platform.python_version(), platform=platform.platform(),
-                      packages={p: importlib.metadata.version(p) for p in ['numpy', 'scipy', 'matplotlib', 'arviz', 'polyagamma']},
+                      packages={p: importlib.metadata.version(p) for p in ['numpy', 'scipy', 'matplotlib', 'arviz', 'polyagamma'] + (['pyarrow'] if c['source'] == 'anki' else [])},
                       created_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), config_sha256=hashlib.sha256(json.dumps(c, sort_keys=True).encode()).hexdigest())
     atomic_json(out / 'provenance.json', provenance)
     results, diagnostic_rows, recoveries, comparisons, metadata, correlations = [], [], [], [], [], []
@@ -193,7 +201,11 @@ def execute(config, out):
         for scenario in c['scenarios']:
             for replicate in range(c['replicates']):
                 data_seed = c['seed'] + 1009 * replicate + (SCENARIOS.index(scenario) * 100003 if scenario in SCENARIOS else 0)
-                if c['source'] == 'upload':
+                if c['source'] == 'anki':
+                    train, test, seqs, selection = load_cohort(c['seed'], replicate, c['users'], c['items'], c['events'])
+                    truth = None
+                    atomic_json(out / f'{scenario}-{replicate}-selection.json', selection)
+                elif c['source'] == 'upload':
                     seqs, mapping = validate_sequences(c['sequences']); truth = None
                     atomic_json(out / 'id-mapping.json', mapping)
                 else:
@@ -203,14 +215,14 @@ def execute(config, out):
                 atomic_json(out / f'{scenario}-{replicate}-dataset.json', dataset)
                 provenance[f'{scenario}-{replicate}-data_sha256'] = hashlib.sha256(json.dumps(dataset, sort_keys=True).encode()).hexdigest()
                 atomic_json(out / 'provenance.json', provenance)
-                train, test = split_suffix(seqs, c['holdout'])
+                if c['source'] != 'anki': train, test = split_suffix(seqs, c['holdout'])
                 y = np.concatenate([s['r'] for s in test])
                 user_ids = np.concatenate([np.full(len(s['r']), s['user']) for s in test])
                 predictions, passed = {}, {}
                 for variant in c['variants']:
                     prefix = f'{scenario}-{replicate}-{variant}'
                     futures = {pool.submit(chain_job, train, test, variant, data_seed + chain * 7919 + 31,
-                                           chain, c['iterations'], c['warmup'], str(out)): chain for chain in range(c['chains'])}
+                                           chain, c['iterations'], c['warmup'], str(out), c['sampler'], c['mh_steps'], ANKI_BOUNDS if c['source'] == 'anki' else (.01, 365.)): chain for chain in range(c['chains'])}
                     chains = [None] * c['chains']
                     for future in as_completed(futures):
                         chains[futures[future]] = future.result(); done += 1

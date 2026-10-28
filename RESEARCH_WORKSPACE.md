@@ -140,3 +140,87 @@ The diagnostics tests deliberately create non-mixing and autocorrelated chains,
 check chronological splits and prediction leakage, enforce ablation constraints,
 validate input bounds/remapping and verify proper scores with ties/single classes.
 Repository-wide `npm run lint` has existing issues outside the workspace.
+
+## Sampler-remedy comparisons (Task 3)
+
+The sampler selector distinguishes `reference` (scalar decay and sequential
+coefficients), `joint` (joint log-lambda/kappa proposal), `blocked` (exact joint
+Gaussian coefficient update) and `joint_blocked` (both). Model variants and
+sampler variants are separate choices. Priors and the statistical model are
+identical across these kernels. Reference remains the default, including when
+loading older configurations. Joint covariance and scale adapt **only during
+warmup**. The MH proposals-per-sweep control defaults to five; joint uses five
+bivariate proposals while reference uses five per scalar. Static fits have no MH
+step; no-practice uses scalar lambda even under the joint setting.
+
+Reproduce the new 80-chain matched pilot from the repository root:
+
+```sh
+for sampler in reference joint blocked joint_blocked; do
+  for suffix in '' -stress; do
+    OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv-diagnostics/bin/python \
+      -m model_diagnostics.run \
+      --config "experiments/task3-remedy-${sampler}${suffix}.json" \
+      --out ".task3-runs/task3-remedy-${sampler}${suffix}"
+  done
+done
+.venv-diagnostics/bin/python -m model_diagnostics.compare \
+  --runs .task3-runs/task3-remedy-* \
+  --saved-reference .task3-runs/task3-longer-chains \
+  --out .task3-runs/task3-sampler-comparison
+```
+
+These commands refuse to overwrite existing studies/comparisons: choose new run
+names if they already exist. The comparison checks exact data hashes and matched
+settings, reports per-parameter ESS/CPU and MCSE agreement screens, and optionally
+checks retained draw equality against the saved longer-chain reference. It never
+changes the convergence thresholds. Select the complete descriptive run IDs in
+the workspace to inspect/reload settings and view predictions, recovery and
+plots. The technical audit and measured decisions are in
+`experiments/TASK3_SAMPLER_REPORT.md`; curated comparison tables are under
+`experiments/results/task3-sampler-comparison/`.
+
+## Actual Anki data (Task 3)
+
+Choose **Local Anki Parquet data** in the workspace. This reads the repository's
+`AnkiFirstRun/train_data.parquet` and `test_data.parquet` through PyArrow, preserves
+the supplied partition and disables the synthetic holdout fraction. Users, cards
+per user, maximum complete-history length and disjoint cohorts control a bounded
+actual-data pilot. No Anki observations are generated synthetically. Histories
+with missing/inconsistent gaps or overlapping partition days are excluded and
+counted. Original-ID mappings and selected raw records stay in ignored runs.
+
+Exact recorded elapsed seconds supply fractional-day gaps, with no silent clipping;
+the model uses the same OU equations and priors over a validated timing domain of
+1 second–3650 days. Full cohort selection/exclusions and limitations are documented
+in `experiments/TASK3_ANKI_REPORT.md`. No known-truth recovery is computed for Anki.
+
+```sh
+for sampler in reference joint blocked joint_blocked; do
+  OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv-diagnostics/bin/python \
+    -m model_diagnostics.run --config "experiments/task3-anki-${sampler}.json" \
+    --out ".task3-runs/task3-anki-${sampler}"
+done
+.venv-diagnostics/bin/python -m model_diagnostics.compare \
+  --runs .task3-runs/task3-anki-reference .task3-runs/task3-anki-joint \
+         .task3-runs/task3-anki-blocked .task3-runs/task3-anki-joint_blocked \
+  --out .task3-runs/task3-anki-comparison
+```
+
+Use new output names to preserve existing artifacts. These configs fit all four
+variants on two fixed disjoint user cohorts, with 8,000/4,000 iterations/warmup.
+
+## Task 3 experimental dynamics investigation
+
+The CLI-only [dynamics report](experiments/TASK3_DYNAMICS_REPORT.md) documents a
+read-only provenance audit, a fixed-parameter dynamics ladder, nested synthetic
+recovery and centered/innovation interweaving under unchanged priors. Run
+`python -m model_diagnostics.investigate --out .task3-runs/NEW` with the diagnostics
+interpreter from the root; it reuses the preceding saved Anki cohort files and
+refuses overwrite. Extra fixed controls change the fitted model and are not
+sampler-only remedies. The original adjacent timing check does not establish
+whole-history consistency; the follow-up found one selected trajectory failing
+a cumulative check. Existing real-data cohorts remain provisional.
+
+`npm run test:diagnostics` also runs transformation, Jacobian, prior-density,
+frozen-adaptation and nested-generator tests in `model_diagnostics/test_innovation.py`.

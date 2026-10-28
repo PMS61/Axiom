@@ -9,7 +9,7 @@ export async function GET() {
       await pythonPath(),
       [
         "-c",
-        "import json,sys,arviz,numpy,polyagamma,matplotlib,scipy; print(json.dumps(dict(python=sys.version.split()[0],arviz=arviz.__version__,numpy=numpy.__version__,polyagamma=polyagamma.__version__)))",
+        "import json,sys,arviz,numpy,polyagamma,matplotlib,scipy,pyarrow; print(json.dumps(dict(python=sys.version.split()[0],arviz=arviz.__version__,numpy=numpy.__version__,polyagamma=polyagamma.__version__,pyarrow=pyarrow.__version__)))",
       ],
       { cwd: root, timeout: 15000 },
     );

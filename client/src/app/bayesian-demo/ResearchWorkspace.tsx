@@ -10,6 +10,8 @@ import {
   type RunConfig,
   type RunDetail,
   type RunListItem,
+  samplerLabels,
+  samplers,
   scenarios,
   variants,
 } from "@/lib/bayesian/workspace";
@@ -117,10 +119,16 @@ export default function ResearchWorkspace() {
         if (disposed) return;
         setDetail(result);
         setConnectionError("");
-        const list = await fetch("/api/research-runs").then((r) => r.json());
+        const list: RunListItem[] = await fetch("/api/research-runs").then(
+          (r) => r.json(),
+        );
         if (disposed) return;
         setRuns(list);
-        if (active(result.status.state)) timer = setTimeout(refresh, 3000);
+        if (
+          active(result.status.state) ||
+          list.some((r) => active(r.status.state))
+        )
+          timer = setTimeout(refresh, 3000);
       } catch (e) {
         if (!disposed) {
           setConnectionError(
@@ -319,10 +327,22 @@ export default function ResearchWorkspace() {
             Data source
             <select
               value={config.source}
-              onChange={(e) => setting("source", e.target.value)}
+              onChange={(e) =>
+                setConfig((c) => ({
+                  ...c,
+                  source: e.target.value as RunConfig["source"],
+                  scenarios:
+                    e.target.value === "anki"
+                      ? ["anki"]
+                      : c.scenarios.filter((v) => v !== "anki").length
+                        ? c.scenarios.filter((v) => v !== "anki")
+                        : ["full"],
+                }))
+              }
             >
               <option value="synthetic">Synthetic · known ground truth</option>
               <option value="upload">Uploaded review sequences</option>
+              <option value="anki">Local Anki Parquet data</option>
             </select>
           </label>
           {config.source === "synthetic" ? (
@@ -347,6 +367,31 @@ export default function ResearchWorkspace() {
                 {numericField("replicates", "Dataset replicates", 1, 3)}
               </div>
             </>
+          ) : config.source === "anki" ? (
+            <div>
+              <p className={s.note}>
+                Reads the local AnkiFirstRun train/test Parquet files. Keeps
+                their temporal partition and recorded elapsed seconds; no
+                recovery truth. Fixed disjoint user cohorts select eligible
+                observed card histories, without selecting on recall outcomes.
+                This is a cohort pilot, not a full-dataset benchmark. Settings
+                may exceed available eligible users.
+              </p>
+              <div className={s.inputGrid}>
+                {numericField("users", "Users per cohort", 2, 8)}
+                {numericField("items", "Cards per user", 2, 10)}
+                {numericField("events", "Maximum history length", 8, 60)}
+                {numericField("replicates", "Disjoint cohorts", 1, 3)}
+              </div>
+              <p className={s.note}>
+                Requires at least six training and two test events per card.
+                Histories that fail adjacent-gap checks or have overlapping
+                partition dates are excluded and counted in selection artifacts.
+                These checks do not establish whole-history consistency or
+                complete lifetime histories; source provenance remains
+                unverified.
+              </p>
+            </div>
           ) : (
             <div className={s.upload}>
               <label className={s.field}>
@@ -415,12 +460,39 @@ export default function ResearchWorkspace() {
               Four independent chains. Exact PG draws, FFBS and collapsed
               Metropolis. No thinning.
             </p>
+            <label>
+              Transition kernel
+              <select
+                value={config.sampler}
+                onChange={(e) =>
+                  setConfig((v) => ({
+                    ...v,
+                    sampler: e.target.value as RunConfig["sampler"],
+                  }))
+                }
+              >
+                {samplers.map((value) => (
+                  <option key={value} value={value}>
+                    {samplerLabels[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className={s.note}>
+              All kernels preserve the model and priors. Joint decay adapts its
+              covariance and scale during warmup only; it applies when practice
+              decay is fitted. Compare separate runs with identical data, seeds
+              and iteration budgets. Improvements are hypotheses, not
+              guarantees.
+            </p>
             <div className={s.inputGrid}>
+              {numericField("mh_steps", "MH proposals per sweep", 1, 20)}
               {numericField("iterations", "Total iterations", 200, 8000, 100)}
               {numericField("warmup", "Warmup", 50, 6000, 50)}
               {numericField("seed", "Seed", 0, 2147483647)}
               {numericField("workers", "Parallel workers", 1, 4)}
-              {numericField("holdout", "Held-out fraction", 0.1, 0.4, 0.05)}
+              {config.source !== "anki" &&
+                numericField("holdout", "Held-out fraction", 0.1, 0.4, 0.05)}
             </div>
           </fieldset>
           <div className={s.launch}>
@@ -435,9 +507,11 @@ export default function ResearchWorkspace() {
             <p>
               {config.variants.length *
                 4 *
-                (config.source === "synthetic"
-                  ? config.scenarios.length * config.replicates
-                  : 1)}{" "}
+                (config.source === "upload"
+                  ? 1
+                  : config.source === "anki"
+                    ? config.replicates
+                    : config.scenarios.length * config.replicates)}{" "}
               chains · {Math.max(0, config.iterations - config.warmup)} retained
               draws per chain
             </p>
@@ -477,7 +551,7 @@ export default function ResearchWorkspace() {
                   <option key={r.id} value={r.id}>
                     {r.id === "task3-study"
                       ? "Task 3 · reference study"
-                      : `${r.id.slice(0, 8)} · ${new Date(r.created).toLocaleString()}`}{" "}
+                      : `${r.id.startsWith("task3-") ? r.id : r.id.slice(0, 8)} · ${new Date(r.created).toLocaleString()}`}{" "}
                     · {r.status.state}
                   </option>
                 ))}
@@ -527,8 +601,8 @@ export default function ResearchWorkspace() {
             <div className={s.empty}>
               <h2>No experiment selected</h2>
               <p>
-                Configure a synthetic experiment or upload review data, then run
-                the sampler.
+                Choose local Anki data, configure a synthetic experiment or
+                upload review data, then run the sampler.
               </p>
               <p>
                 Each run saves posterior draws, convergence diagnostics,
@@ -560,9 +634,11 @@ export default function ResearchWorkspace() {
                 <code>{runId}</code>
                 {detail?.config && (
                   <span>
-                    {detail.config.source} · {detail.config.chains} chains ·{" "}
-                    {detail.config.iterations} iterations ·{" "}
-                    {detail.config.warmup} warmup · seed {detail.config.seed}
+                    {detail.config.source} ·{" "}
+                    {samplerLabels[detail.config.sampler ?? "reference"]} ·{" "}
+                    {detail.config.chains} chains · {detail.config.iterations}{" "}
+                    iterations · {detail.config.warmup} warmup · seed{" "}
+                    {detail.config.seed}
                   </span>
                 )}
               </div>
@@ -783,9 +859,9 @@ export default function ResearchWorkspace() {
                     coverage is descriptive, not calibrated coverage. A covered
                     truth does not override a failed diagnostic gate.
                   </p>
-                  {detail?.config?.source === "upload" ? (
+                  {detail?.config?.source !== "synthetic" ? (
                     <p className={s.empty}>
-                      Ground truth is unavailable for uploaded data. Run a
+                      Ground truth is unavailable for real observations. Run a
                       synthetic experiment to assess recovery.
                     </p>
                   ) : (

@@ -1,0 +1,7 @@
+scenario,replicate,a,b,correlation
+full,0,lam,kappa,0.6807337687640341
+full,0,lam,sigma2,0.07337114391368474
+full,0,b0,population_level,0.46852304160113606
+full,1,lam,kappa,0.5479673918501986
+full,1,lam,sigma2,0.3725993999125152
+full,1,b0,population_level,0.5191595739728745

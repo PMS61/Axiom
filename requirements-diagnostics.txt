@@ -3,3 +3,6 @@ scipy>=1.11,<2
 matplotlib>=3.8,<4
 arviz==0.23.4
 polyagamma==2.0.2
+
+# Local Anki Parquet adapter
+pyarrow==26.0.0

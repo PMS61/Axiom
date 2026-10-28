@@ -1,0 +1,994 @@
+[
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 0,
+    "fit_wall_seconds": 38.1135627620024,
+    "fit_cpu_seconds": 37.769777684,
+    "predict_wall_seconds": 0.00961615000051097,
+    "predict_cpu_seconds": 0.009494886999995344,
+    "sampling": {
+      "lambda_acceptance": 0.36780000000000007,
+      "kappa_sweep_move_fraction": 0.8905,
+      "lambda_step": 0.30902209173240636,
+      "kappa_step": 0.13803077599719762,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20261059
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 1,
+    "fit_wall_seconds": 34.43709389500145,
+    "fit_cpu_seconds": 34.116313264,
+    "predict_wall_seconds": 0.012457795997761423,
+    "predict_cpu_seconds": 0.012364883000003601,
+    "sampling": {
+      "lambda_acceptance": 0.2614,
+      "kappa_sweep_move_fraction": 0.75475,
+      "lambda_step": 0.40106407672625816,
+      "kappa_step": 0.17785686347655558,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20268978
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 2,
+    "fit_wall_seconds": 28.301128985000105,
+    "fit_cpu_seconds": 28.027303503,
+    "predict_wall_seconds": 0.03881275200183154,
+    "predict_cpu_seconds": 0.038188938000001116,
+    "sampling": {
+      "lambda_acceptance": 0.31905,
+      "kappa_sweep_move_fraction": 0.83275,
+      "lambda_step": 0.3822778761764533,
+      "kappa_step": 0.1736293367886887,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20276897
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "full",
+    "chain": 3,
+    "fit_wall_seconds": 36.07138558799852,
+    "fit_cpu_seconds": 35.756535170999996,
+    "predict_wall_seconds": 0.014048150998860365,
+    "predict_cpu_seconds": 0.013965531999993175,
+    "sampling": {
+      "lambda_acceptance": 0.3514,
+      "kappa_sweep_move_fraction": 0.842,
+      "lambda_step": 0.33841441933855054,
+      "kappa_step": 0.1531777560122367,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20284816
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_practice",
+    "chain": 0,
+    "fit_wall_seconds": 33.74408256699826,
+    "fit_cpu_seconds": 33.438877551999994,
+    "predict_wall_seconds": 0.010224473997368477,
+    "predict_cpu_seconds": 0.010121473999994635,
+    "sampling": {
+      "lambda_acceptance": 0.30085,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.4238755196869281,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20261059
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_practice",
+    "chain": 1,
+    "fit_wall_seconds": 33.323065478998615,
+    "fit_cpu_seconds": 32.97926077099999,
+    "predict_wall_seconds": 0.011881959999300307,
+    "predict_cpu_seconds": 0.011171072999999865,
+    "sampling": {
+      "lambda_acceptance": 0.3884,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.3092464292972149,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20268978
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_practice",
+    "chain": 2,
+    "fit_wall_seconds": 32.03986893000183,
+    "fit_cpu_seconds": 31.788491207999996,
+    "predict_wall_seconds": 0.012855479999416275,
+    "predict_cpu_seconds": 0.012787725000009686,
+    "sampling": {
+      "lambda_acceptance": 0.2952,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.4053288334252459,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20276897
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_practice",
+    "chain": 3,
+    "fit_wall_seconds": 29.640058898999996,
+    "fit_cpu_seconds": 29.428693622000004,
+    "predict_wall_seconds": 0.035011848998692585,
+    "predict_cpu_seconds": 0.03476124099999822,
+    "sampling": {
+      "lambda_acceptance": 0.29980000000000007,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.4201407234613837,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20284816
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_hierarchy",
+    "chain": 0,
+    "fit_wall_seconds": 30.09249126600116,
+    "fit_cpu_seconds": 29.766540453999994,
+    "predict_wall_seconds": 0.034354021001490764,
+    "predict_cpu_seconds": 0.034020941999997945,
+    "sampling": {
+      "lambda_acceptance": 0.3062,
+      "kappa_sweep_move_fraction": 0.81175,
+      "lambda_step": 0.5379544273776963,
+      "kappa_step": 0.23470019535125874,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20261059
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_hierarchy",
+    "chain": 1,
+    "fit_wall_seconds": 30.38686708500245,
+    "fit_cpu_seconds": 30.205210570999995,
+    "predict_wall_seconds": 0.01134559199999785,
+    "predict_cpu_seconds": 0.011288288000002922,
+    "sampling": {
+      "lambda_acceptance": 0.31795000000000007,
+      "kappa_sweep_move_fraction": 0.861,
+      "lambda_step": 0.500530317037679,
+      "kappa_step": 0.20838399918308773,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20268978
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_hierarchy",
+    "chain": 2,
+    "fit_wall_seconds": 31.831882624999707,
+    "fit_cpu_seconds": 31.50310742699999,
+    "predict_wall_seconds": 0.00854049500048859,
+    "predict_cpu_seconds": 0.008507124000004751,
+    "sampling": {
+      "lambda_acceptance": 0.28445000000000004,
+      "kappa_sweep_move_fraction": 0.79025,
+      "lambda_step": 0.576664693859366,
+      "kappa_step": 0.24407398365360577,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20276897
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_hierarchy",
+    "chain": 3,
+    "fit_wall_seconds": 30.141533332000108,
+    "fit_cpu_seconds": 29.796588151999998,
+    "predict_wall_seconds": 0.012576746001286665,
+    "predict_cpu_seconds": 0.012527568000010092,
+    "sampling": {
+      "lambda_acceptance": 0.31320000000000003,
+      "kappa_sweep_move_fraction": 0.82025,
+      "lambda_step": 0.5150618787096454,
+      "kappa_step": 0.2264629732525359,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20284816
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_dynamics",
+    "chain": 0,
+    "fit_wall_seconds": 3.438676249999844,
+    "fit_cpu_seconds": 3.371727561,
+    "predict_wall_seconds": 0.0017431679989385884,
+    "predict_cpu_seconds": 0.001734800000008363,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20261059
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_dynamics",
+    "chain": 1,
+    "fit_wall_seconds": 4.023960353999428,
+    "fit_cpu_seconds": 3.9729759949999988,
+    "predict_wall_seconds": 0.004186680002021603,
+    "predict_cpu_seconds": 0.004168819000000212,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20268978
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_dynamics",
+    "chain": 2,
+    "fit_wall_seconds": 4.149992467999255,
+    "fit_cpu_seconds": 4.100055044000001,
+    "predict_wall_seconds": 0.0014861870004097,
+    "predict_cpu_seconds": 0.0014792390000053501,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20276897
+  },
+  {
+    "scenario": "anki",
+    "replicate": 0,
+    "variant": "no_dynamics",
+    "chain": 3,
+    "fit_wall_seconds": 2.6744399220006017,
+    "fit_cpu_seconds": 2.624823059999997,
+    "predict_wall_seconds": 0.002235713000118267,
+    "predict_cpu_seconds": 0.0022194040000016457,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20284816
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "full",
+    "chain": 0,
+    "fit_wall_seconds": 13.384485659000347,
+    "fit_cpu_seconds": 13.239189530000004,
+    "predict_wall_seconds": 0.007342154000070877,
+    "predict_cpu_seconds": 0.006761553999993453,
+    "sampling": {
+      "lambda_acceptance": 0.25525,
+      "kappa_sweep_move_fraction": 0.75825,
+      "lambda_step": 0.8147967285192856,
+      "kappa_step": 0.5126467180533616,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20262068
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "full",
+    "chain": 1,
+    "fit_wall_seconds": 10.491573907998827,
+    "fit_cpu_seconds": 10.397614098000005,
+    "predict_wall_seconds": 0.00850091699976474,
+    "predict_cpu_seconds": 0.008452726000001576,
+    "sampling": {
+      "lambda_acceptance": 0.27645000000000003,
+      "kappa_sweep_move_fraction": 0.773,
+      "lambda_step": 0.6686480619257408,
+      "kappa_step": 0.45564129118212765,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20269987
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "full",
+    "chain": 2,
+    "fit_wall_seconds": 12.05241604999901,
+    "fit_cpu_seconds": 11.919077504,
+    "predict_wall_seconds": 0.01014092499826802,
+    "predict_cpu_seconds": 0.009980168999987882,
+    "sampling": {
+      "lambda_acceptance": 0.29325,
+      "kappa_sweep_move_fraction": 0.806,
+      "lambda_step": 0.6835181102573378,
+      "kappa_step": 0.43999451005657103,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20277906
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "full",
+    "chain": 3,
+    "fit_wall_seconds": 13.450394712999696,
+    "fit_cpu_seconds": 13.314784305000003,
+    "predict_wall_seconds": 0.006485773999884259,
+    "predict_cpu_seconds": 0.006460857000007536,
+    "sampling": {
+      "lambda_acceptance": 0.27215000000000006,
+      "kappa_sweep_move_fraction": 0.76475,
+      "lambda_step": 0.744292788488066,
+      "kappa_step": 0.4953630212580462,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20285825
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_practice",
+    "chain": 0,
+    "fit_wall_seconds": 9.86072877100014,
+    "fit_cpu_seconds": 9.743674685000002,
+    "predict_wall_seconds": 0.011451835001935251,
+    "predict_cpu_seconds": 0.010874591000003875,
+    "sampling": {
+      "lambda_acceptance": 0.28995000000000004,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.6779738144224712,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20262068
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_practice",
+    "chain": 1,
+    "fit_wall_seconds": 9.095958365000115,
+    "fit_cpu_seconds": 8.98191241100001,
+    "predict_wall_seconds": 0.007757041003060294,
+    "predict_cpu_seconds": 0.0077181859999910785,
+    "sampling": {
+      "lambda_acceptance": 0.25820000000000004,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.903345067233217,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20269987
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_practice",
+    "chain": 2,
+    "fit_wall_seconds": 12.666491939999105,
+    "fit_cpu_seconds": 12.574884774000012,
+    "predict_wall_seconds": 0.005211889001657255,
+    "predict_cpu_seconds": 0.0051940099999967515,
+    "sampling": {
+      "lambda_acceptance": 0.31300000000000006,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.6185524953268228,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20277906
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_practice",
+    "chain": 3,
+    "fit_wall_seconds": 11.040565228002379,
+    "fit_cpu_seconds": 10.96234303,
+    "predict_wall_seconds": 0.00678721999793197,
+    "predict_cpu_seconds": 0.006764379999992798,
+    "sampling": {
+      "lambda_acceptance": 0.3221,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.721600489132834,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20285825
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_hierarchy",
+    "chain": 0,
+    "fit_wall_seconds": 13.602569123002468,
+    "fit_cpu_seconds": 13.523829715000005,
+    "predict_wall_seconds": 0.006619653999223374,
+    "predict_cpu_seconds": 0.006597670000019207,
+    "sampling": {
+      "lambda_acceptance": 0.28915,
+      "kappa_sweep_move_fraction": 0.80075,
+      "lambda_step": 0.6091833024386122,
+      "kappa_step": 0.4082007154167155,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20262068
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_hierarchy",
+    "chain": 1,
+    "fit_wall_seconds": 10.563401914998394,
+    "fit_cpu_seconds": 10.503685032000007,
+    "predict_wall_seconds": 0.008579560999351088,
+    "predict_cpu_seconds": 0.008547139000000925,
+    "sampling": {
+      "lambda_acceptance": 0.33970000000000006,
+      "kappa_sweep_move_fraction": 0.8645,
+      "lambda_step": 0.5278361037684693,
+      "kappa_step": 0.3433536940210582,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20269987
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_hierarchy",
+    "chain": 2,
+    "fit_wall_seconds": 14.886180950998096,
+    "fit_cpu_seconds": 14.808585270999998,
+    "predict_wall_seconds": 0.004791846000443911,
+    "predict_cpu_seconds": 0.004778659000010066,
+    "sampling": {
+      "lambda_acceptance": 0.32165000000000005,
+      "kappa_sweep_move_fraction": 0.83,
+      "lambda_step": 0.5916325833110635,
+      "kappa_step": 0.41755845249469586,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20277906
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_hierarchy",
+    "chain": 3,
+    "fit_wall_seconds": 11.1967329600011,
+    "fit_cpu_seconds": 11.130882644999986,
+    "predict_wall_seconds": 0.008363144002942136,
+    "predict_cpu_seconds": 0.008335875000000215,
+    "sampling": {
+      "lambda_acceptance": 0.29675,
+      "kappa_sweep_move_fraction": 0.7955,
+      "lambda_step": 0.6215529320765977,
+      "kappa_step": 0.4202265589565424,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20285825
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_dynamics",
+    "chain": 0,
+    "fit_wall_seconds": 1.627386493000813,
+    "fit_cpu_seconds": 1.614678975000004,
+    "predict_wall_seconds": 0.001403218000632478,
+    "predict_cpu_seconds": 0.0013990540000179408,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20262068
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_dynamics",
+    "chain": 1,
+    "fit_wall_seconds": 1.5026351799970143,
+    "fit_cpu_seconds": 1.497920826999973,
+    "predict_wall_seconds": 0.0014845740006421693,
+    "predict_cpu_seconds": 0.0014787329999990106,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20269987
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_dynamics",
+    "chain": 2,
+    "fit_wall_seconds": 2.3442424860004394,
+    "fit_cpu_seconds": 2.32954812600002,
+    "predict_wall_seconds": 0.001313497999944957,
+    "predict_cpu_seconds": 0.0013078620000044339,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20277906
+  },
+  {
+    "scenario": "anki",
+    "replicate": 1,
+    "variant": "no_dynamics",
+    "chain": 3,
+    "fit_wall_seconds": 2.458826178997697,
+    "fit_cpu_seconds": 2.449166302000009,
+    "predict_wall_seconds": 0.0011883830011356622,
+    "predict_cpu_seconds": 0.0011852760000010676,
+    "sampling": {
+      "lambda_acceptance": null,
+      "kappa_sweep_move_fraction": null,
+      "lambda_step": 0.2,
+      "kappa_step": 0.15,
+      "sampler": "reference",
+      "mh_steps": 5,
+      "joint_covariance": [
+        [
+          0.04000000000000001,
+          0.0
+        ],
+        [
+          0.0,
+          0.0225
+        ]
+      ],
+      "joint_scale": 1.0,
+      "adaptation_draws": 0
+    },
+    "seed": 20285825
+  }
+]
