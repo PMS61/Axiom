@@ -359,3 +359,91 @@ Duolingo file from Dataverse inside the notebook, so no data is uploaded. Full r
 `results/duolingo_*`, then add a Duolingo section to `docs/EVALUATION.md` and to the PDF report,
 and write `docs/reports/phase-5.md`.
 
+### Phase 6: An experimental Bayesian model that beats FSRS — PLANNED (user request 2026-11-03)
+
+**Intent.** A NEW, separate model, with the original `DynamicRetentionModelDT` and its GPU port left
+untouched. Its formulas may differ freely. The goal is to beat FSRS-6 (default and optimised) on log
+loss, and ideally AUC and ECE, on BOTH datasets: Anki (`full_u100_c1000` events) and Duolingo (all
+data). The claim must be honest, so model selection never touches the test events.
+
+**Why FSRS currently wins (diagnosis):**
+- (a) FSRS uses the 4 Anki grades; ours uses only pass/fail.
+- (b) FSRS uses a power-law forgetting curve with stability growth that depends on retrievability at
+  the review (the spacing effect). Ours uses OU mean reversion of the recall logit, which is
+  over-optimistic at long gaps (+0.09 bias at 61+ days).
+- (c) FSRS-opt fits each user separately or falls back to defaults. A hierarchical prior should win
+  on users with little data, which is most Duolingo users.
+
+**Protocol (fixed):**
+- Validation split: inside each user's TRAIN period, the last 20% of train days (same quantile rule)
+  is VALIDATION. Candidates are fitted on train-minus-validation and compared on validation events
+  scored with the same rule (not first review, gap >= 1 day).
+- The test set is used ONCE, for the final chosen model, and every experiment tried is listed in the
+  report (no silent cherry-picking).
+- The final model is refitted on the full TRAIN period with the frozen choice, then scored on the
+  same test events through the existing runner and report (new model key `ours_v2`).
+
+**Candidate family (to explore in order; stop when validation beats FSRS-opt on both datasets):**
+1. Hierarchical Bayesian FSRS-style memory model:
+   - forgetting curve R(t,S) = (1 + F*t/S)^C, with C < 0 learned;
+   - latent log-stability per card updated on each review by a learned function of grade,
+     retrievability at review, difficulty and the current stability;
+   - user-level random effects on the update parameters, partially pooled with a global prior;
+   - fit by MAP or variational inference in torch (GPU-capable), with uncertainty from the posterior.
+2. Add process noise on log-stability (a state-space version, filtered like the current FFBS idea).
+3. Calibration layer only if fitted on validation, never on test.
+
+### Phase 7: The best model (user request 2026-11-04: "use everything you got and make the best model") — IN PROGRESS
+
+**Intent.** Get the best possible log loss on BOTH Anki and Duolingo, using every idea that
+validation supports. The Phase 6 protocol still applies: selection on VALIDATION only (last 20% of
+each user's train days; Anki 100 users; Duolingo 5000-user dev sample, with a full-data check for
+the final pick). The test set is used ONCE more, for the final pick only. The report says this is
+the second look at test (the first was v2 in Phase 6), and lists every candidate tried.
+
+**What we know (validation and test, Phases 5-6):**
+- v1 (OU-logit, Gibbs/PG, pass/fail) is strong on Duolingo (test 0.268) and weak on Anki (0.422).
+- v2 (FSRS-style curve, grades, hierarchical user effects, MAP) is at parity on Anki (0.379 =
+  FSRS-opt) and beats FSRS on Duolingo, but is weaker than v1 there (0.289).
+- On Duolingo, `card_id` is per user, so nothing pools the same lexeme across users. HLR's
+  official version uses lexeme features, and lexeme difficulty is likely a large signal.
+
+**Tasks:**
+- 7.1 (Phase 6 builder, Task E, running): v1+v2 weighted ensemble on validation.
+- 7.2 v3 = v2 plus the strengths of v1 and HLR, in a NEW file `models/ours_v3.py` (v2 is not changed):
+  (a) an optional item-level random effect shared across users (Duolingo: the lexeme; the loader
+      gains an optional `lexeme` column, with Anki leaving it absent);
+  (b) a lagged-outcome term and a per-card random effect (what v1 has);
+  (c) anything else that validation supports. Each component is ablated on validation.
+  Done when: tests pass, there is no leakage (perturbation test as in Phase 6), the validation table
+  covers both datasets with CIs vs FSRS-opt, and `ours_v3` is registered in run.py and report.py.
+- 7.3 Stacking: a cross-fitted (folds by user) logistic stacker on VALIDATION predictions of v1,
+  v2/v3, FSRS-opt and LagLogit, plus simple features (log gap, review count). It is selected only
+  if it beats the best single model on validation by a margin whose CI excludes 0.
+- 7.4 Final pick by a fixed rule (lowest mean validation log loss over the two datasets among
+  candidates that do not lose to FSRS-opt on either). Then ONE test run, the docs, and the report.
+
+**Phase 7 scope change (user, 2026-11-04): "you can use anything not just stuck on baysian any ml or non ml
+techniques is fine we just have to make the ultimate model".** Any technique is allowed. The constraints
+that stay:
+- Same inputs as every other model: the event table columns (plus the Duolingo lexeme id).
+  Duolingo's history_seen/history_correct are NOT used (they count exposures before the log window,
+  which no other model sees).
+- Predictions are one-step-ahead. A feature for review t uses only that card's and that user's
+  reviews before t. Train-derived statistics (e.g. lexeme or user recall rates) come from fit rows
+  only (train rows for the final model, fit-part rows for validation).
+- Selection is on validation only. The test set is used once for the final pick, with every
+  candidate listed.
+- **Resources (the PC crashed on 2026-11-04):** at most ONE heavy local job at a time, peak RAM
+  under about 6 GB, at most 4 threads. Development uses the Anki validation split and the
+  5000-user Duolingo dev sample. Full-Duolingo runs go to Kaggle. Anki stays local (its data is gated).
+
+**Task status:** 7.1 ensemble paused (the v1 validation fits are too slow locally, 3-9 h). 7.2 v3 done
+and verified (validation Anki 0.3792, Duolingo dev 0.2707; FROZEN q2); its test run has not been made.
+- 7.3 GBDT (`models/gbdt.py`, LightGBM 4.6.0): past-only features per review (gap, counts, lapses,
+  the last k grades/outcomes/gaps, the FSRS-6 default state S/D/R replayed from history, running user
+  stats, a fit-rows-only lexeme/user prior, etc.), trained on train rows. Ablate feature groups on
+  validation.
+- 7.4 (optional, later) a GRU sequence model on Kaggle GPU, if 7.3 leaves a gap.
+- 7.5 Stacking or blending of v3, GBDT and FSRS-opt on validation (cross-fitted by user).
+- 7.6 Final pick, ONE test run (Anki local, Duolingo on Kaggle), docs.

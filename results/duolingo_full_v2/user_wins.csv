@@ -1,0 +1,6 @@
+reference,model,users,users_lower_log_loss,share
+fsrs_opt,fsrs_default,41223,10,0.00024258302403997768
+fsrs_opt,hlr,41223,23766,0.576522814933411
+fsrs_opt,ours_gpu,41223,30511,0.7401450646483759
+fsrs_opt,laglogit,41223,29525,0.716226378478034
+fsrs_opt,ours_v2,41223,29013,0.7038061276471872

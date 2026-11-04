@@ -1,0 +1,14 @@
+[07:51:57] download: 100 users, seed 0, into data/anki10k
+[07:51:57] load: 100 user files
+[07:52:04] split: max_cards=1000, seed=0
+[07:52:05] events: 768658 total, 606364 train, 162294 test, 95400 scored
+[07:52:05] fsrs_default: --resume, skipping (found pred_fsrs_default.parquet)
+[07:52:05] fsrs_opt: --resume, skipping (found pred_fsrs_opt.parquet)
+[07:52:05] hlr: --resume, skipping (found pred_hlr.parquet)
+[07:52:05] ours: --resume, skipping (found pred_ours.parquet)
+[07:52:06] ours_kappa: --resume, skipping (found pred_ours_kappa.parquet)
+[07:52:06] ours_v2: fit
+[07:52:31] ours_v2: predict
+[07:52:34] ours_v2: done, fit 25.7s, predict 3.1s, saved pred_ours_v2.parquet
+[07:52:35] wrote results/full_u100_c1000_v2/predictions.parquet (95400 rows)
+[07:52:35] wrote results/full_u100_c1000_v2/run_info.json (total 37.8s)

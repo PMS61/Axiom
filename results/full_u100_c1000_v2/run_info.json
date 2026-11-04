@@ -1,0 +1,96 @@
+{
+  "run_name": "full_u100_c1000_v2",
+  "dataset": "anki",
+  "args": {
+    "n_users": 100,
+    "max_cards": 1000,
+    "seed": 0,
+    "iters": 2000,
+    "burn": 1000,
+    "models": [
+      "fsrs_default",
+      "fsrs_opt",
+      "hlr",
+      "ours",
+      "ours_kappa",
+      "ours_v2"
+    ],
+    "run_name": "full_u100_c1000_v2",
+    "data_dir": "data/anki10k",
+    "out_dir": "results",
+    "workers": 1,
+    "resume": true,
+    "dataset": "anki",
+    "duolingo_path": "data/duolingo/settles.acl16.learning_traces.13m.csv.gz",
+    "min_user_rows": 100,
+    "device": "auto",
+    "thin": 4
+  },
+  "git": {
+    "commit": "ea51d426a5868824b78a38347732ada9bd8d562b",
+    "dirty": true
+  },
+  "packages": {
+    "fsrs": "6.3.2",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "torch": "2.14.1+cpu",
+    "numba": "0.68.0",
+    "python": "3.12.13"
+  },
+  "counts": {
+    "users": 100,
+    "cards": 99074,
+    "events": 768658,
+    "train": 606364,
+    "test": 162294,
+    "scored": 95400
+  },
+  "users_zero_train": [],
+  "models": {
+    "fsrs_default": {
+      "resumed": true
+    },
+    "fsrs_opt": {
+      "resumed": true
+    },
+    "hlr": {
+      "resumed": true
+    },
+    "ours": {
+      "resumed": true
+    },
+    "ours_kappa": {
+      "resumed": true
+    },
+    "ours_v2": {
+      "fit_seconds": 25.675,
+      "predict_seconds": 3.098,
+      "hyperparams": {
+        "effects": [
+          "s0",
+          "growth",
+          "decay",
+          "fail",
+          "bias",
+          "d0"
+        ],
+        "epochs": 20,
+        "lr": 0.03,
+        "z_lr": null,
+        "fit_steps": 64,
+        "chunk_cards": 15000,
+        "seed": 0,
+        "process_noise": false,
+        "calibrate": false,
+        "card_effect": false,
+        "prior_w": 0.0,
+        "tau_init": 0.3,
+        "z_prior": 1.0
+      },
+      "resumed": false
+    }
+  },
+  "total_seconds": 37.842,
+  "finished_at": "2026-11-04T02:22:35+00:00"
+}
