@@ -1,0 +1,72 @@
+{
+  "n_users": 100,
+  "max_cards": 1000,
+  "seed": 0,
+  "scored_event_sha256": "21430775535b22d720d2792e4364aba649abb39576194cbb1a7b4a12b71397b0",
+  "hyperparams": {
+    "effects": [
+      "s0",
+      "growth",
+      "decay",
+      "fail",
+      "bias",
+      "d0"
+    ],
+    "epochs": 20,
+    "lr": 0.03,
+    "z_lr": null,
+    "fit_steps": 64,
+    "chunk_cards": 15000,
+    "seed": 0,
+    "process_noise": false,
+    "calibrate": false,
+    "card_effect": false,
+    "prior_w": 0.0,
+    "tau_init": 0.3,
+    "z_prior": 1.0,
+    "lex_effects": [],
+    "lag": true,
+    "card_bias": true,
+    "use_dt": false,
+    "lex_lr": null,
+    "lex_tau": null,
+    "tau_pen": 300.0,
+    "card_tau": 0.2,
+    "lex_pen": 0.0
+  },
+  "details": {
+    "fit_seconds": 23.668,
+    "predict_seconds": 3.192,
+    "hyperparams": {
+      "effects": [
+        "s0",
+        "growth",
+        "decay",
+        "fail",
+        "bias",
+        "d0"
+      ],
+      "epochs": 20,
+      "lr": 0.03,
+      "z_lr": null,
+      "fit_steps": 64,
+      "chunk_cards": 15000,
+      "seed": 0,
+      "process_noise": false,
+      "calibrate": false,
+      "card_effect": false,
+      "prior_w": 0.0,
+      "tau_init": 0.3,
+      "z_prior": 1.0,
+      "lex_effects": [],
+      "lag": true,
+      "card_bias": true,
+      "use_dt": false,
+      "lex_lr": null,
+      "lex_tau": null,
+      "tau_pen": 300.0,
+      "card_tau": 0.2,
+      "lex_pen": 0.0
+    }
+  }
+}

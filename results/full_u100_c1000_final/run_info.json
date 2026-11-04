@@ -1,0 +1,163 @@
+{
+  "run_name": "full_u100_c1000_final",
+  "dataset": "anki",
+  "args": {
+    "n_users": 100,
+    "max_cards": 1000,
+    "seed": 0,
+    "iters": 2000,
+    "burn": 1000,
+    "models": [
+      "fsrs_default",
+      "fsrs_opt",
+      "hlr",
+      "ours",
+      "ours_kappa",
+      "ours_v2",
+      "ours_v3",
+      "gbdt"
+    ],
+    "run_name": "full_u100_c1000_final",
+    "data_dir": "data/anki10k",
+    "out_dir": "results",
+    "workers": 1,
+    "resume": true,
+    "dataset": "anki",
+    "duolingo_path": "data/duolingo/settles.acl16.learning_traces.13m.csv.gz",
+    "min_user_rows": 100,
+    "device": "auto",
+    "thin": 4
+  },
+  "git": {
+    "commit": "16fe112a3976b16bbeb7e1800fad5ed46680a548",
+    "dirty": true
+  },
+  "packages": {
+    "fsrs": "6.3.2",
+    "numpy": "2.5.4",
+    "pandas": "3.0.6",
+    "torch": "2.14.1+cpu",
+    "numba": "0.68.0",
+    "python": "3.12.13"
+  },
+  "counts": {
+    "users": 100,
+    "cards": 99074,
+    "events": 768658,
+    "train": 606364,
+    "test": 162294,
+    "scored": 95400
+  },
+  "users_zero_train": [],
+  "models": {
+    "fsrs_default": {
+      "resumed": true
+    },
+    "fsrs_opt": {
+      "resumed": true
+    },
+    "hlr": {
+      "resumed": true
+    },
+    "ours": {
+      "resumed": true
+    },
+    "ours_kappa": {
+      "resumed": true
+    },
+    "ours_v2": {
+      "fit_seconds": 25.675,
+      "predict_seconds": 3.098,
+      "hyperparams": {
+        "effects": [
+          "s0",
+          "growth",
+          "decay",
+          "fail",
+          "bias",
+          "d0"
+        ],
+        "epochs": 20,
+        "lr": 0.03,
+        "z_lr": null,
+        "fit_steps": 64,
+        "chunk_cards": 15000,
+        "seed": 0,
+        "process_noise": false,
+        "calibrate": false,
+        "card_effect": false,
+        "prior_w": 0.0,
+        "tau_init": 0.3,
+        "z_prior": 1.0
+      },
+      "resumed": true
+    },
+    "ours_v3": {
+      "fit_seconds": 23.668,
+      "predict_seconds": 3.192,
+      "hyperparams": {
+        "effects": [
+          "s0",
+          "growth",
+          "decay",
+          "fail",
+          "bias",
+          "d0"
+        ],
+        "epochs": 20,
+        "lr": 0.03,
+        "z_lr": null,
+        "fit_steps": 64,
+        "chunk_cards": 15000,
+        "seed": 0,
+        "process_noise": false,
+        "calibrate": false,
+        "card_effect": false,
+        "prior_w": 0.0,
+        "tau_init": 0.3,
+        "z_prior": 1.0,
+        "lex_effects": [],
+        "lag": true,
+        "card_bias": true,
+        "use_dt": false,
+        "lex_lr": null,
+        "lex_tau": null,
+        "tau_pen": 300.0,
+        "card_tau": 0.2,
+        "lex_pen": 0.0
+      },
+      "resumed": false
+    },
+    "gbdt": {
+      "fit_seconds": 26.799,
+      "predict_seconds": 2.058,
+      "hyperparams": {
+        "groups": [
+          "gap",
+          "dt",
+          "card",
+          "fsrs",
+          "user",
+          "lexeme"
+        ],
+        "num_leaves": 15,
+        "learning_rate": 0.02,
+        "min_data_in_leaf": 100,
+        "feature_fraction": 0.8,
+        "lambda_l2": 1.0,
+        "train_rows": "nonfirst",
+        "holdout_frac": 0.15,
+        "max_rounds": 2000,
+        "patience": 50,
+        "m_user": 3.0,
+        "m_lex": 3.0,
+        "span": 20,
+        "user_group": "row",
+        "seed": 0
+      },
+      "resumed": false
+    }
+  },
+  "total_seconds": 62.727,
+  "finished_at": "2026-11-04T06:46:08+00:00"
+}

@@ -1,0 +1,58 @@
+{
+  "n_users": 100,
+  "max_cards": 1000,
+  "seed": 0,
+  "scored_event_sha256": "21430775535b22d720d2792e4364aba649abb39576194cbb1a7b4a12b71397b0",
+  "hyperparams": {
+    "groups": [
+      "gap",
+      "dt",
+      "card",
+      "fsrs",
+      "user",
+      "lexeme"
+    ],
+    "num_leaves": 15,
+    "learning_rate": 0.02,
+    "min_data_in_leaf": 100,
+    "feature_fraction": 0.8,
+    "lambda_l2": 1.0,
+    "train_rows": "nonfirst",
+    "holdout_frac": 0.15,
+    "max_rounds": 2000,
+    "patience": 50,
+    "m_user": 3.0,
+    "m_lex": 3.0,
+    "span": 20,
+    "user_group": "row",
+    "seed": 0
+  },
+  "details": {
+    "fit_seconds": 26.799,
+    "predict_seconds": 2.058,
+    "hyperparams": {
+      "groups": [
+        "gap",
+        "dt",
+        "card",
+        "fsrs",
+        "user",
+        "lexeme"
+      ],
+      "num_leaves": 15,
+      "learning_rate": 0.02,
+      "min_data_in_leaf": 100,
+      "feature_fraction": 0.8,
+      "lambda_l2": 1.0,
+      "train_rows": "nonfirst",
+      "holdout_frac": 0.15,
+      "max_rounds": 2000,
+      "patience": 50,
+      "m_user": 3.0,
+      "m_lex": 3.0,
+      "span": 20,
+      "user_group": "row",
+      "seed": 0
+    }
+  }
+}
