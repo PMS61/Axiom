@@ -31,3 +31,9 @@
 - `--thin` is not part of the resume config check (`model_config` in run.py records iters/burn and backend, not thin), so a resumed run with a different `--thin` reuses old draws.
 - The full pytest suite can hang when torch and numba test files run in one process; run them individually.
 - FSRS-opt on Duolingo falls back for almost all users (115,110 of 115,222), so it is nearly FSRS-6 default there.
+
+## Phases 6-7
+- Anki chronological order is only documented (Phase 7 experiments doc, Task 7.3 notes), not enforced by a check in the loader.
+- The Phase 7 task 7.1 ensemble (v1 + v2 weighted, on validation) was not completed: the v1 validation fits are too slow locally (3-9 h).
+- A GRU sequence model (task 7.4) was not tried. It would need Kaggle GPU time.
+- Constant-recall baselines are still pending (add to `report.py` after Phase 5).

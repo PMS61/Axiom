@@ -433,3 +433,61 @@ The predictions are insensitive to this. Test log loss is 0.2682 at 2000 sweeps 
 The run was split over two Kaggle notebooks, one GPU and one CPU. The GPU notebook (`amalverma27/notebook2ef9000f5a`) produced `ours_gpu`, `hlr` and `laglogit`. The CPU notebook (`notebooke7d641abde`) produced `fsrs_default` and `fsrs_opt`. The two sets of prediction files were merged locally with `--resume`, which skips finished per-model files whose sidecars match the config. The merge wrote `predictions.parquet` (1,189,355 rows) and `run_info.json`. The git commit recorded in `run_info.json` is `ea51d42`, with `dirty: true`.
 
 Total fit and predict times per model are in `results/duolingo_full/report.md`. The FSRS-6 predict times (about 2,500 s each, run serially) and the `ours_gpu` fit (about 2,600 s) are the largest per-model costs.
+
+## 11. Improved models (Phases 6-7)
+
+Phases 6 and 7 built three new models and a stacker, selected them on validation only, and ran one test look per model family. The experiment logs are `docs/reports/phase-6-experiments.md` and `docs/reports/phase-7-experiments.md`. The test runs are `results/full_u100_c1000_final/` (Anki, 100 users) and `results/duolingo_final/` (all Duolingo users). Both runs use the same split, scoring rule, metrics and runner as Sections 9 and 10. The models are in `fsrs_benchmark/models/ours_v2.py`, `ours_v3.py` and `gbdt.py`. The original `DynamicRetentionModelDT` and its GPU port are unchanged.
+
+### 11.1 The models
+
+- **v2 (`ours_v2`, Phase 6).** A hierarchical FSRS-style memory model. Its forgetting curve and stability updates use FSRS-6 functional forms, with 21 weights learned jointly across users. Five user-level random effects shift these weights for each user, and they are partially pooled towards the global weights. The model is fitted by MAP with torch, so it gives point estimates and not posterior samples. The frozen setting is 20 epochs and no process noise.
+- **v3 (`ours_v3`, Phase 7).** v2 plus three changes, each ablated on validation. (1) An L2 penalty on the scales of the user effects (`tau_pen = 300`). This regularisation was the component that mattered, because v2's learned user-effect scale overfits on Duolingo. (2) A lagged-outcome term, so the previous review's outcome also enters the prediction. (3) A per-card logit effect with a fixed scale (0.2). The card effect is not separately supported: the same model without it is within 0.0001 log loss. The frozen setting is `epochs=20, tau_pen=300, lag=True, card_bias=True, card_tau=0.2`. It is still a MAP fit.
+- **GBDT (`models/gbdt.py`, LightGBM 4.6.0, Phase 7).** A gradient-boosted tree model with no memory equation. Each review is described by features that use only the same card's and the same user's reviews before that review time: the gap since the card's previous review; the card's history (review count, lapses, and the last few grades, outcomes and gaps); the FSRS-6 default state (S, D, R) replayed over the card's history; running user statistics (recall and counts so far for the user); and a lexeme recall rate (Duolingo only) with smoothing (m = 3). Lexeme and user rates are computed from fit rows only. The frozen model is trained on all non-first rows (including same-day rows), with 15 leaves, learning rate 0.02 and smoothing m = 3, and it has no per-user prior group.
+
+### 11.2 Combined test results
+
+Test events are the same as in Sections 9.2 and 10.3. Reference is FSRS-6 (optimised). Each difference is model minus reference, with a 95% user-clustered paired bootstrap (1000 resamples, seed 0). "Users beating FSRS-opt" is the number of users (Anki, out of 100) or the share of users (Duolingo, out of 41,223) whose log loss is lower than FSRS-opt's. Anki v1 is "Ours (dynamic, learned lambda)" and Duolingo v1 is "Ours (GPU port)". Both are the same model family. LagLogit was not run on Anki.
+
+| Model | Anki log loss | Anki diff vs FSRS-opt [95% CI] | Anki users better than FSRS-opt (of 100) | Duolingo log loss | Duolingo diff vs FSRS-opt [95% CI] | Duolingo share of users better than FSRS-opt (of 41,223) |
+|---|---|---|---|---|---|---|
+| FSRS-6 (default) | 0.396 | +0.017 [+0.008, +0.025] | 28 | 0.302 | +0.002 [+0.001, +0.002] | 0.000 (10 users; most tie, since FSRS-opt kept defaults) |
+| FSRS-6 (optimised) | **0.379** (reference) | - | - | 0.300 (reference) | - | - |
+| HLR (Settles & Meeder) | 0.680 | +0.301 [+0.246, +0.361] | 7 | 0.418 | +0.118 [+0.112, +0.124] | 0.577 |
+| Ours v1 (MCMC) | 0.422 | +0.043 [+0.033, +0.055] | 22 | 0.268 | -0.032 [-0.033, -0.031] | 0.740 |
+| Ours v1 (+kappa) | 0.422 | +0.043 [+0.033, +0.055] | 25 | not run | - | - |
+| LagLogit + dt | not run | - | - | 0.291 | -0.009 [-0.012, -0.007] | 0.716 |
+| Ours v2 (MAP, Phase 6) | 0.379 | -0.000 [-0.003, +0.003] | 56 | 0.289 | -0.011 [-0.012, -0.010] | 0.704 |
+| Ours v3 (MAP, Phase 7) | 0.378 | -0.001 [-0.004, +0.002] | 58 | 0.283 | -0.017 [-0.018, -0.016] | 0.715 |
+| **GBDT (LightGBM, Phase 7)** | **0.358** | **-0.021 [-0.028, -0.014]** | **82** | **0.259** | **-0.041 [-0.042, -0.041]** | **0.780** |
+
+The best log loss on each dataset is in bold. Brier, AUC and ECE for every model are in `results/full_u100_c1000_final/report.md` and `results/duolingo_final/report.md`. GBDT has the best value of every metric on both datasets (log loss, Brier, AUC, ECE, RMSE and mean bias). The Duolingo v1 result (0.268, from Phase 5) is the second-best model there.
+
+### 11.3 Selection protocol
+
+- **Validation split.** Inside each user's train period, the last 20% of train days (same quantile rule as Section 4) is validation, and candidates are fitted on the first 80%. Validation events are scored with the same rule as the test events (not a card's first row, gap at least one day). Anki validation uses all 100 users (74,092 scored events). Duolingo validation uses a 5,000-user development sample (26,084 scored events). The 5,000-user sample is the development set (an orchestrator decision in Phase 6). The final Duolingo test uses all users.
+- **No test labels in selection.** No test event is read while a candidate is chosen. The test set is looked at only for the final pick of each phase.
+- **Fixed rules.** v3 and GBDT were chosen by a rule fixed before their runs: the lowest mean validation log loss over the two datasets, among variants whose validation CI does not show a loss against FSRS-opt on either dataset. v2 was chosen by a rule that was revised afterwards (disclosure (b)). Stacking was accepted only if it beats GBDT alone on both datasets with a CI that excludes zero. No stacker met this, so GBDT alone is the final model. The stacking candidates are listed in the Phase 7 experiments doc, Task 7.5.
+
+### 11.4 Disclosures
+
+- **(a) The test set was looked at twice.** v2 was tested in Phase 6. v3 and GBDT were tested together in Phase 7, after GBDT was frozen on validation. The GBDT choice was fixed before the test run, and the test run was used only to report it.
+- **(b) The v2 selection rule was revised after seeing validation CIs.** The first rule chose v5, but v5 wins only on Duolingo. The rule was then changed to "prefer variants that win on both datasets, then lowest mean validation log loss", which chose v2. This change was made after reading the validation CIs, not the test set. v2's Duolingo validation log loss (0.277) is worse than v4/v5 (0.272), and the choice trades that margin for a significant Anki win.
+- **(c) Number of variants tried.** v2: 9 (v1 to v9). v3: 23 (round 1: 12, round 2: 8, round 3: 3). GBDT: 38 variants per dataset in the first sweep, which had a leak (disclosure (d)), then 16 variants per dataset on the fixed code. Stacking: 6 (stack3, stack4, stack3x, stack4x, stack_gv, blend_gv). Every variant run is listed in the experiment docs.
+- **(d) A same-session leak was found in the first GBDT and fixed.** Duolingo logs a whole practice session at one timestamp. The first user-statistics code let a row see the outcomes of other rows at that same timestamp, which inflated validation (frozen: 0.2473 to 0.2578 on the dev sample). The fix groups same-timestamp rows so that only strictly earlier reviews are used. Same-card duplicate rows at one timestamp are handled the same way. The invalid results are kept in `results/phase7_validation/invalid_leak/` and in the Phase 7 experiments doc. Anki reviews are individually timed and its file is in order, so Anki uses per-row updates. The Anki validation number changed after the fix (0.3742 to 0.3614) because the day grouping had also removed legitimate same-day history.
+- **(e) The lexeme rate uses other users' train rows.** The lexeme rate pools fit rows from all users. Because users have different cutoff days, a fit row of one user can be later in calendar time than a scored row of another. No validation or test label is used, which is the same situation as any global parameter learned from all users' train rows under the per-user split. The lexeme feature changes log loss by about 0.001 on Duolingo, so the effect on the result is small.
+- **(f) v2 and v3 are MAP fits.** Their uncertainty is not from full posterior sampling. Their intervals on the test set are the user-clustered bootstrap, not posterior intervals.
+- **(g) The v1 MCMC model is still strong on Duolingo (0.268), but its lambda does not converge there.** At 2,000 sweeps lambda has split R-hat 2.48 and ESS 3. Section 10.6 gives the diagnostics. Its predictions are robust to this, but its lambda should not be interpreted.
+- **(h) FSRS-opt falls back to defaults for most Duolingo users.** 115,110 of 115,222 users kept the default weights, so "FSRS-6 (optimised)" is almost the default model on Duolingo (Section 10.7(a)).
+- **(i) GBDT inputs.** GBDT uses the same event-table inputs as the other models, plus the Duolingo lexeme id. It does not use `history_seen` or `history_correct`, because those count exposures before the log window, which no other model sees. The Anki `state` column is not used either. On Anki, the lexeme group is absent because there is no lexeme column.
+
+### 11.5 What this means
+
+GBDT is the best model on both datasets and on every metric, and the gap to FSRS-opt is significant on both (Anki -0.021, Duolingo -0.041 log loss). Most of that gain comes from running user performance (dropping the user group raises Anki log loss from 0.363 to 0.377 on validation) and from training on all non-first reviews, not from a memory model. The Bayesian models (v2 and v3) are competitive with FSRS-opt, and they are interpretable and make a per-user memory state explicit. They are not the best predictors here. On Anki, v2 and v3 tie FSRS-opt, and on Duolingo they beat it but trail GBDT and v1. The stacker found no gain over GBDT, so the final result is one model with no blend. Its only limitations are those in disclosures (a) to (i) and Section 11.6.
+
+### 11.6 Known limits
+
+- The GBDT is a pure predictor. It has no memory state (stability or difficulty) that a scheduler could use directly.
+- Anki validation and the Duolingo dev sample are the only validation sets. No full-Duolingo validation run is recorded in the experiment docs.
+- One seed and one split. The bootstrap intervals reflect user sampling only.
+- The GBDT features are built for one-step-ahead prediction, not for multi-step forecasting.
+- The GRU sequence model (task 7.4) and the v1 plus v2 ensemble (task 7.1) were not completed. See `docs/BACKLOG.md`.
