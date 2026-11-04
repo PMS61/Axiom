@@ -27,6 +27,7 @@ import pandas as pd
 
 from fsrs_benchmark import data, duolingo, split
 from fsrs_benchmark.models.fsrs_model import FSRSModel
+from fsrs_benchmark.models.gbdt import FROZEN_KWARGS as FROZEN_KWARGS_GBDT, GBDT
 from fsrs_benchmark.models.hlr import HLRModel
 from fsrs_benchmark.models.laglogit import LagLogitModel
 from fsrs_benchmark.models.ours import OursModel
@@ -39,7 +40,7 @@ DEFAULT_DUOLINGO_PATH = "data/duolingo/settles.acl16.learning_traces.13m.csv.gz"
 # Models run by default. The opt-in keys below are allowed in --models but not run unless
 # named, so existing runs do not change.
 ALL_MODELS = ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa"]
-OPT_IN_MODELS = ["ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3"]
+OPT_IN_MODELS = ["ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3", "gbdt"]
 # key -> (use_kappa, backend) for the ours variants
 OURS_VARIANTS = {"ours": (False, "numba"), "ours_kappa": (True, "numba"),
                  "ours_gpu": (False, "gpu"), "ours_kappa_gpu": (True, "gpu")}
@@ -124,6 +125,8 @@ def make_model(key, args):
         return OursV2(seed=args.seed, **FROZEN_KWARGS)
     if key == "ours_v3":
         return OursV3(seed=args.seed, **FROZEN_KWARGS_V3)
+    if key == "gbdt":
+        return GBDT(seed=args.seed, **{**FROZEN_KWARGS_GBDT, "user_group": "row" if getattr(args, "dataset", "") == "anki" else "auto"})
     if key in OURS_VARIANTS:
         use_kappa, backend = OURS_VARIANTS[key]
         # getattr defaults: callers may pass a namespace without the Phase 5 flags (anki defaults).
@@ -164,6 +167,8 @@ def model_config(key, args, scored_ids):
         config.update(hyperparams=OursV2(seed=args.seed, **FROZEN_KWARGS).hyperparams())
     elif key == "ours_v3":
         config.update(hyperparams=OursV3(seed=args.seed, **FROZEN_KWARGS_V3).hyperparams())
+    elif key == "gbdt":
+        config.update(hyperparams=make_model("gbdt", args).hyperparams())
     elif key.startswith("ours"):
         config.update(iters=args.iters, burn=args.burn)
     if key.endswith("_gpu"):
@@ -214,7 +219,7 @@ def model_details(key, model):
                 "fallback_users": sorted(int(u) for u in model.fallback_)}
     if key == "hlr":
         return {"epochs": int(model.epochs_)}
-    if key in ("ours_v2", "ours_v3"):
+    if key in ("ours_v2", "ours_v3", "gbdt"):
         return {"hyperparams": model.hyperparams()}
     if key.endswith("_gpu"):
         return {"device": str(model.model_.device)}
@@ -238,7 +243,8 @@ def load_events_source(args):
     users = duolingo.sample_users(counts, n_users, args.seed, args.min_user_rows)
     log(f"load: {len(users)} users with at least {args.min_user_rows} rows "
         f"({'all' if n_users is None else 'sampled'}), seed {args.seed}")
-    return duolingo.load_users(path, users, counts, t0, with_lexeme="ours_v3" in getattr(args, "models", []))
+    return duolingo.load_users(path, users, counts, t0, with_lexeme=bool({"ours_v3", "gbdt"} & set(getattr(args, "models", []))),
+                               with_ts="gbdt" in getattr(args, "models", []))
 
 
 def run(args):

@@ -447,3 +447,14 @@ and verified (validation Anki 0.3792, Duolingo dev 0.2707; FROZEN q2); its test 
 - 7.4 (optional, later) a GRU sequence model on Kaggle GPU, if 7.3 leaves a gap.
 - 7.5 Stacking or blending of v3, GBDT and FSRS-opt on validation (cross-fitted by user).
 - 7.6 Final pick, ONE test run (Anki local, Duolingo on Kaggle), docs.
+
+**Status at pause (2026-11-04, user said "pause we will continue later"):**
+- 7.3 GBDT built (`models/gbdt.py`, FROZEN `nf_l15_lr02_sm3_nup`): validation Anki 0.3614 and Duolingo dev
+  0.2473 (FSRS-opt 0.3851 / 0.2894). NOT YET VERIFIED and NOT committed. The FIRST thing to do on resume:
+  a verifier must check that the running USER stats (the biggest signal) use only reviews with a
+  STRICTLY EARLIER timestamp. Duolingo logs a whole session's words at one timestamp, so counting
+  same-timestamp rows would leak simultaneous outcomes. The same check applies to the card/lexeme features.
+- Then: 7.5 stacking (v3 + GBDT + FSRS-opt, cross-fitted on validation), 7.6 final pick and ONE test run
+  (Anki local; full Duolingo on Kaggle, never locally, because of the PC RAM limit), docs.
+- 7.1 ensemble (v1 validation fits) is paused; it is optional.
+- The v3 test run was aborted (the PC crashed); no v3/GBDT test numbers exist yet.

@@ -30,7 +30,7 @@ import pandas as pd  # noqa: E402
 from fsrs_benchmark import metrics  # noqa: E402
 
 ALL_MODELS = ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa",
-              "ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3"]
+              "ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3", "gbdt"]
 DISPLAY = {
     "fsrs_default": "FSRS-6 (default)",
     "fsrs_opt": "FSRS-6 (optimised)",
@@ -42,6 +42,7 @@ DISPLAY = {
     "laglogit": "LagLogit + dt (baseline)",
     "ours_v2": "Ours v2 (hierarchical Bayesian FSRS-style)",
     "ours_v3": "Ours v3 (v2 + user-scale penalty, lag, card effect)",
+    "gbdt": "GBDT (LightGBM on history features)",
 }
 # Okabe-Ito colourblind-safe palette, one colour per model.
 COLOURS = {
@@ -55,6 +56,7 @@ COLOURS = {
     "laglogit": "#000000",
     "ours_v2": "#AA4499",
     "ours_v3": "#117733",
+    "gbdt": "#332288",
 }
 ID_COLUMNS = ["event_id", "user_id", "card_id", "y", "elapsed_days", "day_offset"]
 # Scored events have elapsed_days >= 1, so the first bin is exactly one day.
@@ -63,7 +65,7 @@ PAIR_METRICS = ["log_loss", "brier", "auc", "ece"]
 PAIRED_COLUMNS = ["reference", "model", "metric", "diff", "lo", "hi", "ci_excludes_zero"]
 WINS_COLUMNS = ["reference", "model", "users", "users_lower_log_loss", "share"]
 MARKERS = {"fsrs_default": "o", "fsrs_opt": "s", "hlr": "^", "ours": "D", "ours_kappa": "v",
-           "ours_gpu": "P", "ours_kappa_gpu": "X", "laglogit": "*", "ours_v2": "h", "ours_v3": "p"}
+           "ours_gpu": "P", "ours_kappa_gpu": "X", "laglogit": "*", "ours_v2": "h", "ours_v3": "p", "gbdt": "d"}
 
 
 class _Fallback(dict):

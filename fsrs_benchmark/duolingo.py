@@ -157,7 +157,7 @@ def sample_users(counts, n_users, seed, min_rows):
     return sorted(str(u) for u in chosen)
 
 
-def _build_events(user, lex, timestamp, y, raw_days, row, t0, with_lexeme=False):
+def _build_events(user, lex, timestamp, y, raw_days, row, t0, with_lexeme=False, with_ts=False):
     """Turn the kept rows of the sampled users into the LOAD_COLUMNS frame.
 
     Inputs are equal-length integer arrays: user (int id), lex (lexeme rank in sorted-string
@@ -169,6 +169,7 @@ def _build_events(user, lex, timestamp, y, raw_days, row, t0, with_lexeme=False)
     # Sort by user, then timestamp, then lexeme, then file row (np.lexsort: last key is primary).
     perm = np.lexsort((row, lex, timestamp, user))
     user, lex, timestamp, y, raw_days = user[perm], lex[perm], timestamp[perm], y[perm], raw_days[perm]
+    ts_keep = timestamp.copy() if with_ts else None  # raw timestamp (s), for the optional `ts` column
     del perm
     lex_keep = lex.copy() if with_lexeme else None  # time-ordered lexeme rank, for the optional column
 
@@ -221,10 +222,12 @@ def _build_events(user, lex, timestamp, y, raw_days, row, t0, with_lexeme=False)
     frame = pd.DataFrame({c: np.asarray(arrays[c], dtype=dtypes[c]) for c in LOAD_COLUMNS}, copy=False)
     if with_lexeme:
         frame["lexeme"] = lex_keep.astype(np.int64)
+    if with_ts:
+        frame["ts"] = ts_keep.astype(np.int64)
     return frame
 
 
-def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE, with_lexeme=False):
+def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE, with_lexeme=False, with_ts=False):
     """Load the sampled users' review events from the raw file, in the data.load_user shape.
 
     user_strings: the sampled user_id strings (from sample_users).
@@ -240,6 +243,7 @@ def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE, with
     dense int by sorted-string rank among the loaded lexemes; shared across users). The default
     (False) returns exactly LOAD_COLUMNS, unchanged.
 
+    with_ts=True appends the raw timestamp in seconds as `ts` (int64; a whole session shares one ts).
     Returns one DataFrame with exactly LOAD_COLUMNS (plus `lexeme` if asked), sorted by user and then by event order.
     Raises ValueError if a kept row has a missing p_recall.
     """
@@ -308,4 +312,4 @@ def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE, with
     rank = np.empty(len(lex_uniq), dtype=np.int64)
     rank[order] = np.arange(len(lex_uniq), dtype=np.int64)
     buf_lex = rank[buf_lex]
-    return _build_events(buf_user, buf_lex, buf_ts, buf_y, buf_raw, buf_row, t0, with_lexeme)
+    return _build_events(buf_user, buf_lex, buf_ts, buf_y, buf_raw, buf_row, t0, with_lexeme, with_ts)

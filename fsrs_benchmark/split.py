@@ -80,6 +80,8 @@ def make_split(df, max_cards=300, seed=0):
     ]
     if "lexeme" in events.columns:  # optional shared-item column (Duolingo), kept when present
         columns = columns + ["lexeme"]
+    if "ts" in events.columns:  # optional raw timestamp (Duolingo, seconds); rows with equal ts are simultaneous
+        columns = columns + ["ts"]
     return events[columns].sort_values("event_id").reset_index(drop=True)
 
 
