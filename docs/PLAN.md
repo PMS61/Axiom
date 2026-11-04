@@ -359,7 +359,7 @@ Duolingo file from Dataverse inside the notebook, so no data is uploaded. Full r
 `results/duolingo_*`, then add a Duolingo section to `docs/EVALUATION.md` and to the PDF report,
 and write `docs/reports/phase-5.md`.
 
-### Phase 6: An experimental Bayesian model that beats FSRS — PLANNED (user request 2026-11-03)
+### Phase 6: An experimental Bayesian model that beats FSRS — DONE (2026-11-04, report: docs/reports/phase-6.md; experiments: docs/reports/phase-6-experiments.md)
 
 **Intent.** A NEW, separate model, with the original `DynamicRetentionModelDT` and its GPU port left
 untouched. Its formulas may differ freely. The goal is to beat FSRS-6 (default and optimised) on log
@@ -393,7 +393,7 @@ data). The claim must be honest, so model selection never touches the test event
 2. Add process noise on log-stability (a state-space version, filtered like the current FFBS idea).
 3. Calibration layer only if fitted on validation, never on test.
 
-### Phase 7: The best model (user request 2026-11-04: "use everything you got and make the best model") — IN PROGRESS
+### Phase 7: The best model (user request 2026-11-04: "use everything you got and make the best model") — DONE (2026-11-04, report: docs/reports/phase-7.md; experiments: docs/reports/phase-7-experiments.md; write-up: docs/EVALUATION.md Section 11)
 
 **Intent.** Get the best possible log loss on BOTH Anki and Duolingo, using every idea that
 validation supports. The Phase 6 protocol still applies: selection on VALIDATION only (last 20% of
@@ -465,3 +465,5 @@ and verified (validation Anki 0.3792, Duolingo dev 0.2707; FROZEN q2); its test 
 - Duolingo final: v3 is done (0.2830 vs FSRS-opt 0.3003, CI [-0.0182, -0.0162]; v1 0.2682 is still better there). Its preds are in results/duolingo_final/pred_ours_v3.parquet (parquet git-ignored; also in Kaggle dataset v3).
 - RUNNING on Kaggle: CPU notebook amalverma27/notebooke7d641abde, Version 3 (dataset v3). It fits gbdt on full Duolingo, resumes the other 7 models, and builds the report. Output: duolingo_final.tgz.
 - On resume: download duolingo_final.tgz (Output page, ?select=duolingo_final.tgz, dispatchEvent click on [aria-label=Download]), unpack into Axiom/ (the logs land in the repo root; move them into results/duolingo_final/), commit, then have a docs agent write up Phases 6-7 in EVALUATION.md, the .tex and docs/reports/phase-6.md and phase-7.md, with the disclosures: second test look; post-hoc v2 rule; v3 23 and GBDT 38 variants on validation; the same-session leak found and fixed; the lexeme cross-user limitation; v2/v3 are MAP. Add the constant baselines ([[constant-baselines-pending]]) if time allows.
+
+**Phase 6 and 7 close (2026-11-04, docs pass).** Final model: GBDT (`gbdt`, frozen `nf_l15_lr02_sm3_nup`). Test: Anki 0.358 vs FSRS-opt 0.379 (CI [-0.028, -0.014], 82/100 users); Duolingo 0.259 vs 0.300 (CI [-0.042, -0.041], 78.0% of users). Write-up: `docs/EVALUATION.md` Section 11, `docs/report/fsrs_benchmark_report.tex` (new section before Discussion; PDF rebuilt), `docs/reports/phase-6.md`, `docs/reports/phase-7.md`. Limits and the disclosures (second test look, post-hoc v2 rule, variant counts, leak fix) are in those documents. Open items are in `docs/BACKLOG.md`.

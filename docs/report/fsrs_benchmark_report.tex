@@ -254,6 +254,57 @@ The result is weakened by the following, and it should not be read as general ev
 \label{fig:duo-rel}
 \end{figure}
 
+\section{Improved models (Phases 6--7)}
+Two further phases built models that were tested against FSRS-6 (optimised). Phase 6 added a hierarchical FSRS-style model (v2), which ties FSRS-6 on Anki and beats it on Duolingo. Phase 7 added v3 (v2 with an L2 penalty on the user-effect scales, a lagged outcome and a fixed-scale per-card effect), which ties FSRS-6 on Anki and beats it on Duolingo, and a gradient-boosted tree model (GBDT, LightGBM) on past-only features, which is the best model on both datasets. Full details are in \texttt{docs/EVALUATION.md}, Section 11. The GBDT features are the gap, the card's history, the FSRS-6 default state replayed over that history, running user statistics, and a smoothed lexeme recall rate (Duolingo only, fitted on training rows). The model uses the same inputs as the other models, plus the lexeme id. It does not use \texttt{history\_seen} or \texttt{history\_correct}.
+
+Selection used validation only: the last 20\% of each user's training days, on 100 Anki users and a 5{,}000-user Duolingo development sample. The test set was used once for v3 and GBDT together, and the GBDT choice was fixed before that run. The v2 selection rule was revised afterwards on validation confidence intervals. Table~\ref{tab:improved} gives the test results on both datasets. Each difference is against FSRS-6 (optimised), with a 95\% user-clustered paired bootstrap. The win column is the number of Anki users (out of 100) or the share of Duolingo users (out of 41{,}223) whose log loss is lower than FSRS-6 (optimised).
+
+\begin{table}[H]
+\centering
+\small
+\caption{Improved models on the test events of both datasets. The best log loss on each dataset is in bold. Differences are model minus FSRS-6 (optimised), with 95\% user-clustered CIs.}
+\label{tab:improved}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{3}{c}{Anki (100 users)} & \multicolumn{3}{c}{Duolingo (all users)} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Model & Log loss & Diff [95\% CI] & Wins & Log loss & Diff [95\% CI] & Wins \\
+\midrule
+FSRS-6 (default)     & 0.396 & +0.017 [+0.008, +0.025] & 28 & 0.302 & +0.002 [+0.001, +0.002] & 0.000 \\
+FSRS-6 (optimised)   & 0.379 & reference & -- & 0.300 & reference & -- \\
+HLR                  & 0.680 & +0.301 [+0.246, +0.361] & 7 & 0.418 & +0.118 [+0.112, +0.124] & 0.577 \\
+Ours v1 (MCMC)       & 0.422 & +0.043 [+0.033, +0.055] & 22 & 0.268 & $-$0.032 [$-$0.033, $-$0.031] & 0.740 \\
+LagLogit + dt        & not run & -- & -- & 0.291 & $-$0.009 [$-$0.012, $-$0.007] & 0.716 \\
+Ours v2 (MAP)        & 0.379 & $-$0.000 [$-$0.003, +0.003] & 56 & 0.289 & $-$0.011 [$-$0.012, $-$0.010] & 0.704 \\
+Ours v3 (MAP)        & 0.378 & $-$0.001 [$-$0.004, +0.002] & 58 & 0.283 & $-$0.017 [$-$0.018, $-$0.016] & 0.715 \\
+GBDT (LightGBM)      & \best{0.358} & \best{$-$0.021 [$-$0.028, $-$0.014]} & \best{82} & \best{0.259} & \best{$-$0.041 [$-$0.042, $-$0.041]} & \best{0.780} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+GBDT is best on both datasets and on every metric (log loss, Brier, AUC, ECE, RMSE and mean bias), and its gap to FSRS-6 (optimised) is significant on both. The Bayesian models are competitive with FSRS-6 (optimised) but are not the best predictors. Much of the GBDT gain comes from the running user statistics and from training on all non-first reviews, not from a memory model. Stacking GBDT with v3 and FSRS-6 found no gain, so GBDT is the final model.
+
+Disclosures for this section:
+\begin{itemize}
+  \item \textbf{The test set was looked at twice.} v2 was tested in Phase 6. v3 and GBDT were tested together in Phase 7, after the GBDT choice was frozen on validation.
+  \item \textbf{The v2 rule was revised post hoc.} The first rule chose v5, which wins only on Duolingo. The revised rule (win on both datasets, then lowest mean validation log loss) chose v2. Both changes used validation confidence intervals only.
+  \item \textbf{Variants tried on validation.} v2: 9. v3: 23. GBDT: 38 in the first sweep (invalid, see below), then 16 on the fixed code. Stacking: 6. All are listed in the experiment logs.
+  \item \textbf{A same-session leak was found in the first GBDT and fixed.} Duolingo logs a whole practice session at one timestamp, so the first running-statistics code let a row see simultaneous outcomes. Its validation log loss was too optimistic (0.2473 against 0.2578 after the fix, on the dev sample). Same-card duplicate rows at one timestamp are handled the same way. The invalid results are kept in \texttt{results/phase7\_validation/\allowbreak invalid\_leak/}.
+  \item \textbf{The lexeme rate uses other users' training rows.} These rows can be later in calendar time than a scored row. This is consistent with the per-user split and changes log loss by about 0.001 on Duolingo.
+  \item \textbf{v2 and v3 are MAP fits}, not full posterior samples. Their intervals are the bootstrap intervals above, not posterior intervals.
+  \item \textbf{The v1 MCMC model is still strong on Duolingo (0.268),} but its lambda does not converge there (Section on Duolingo above), so its lambda is not interpreted.
+  \item \textbf{FSRS-6 (optimised) falls back to defaults for most Duolingo users} (115{,}110 of 115{,}222), so it is nearly the default model there.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.66\linewidth]{../../results/duolingo_final/reliability.png}
+\caption{Duolingo (test, GBDT and all other models): reliability diagram over all gaps, from \texttt{results/duolingo\_final}. Marker area is proportional to the bin count.}
+\label{fig:duo-final-rel}
+\end{figure}
+
 \section{Discussion}
 \begin{itemize}
   \item \textbf{FSRS is the stronger model on this data.} It is better in every gap bin, on discrimination and on calibration. FSRS also models a latent memory state per card (stability and difficulty), so it is not one of the static baselines our earlier updates compared against.
