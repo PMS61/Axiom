@@ -1,0 +1,60 @@
+{
+  "n_users": 0,
+  "max_cards": 1000000000,
+  "seed": 0,
+  "scored_event_sha256": "f6722a12b190464f3b6b55c4da1e3a4525d2977f9afb5ed397cb63efa6abd1c6",
+  "hyperparams": {
+    "groups": [
+      "gap",
+      "dt",
+      "card",
+      "fsrs",
+      "user",
+      "lexeme"
+    ],
+    "num_leaves": 15,
+    "learning_rate": 0.02,
+    "min_data_in_leaf": 100,
+    "feature_fraction": 0.8,
+    "lambda_l2": 1.0,
+    "train_rows": "nonfirst",
+    "holdout_frac": 0.15,
+    "max_rounds": 2000,
+    "patience": 50,
+    "m_user": 3.0,
+    "m_lex": 3.0,
+    "span": 20,
+    "user_group": "auto",
+    "seed": 0
+  },
+  "dataset": "duolingo",
+  "min_user_rows": 1,
+  "details": {
+    "fit_seconds": 264.515,
+    "predict_seconds": 90.129,
+    "hyperparams": {
+      "groups": [
+        "gap",
+        "dt",
+        "card",
+        "fsrs",
+        "user",
+        "lexeme"
+      ],
+      "num_leaves": 15,
+      "learning_rate": 0.02,
+      "min_data_in_leaf": 100,
+      "feature_fraction": 0.8,
+      "lambda_l2": 1.0,
+      "train_rows": "nonfirst",
+      "holdout_frac": 0.15,
+      "max_rounds": 2000,
+      "patience": 50,
+      "m_user": 3.0,
+      "m_lex": 3.0,
+      "span": 20,
+      "user_group": "auto",
+      "seed": 0
+    }
+  }
+}

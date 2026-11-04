@@ -458,3 +458,10 @@ and verified (validation Anki 0.3792, Duolingo dev 0.2707; FROZEN q2); its test 
   (Anki local; full Duolingo on Kaggle, never locally, because of the PC RAM limit), docs.
 - 7.1 ensemble (v1 validation fits) is paused; it is optional.
 - The v3 test run was aborted (the PC crashed); no v3/GBDT test numbers exist yet.
+
+**Status at close (2026-11-04, about 13:30):**
+- The FINAL pick is GBDT (FROZEN `nf_l15_lr02_sm3_nup`), verified clean (the same-session leak and same-card duplicate-ts fixes are in; commit 95d5b12).
+- Anki final test (one look) is done: results/full_u100_c1000_final (commit ad08e8b). GBDT 0.358 vs FSRS-opt 0.379, CI [-0.028, -0.014], 82/100 users; v3 0.378 (tie); v2 0.379 (tie).
+- Duolingo final: v3 is done (0.2830 vs FSRS-opt 0.3003, CI [-0.0182, -0.0162]; v1 0.2682 is still better there). Its preds are in results/duolingo_final/pred_ours_v3.parquet (parquet git-ignored; also in Kaggle dataset v3).
+- RUNNING on Kaggle: CPU notebook amalverma27/notebooke7d641abde, Version 3 (dataset v3). It fits gbdt on full Duolingo, resumes the other 7 models, and builds the report. Output: duolingo_final.tgz.
+- On resume: download duolingo_final.tgz (Output page, ?select=duolingo_final.tgz, dispatchEvent click on [aria-label=Download]), unpack into Axiom/ (the logs land in the repo root; move them into results/duolingo_final/), commit, then have a docs agent write up Phases 6-7 in EVALUATION.md, the .tex and docs/reports/phase-6.md and phase-7.md, with the disclosures: second test look; post-hoc v2 rule; v3 23 and GBDT 38 variants on validation; the same-session leak found and fixed; the lexeme cross-user limitation; v2/v3 are MAP. Add the constant baselines ([[constant-baselines-pending]]) if time allows.
