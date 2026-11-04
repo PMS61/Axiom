@@ -157,7 +157,7 @@ def sample_users(counts, n_users, seed, min_rows):
     return sorted(str(u) for u in chosen)
 
 
-def _build_events(user, lex, timestamp, y, raw_days, row, t0):
+def _build_events(user, lex, timestamp, y, raw_days, row, t0, with_lexeme=False):
     """Turn the kept rows of the sampled users into the LOAD_COLUMNS frame.
 
     Inputs are equal-length integer arrays: user (int id), lex (lexeme rank in sorted-string
@@ -170,6 +170,7 @@ def _build_events(user, lex, timestamp, y, raw_days, row, t0):
     perm = np.lexsort((row, lex, timestamp, user))
     user, lex, timestamp, y, raw_days = user[perm], lex[perm], timestamp[perm], y[perm], raw_days[perm]
     del perm
+    lex_keep = lex.copy() if with_lexeme else None  # time-ordered lexeme rank, for the optional column
 
     # Card = (user, lexeme). One stable sort by card key does three jobs: it numbers the
     # cards, gives each card's reviews in time order (the input is already time-ordered
@@ -217,10 +218,13 @@ def _build_events(user, lex, timestamp, y, raw_days, row, t0):
         "raw_elapsed_days": raw_days, "dt_days": dt_days, "y": y, "is_first": is_first,
     }
     # copy=False: the arrays are fresh, so this avoids a second copy of the whole frame.
-    return pd.DataFrame({c: np.asarray(arrays[c], dtype=dtypes[c]) for c in LOAD_COLUMNS}, copy=False)
+    frame = pd.DataFrame({c: np.asarray(arrays[c], dtype=dtypes[c]) for c in LOAD_COLUMNS}, copy=False)
+    if with_lexeme:
+        frame["lexeme"] = lex_keep.astype(np.int64)
+    return frame
 
 
-def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE):
+def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE, with_lexeme=False):
     """Load the sampled users' review events from the raw file, in the data.load_user shape.
 
     user_strings: the sampled user_id strings (from sample_users).
@@ -232,7 +236,11 @@ def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE):
     memory is therefore set by the sampled rows as small integer arrays, not by the strings
     of the whole file.
 
-    Returns one DataFrame with exactly LOAD_COLUMNS, sorted by user and then by event order.
+    with_lexeme=True appends one extra column `lexeme` (int64, the lexeme_id string mapped to a
+    dense int by sorted-string rank among the loaded lexemes; shared across users). The default
+    (False) returns exactly LOAD_COLUMNS, unchanged.
+
+    Returns one DataFrame with exactly LOAD_COLUMNS (plus `lexeme` if asked), sorted by user and then by event order.
     Raises ValueError if a kept row has a missing p_recall.
     """
     all_ids = sorted(counts["user_id"].astype(str).tolist())
@@ -300,4 +308,4 @@ def load_users(path, user_strings, counts, t0, chunksize=DEFAULT_CHUNKSIZE):
     rank = np.empty(len(lex_uniq), dtype=np.int64)
     rank[order] = np.arange(len(lex_uniq), dtype=np.int64)
     buf_lex = rank[buf_lex]
-    return _build_events(buf_user, buf_lex, buf_ts, buf_y, buf_raw, buf_row, t0)
+    return _build_events(buf_user, buf_lex, buf_ts, buf_y, buf_raw, buf_row, t0, with_lexeme)

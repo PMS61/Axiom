@@ -1,0 +1,54 @@
+{
+  "n_users": 100,
+  "max_cards": 1000,
+  "seed": 0,
+  "scored_event_sha256": "21430775535b22d720d2792e4364aba649abb39576194cbb1a7b4a12b71397b0",
+  "hyperparams": {
+    "effects": [
+      "s0",
+      "growth",
+      "decay",
+      "fail",
+      "bias",
+      "d0"
+    ],
+    "epochs": 20,
+    "lr": 0.03,
+    "z_lr": null,
+    "fit_steps": 64,
+    "chunk_cards": 15000,
+    "seed": 0,
+    "process_noise": false,
+    "calibrate": false,
+    "card_effect": false,
+    "prior_w": 0.0,
+    "tau_init": 0.3,
+    "z_prior": 1.0
+  },
+  "details": {
+    "fit_seconds": 25.675,
+    "predict_seconds": 3.098,
+    "hyperparams": {
+      "effects": [
+        "s0",
+        "growth",
+        "decay",
+        "fail",
+        "bias",
+        "d0"
+      ],
+      "epochs": 20,
+      "lr": 0.03,
+      "z_lr": null,
+      "fit_steps": 64,
+      "chunk_cards": 15000,
+      "seed": 0,
+      "process_noise": false,
+      "calibrate": false,
+      "card_effect": false,
+      "prior_w": 0.0,
+      "tau_init": 0.3,
+      "z_prior": 1.0
+    }
+  }
+}

@@ -30,6 +30,8 @@ from fsrs_benchmark.models.fsrs_model import FSRSModel
 from fsrs_benchmark.models.hlr import HLRModel
 from fsrs_benchmark.models.laglogit import LagLogitModel
 from fsrs_benchmark.models.ours import OursModel
+from fsrs_benchmark.models.ours_v2 import FROZEN_KWARGS, OursV2
+from fsrs_benchmark.models.ours_v3 import FROZEN_KWARGS as FROZEN_KWARGS_V3, OursV3
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATASETS = ("anki", "duolingo")
@@ -37,7 +39,7 @@ DEFAULT_DUOLINGO_PATH = "data/duolingo/settles.acl16.learning_traces.13m.csv.gz"
 # Models run by default. The opt-in keys below are allowed in --models but not run unless
 # named, so existing runs do not change.
 ALL_MODELS = ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa"]
-OPT_IN_MODELS = ["ours_gpu", "ours_kappa_gpu", "laglogit"]
+OPT_IN_MODELS = ["ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3"]
 # key -> (use_kappa, backend) for the ours variants
 OURS_VARIANTS = {"ours": (False, "numba"), "ours_kappa": (True, "numba"),
                  "ours_gpu": (False, "gpu"), "ours_kappa_gpu": (True, "gpu")}
@@ -118,6 +120,10 @@ def make_model(key, args):
         return HLRModel(seed=args.seed)
     if key == "laglogit":
         return LagLogitModel(use_dt=True)
+    if key == "ours_v2":
+        return OursV2(seed=args.seed, **FROZEN_KWARGS)
+    if key == "ours_v3":
+        return OursV3(seed=args.seed, **FROZEN_KWARGS_V3)
     if key in OURS_VARIANTS:
         use_kappa, backend = OURS_VARIANTS[key]
         # getattr defaults: callers may pass a namespace without the Phase 5 flags (anki defaults).
@@ -154,7 +160,11 @@ def model_config(key, args, scored_ids):
     """What a model's saved predictions depend on. --resume reuses a file only if this matches."""
     config = {"n_users": args.n_users, "max_cards": args.max_cards, "seed": args.seed,
               "scored_event_sha256": hashlib.sha256(np.asarray(scored_ids, np.int64).tobytes()).hexdigest()}
-    if key.startswith("ours"):
+    if key == "ours_v2":
+        config.update(hyperparams=OursV2(seed=args.seed, **FROZEN_KWARGS).hyperparams())
+    elif key == "ours_v3":
+        config.update(hyperparams=OursV3(seed=args.seed, **FROZEN_KWARGS_V3).hyperparams())
+    elif key.startswith("ours"):
         config.update(iters=args.iters, burn=args.burn)
     if key.endswith("_gpu"):
         config["backend"] = "gpu"  # added only for the GPU keys, so existing sidecars still resume
@@ -204,6 +214,8 @@ def model_details(key, model):
                 "fallback_users": sorted(int(u) for u in model.fallback_)}
     if key == "hlr":
         return {"epochs": int(model.epochs_)}
+    if key in ("ours_v2", "ours_v3"):
+        return {"hyperparams": model.hyperparams()}
     if key.endswith("_gpu"):
         return {"device": str(model.model_.device)}
     return {}
@@ -226,7 +238,7 @@ def load_events_source(args):
     users = duolingo.sample_users(counts, n_users, args.seed, args.min_user_rows)
     log(f"load: {len(users)} users with at least {args.min_user_rows} rows "
         f"({'all' if n_users is None else 'sampled'}), seed {args.seed}")
-    return duolingo.load_users(path, users, counts, t0)
+    return duolingo.load_users(path, users, counts, t0, with_lexeme="ours_v3" in getattr(args, "models", []))
 
 
 def run(args):

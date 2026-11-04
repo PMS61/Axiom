@@ -235,3 +235,19 @@ def test_make_split_accepts_duolingo_output(tmp_path):
     assert len(events) == len(frame)
     assert events["event_id"].is_unique
     assert events["scored"].any()
+
+
+def test_load_users_optional_lexeme_column(tmp_path):
+    from fsrs_benchmark import duolingo
+    from fsrs_benchmark.data import LOAD_COLUMNS
+    from fsrs_benchmark.tests._synthetic_events import write_duolingo_csv
+    csv = write_duolingo_csv(tmp_path / "traces.csv.gz")
+    counts, t0 = duolingo.scan(csv, tmp_path / "counts.parquet")
+    users = duolingo.sample_users(counts, None, 0, 1)
+    plain = duolingo.load_users(csv, users, counts, t0)
+    lex = duolingo.load_users(csv, users, counts, t0, with_lexeme=True)
+    assert list(plain.columns) == LOAD_COLUMNS and list(lex.columns) == LOAD_COLUMNS + ["lexeme"]
+    pd.testing.assert_frame_equal(plain, lex[LOAD_COLUMNS])
+    assert lex["lexeme"].dtype == np.int64 and lex["lexeme"].min() >= 0
+    # card = (user, lexeme): one lexeme per card
+    assert (lex.groupby(["user_id", "card_id"])["lexeme"].nunique() == 1).all()

@@ -78,6 +78,8 @@ def make_split(df, max_cards=300, seed=0):
         "event_id", "user_id", "card_id", "review_idx", "day_offset", "rating", "state",
         "elapsed_days", "dt_days", "y", "is_first", "cutoff_day", "is_train", "scored",
     ]
+    if "lexeme" in events.columns:  # optional shared-item column (Duolingo), kept when present
+        columns = columns + ["lexeme"]
     return events[columns].sort_values("event_id").reset_index(drop=True)
 
 
