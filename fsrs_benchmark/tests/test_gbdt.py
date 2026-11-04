@@ -160,3 +160,22 @@ def test_anki_like_data_uses_per_row_user_updates(val):
     assert (b.loc[first_user.index, "u_n"].to_numpy() == np.arange(len(first_user))).all()
     # auto without ts is the safe day grouping
     assert not (base_features(ev).loc[first_user.index, "u_n"].to_numpy() == np.arange(len(first_user))).all()
+
+
+def test_same_card_same_ts_rows_do_not_see_each_other(val):
+    """A duplicate row (same card, same ts): flipping the first leaves the second's card features alone."""
+    ev = val.copy()
+    ev["ts"] = ev["day_offset"].astype(np.int64) * 86400 + ev["review_idx"].astype(np.int64) * 10
+    srt = ev.sort_values("event_id")
+    k = next(i for i in range(5, len(srt) - 1) if srt["card_id"].iloc[i] == srt["card_id"].iloc[i + 1]
+             and srt["user_id"].iloc[i] == srt["user_id"].iloc[i + 1])
+    a, b = srt.index[k], srt.index[k + 1]
+    ev.loc[b, "ts"] = ev.loc[a, "ts"]
+    ev.loc[b, "day_offset"] = ev.loc[a, "day_offset"]
+    base, base2 = base_features(ev), base_features(_flip(ev, ev.index.get_loc(a)))
+    cols = [c for c in base.columns if c.startswith(("card_", "g", "y", "gap", "f_", "since")) or c in ("el",)]
+    pd.testing.assert_series_equal(base.loc[b, cols], base2.loc[b, cols])
+    # without ts the second row DOES see the first (per-row behaviour kept)
+    nots = ev.drop(columns=["ts"])
+    c1, c2 = base_features(nots, user_group="row"), base_features(_flip(nots, nots.index.get_loc(a)), user_group="row")
+    assert not c1.loc[b, ["card_rate", "y1", "g1"]].equals(c2.loc[b, ["card_rate", "y1", "g1"]])

@@ -265,3 +265,52 @@ def test_lexeme_aggregate_uses_no_labels_from_after_t(duo):
     assert att2["lex_rate"][r] == att["lex_rate"][r], (
         f"lex_rate of row {duo.index[r]} changed when the label of later fit row {duo.index[j]} "
         f"(other user, day {days[j]} > {days[r]}) was flipped")
+
+
+def _tiny_card_events(with_ts=True):
+    """One user, one card: first review, then THREE same-card rows at one ts, then a later row."""
+    rows = [  # (day, ts, rating)
+        (0, 0, 3),
+        (2, 200, 1), (2, 200, 3), (2, 200, 4),
+        (5, 500, 3),
+    ]
+    ev = pd.DataFrame({
+        "event_id": np.arange(len(rows), dtype=np.int64) + 1,
+        "user_id": 1, "card_id": 0,
+        "day_offset": [r[0] for r in rows], "rating": [r[2] for r in rows],
+        "y": [int(r[2] > 1) for r in rows],
+        "elapsed_days": [-1, 2, 2, 2, 3], "dt_days": [np.nan, 2.0, 2.0, 2.0, 3.0],
+        "is_first": [True, False, False, False, False],
+        "is_train": True, "scored": False, "state": 2, "ts": [r[1] for r in rows],
+    })
+    if not with_ts:
+        ev = ev.drop(columns=["ts"])
+    return ev
+
+
+def test_three_same_card_same_ts_rows_group_semantics():
+    """Rows e1..e3 share a card and a ts: none sees another. The later row e4 sees all three outcomes."""
+    ev = _tiny_card_events()
+    b = base_features(ev)
+    cols = ["card_n", "card_lapses", "card_rate", "g1", "g2", "g3", "y1", "y2", "y3", "gap1", "gap2", "gap3"]
+    for i in (1, 2, 3):
+        assert b.iloc[i]["card_n"] == 1 and b.iloc[i]["g1"] == 3 and b.iloc[i]["y1"] == 1, i
+        assert np.isnan(b.iloc[i]["g2"]) and b.iloc[i]["card_lapses"] == 0, i
+    e4 = b.iloc[4]
+    assert e4["card_n"] == 4
+    assert e4["g1"] == 4 and e4["g2"] == 3 and e4["g3"] == 1      # e3, e2, e1 ratings, in order
+    assert e4["y1"] == 1 and e4["y2"] == 1 and e4["y3"] == 0
+    assert e4["card_lapses"] == 1 and e4["card_rate"] == pytest.approx(0.75)
+    # flipping e1 (rating 1 -> 3) must not change e2, e3, but must change e4
+    b2 = base_features(_flip(ev, [False, True, False, False, False]))
+    for i in (2, 3):
+        pd.testing.assert_series_equal(b.iloc[i][cols], b2.iloc[i][cols], check_names=False)
+    assert not b.iloc[4][cols].equals(b2.iloc[4][cols])
+
+
+def test_anki_without_ts_is_per_row_for_the_same_card():
+    """No ts column: every same-card row is its own group, so e2 sees e1 and e3 sees e2."""
+    ev = _tiny_card_events(with_ts=False)
+    b = base_features(ev)
+    assert b.iloc[2]["card_n"] == 2 and b.iloc[2]["g1"] == 1
+    assert b.iloc[3]["card_n"] == 3 and b.iloc[3]["g1"] == 3
