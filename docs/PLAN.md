@@ -204,3 +204,158 @@ results are documented in `docs/EVALUATION.md`.
 - Done means the full suite passes with 0 warnings from our code, and the plot has been regenerated and checked.
 
 **Task 4.3 (orchestrator):** commit to `BayesianScheduler`, then start a long run (`ours`, 8000 iterations, 4000 burn-in) in `results/full_u100_c1000_long`, reusing the FSRS and HLR predictions.
+
+### Phase 5: The same benchmark on the Duolingo dataset — DONE (2026-11-04, report: docs/reports/phase-5.md)
+
+**Intent.** Run the identical protocol (split, scoring rule, models, metrics) on Duolingo's public
+half-life-regression data (Settles & Meeder 2016, `settles.acl16.learning_traces.13m.csv.gz`,
+Harvard Dataverse doi:10.7910/DVN/N8XJME, CC BY-NC 4.0, about 13M rows). This tests whether the
+Anki ranking (FSRS > ours > HLR) holds on HLR's home data. Only the data layer is new: the
+Duolingo loader must return the same columns as `data.load_user` (LOAD_COLUMNS), so `split`, the
+models, `run` and `report` are reused unchanged.
+
+**Fixed decisions (Duolingo event definition):**
+- Raw file: `data/duolingo/settles.acl16.learning_traces.13m.csv.gz` (git-ignored via `data/`).
+  Columns: p_recall, timestamp (unix s), delta (s since this lexeme was last seen), user_id
+  (string), learning_language, ui_language, lexeme_id, lexeme_string, history_seen,
+  history_correct, session_seen, session_correct.
+- One row = one practice session of one lexeme by one user = one review event.
+- card = (user, lexeme_id). Card ids are dense ints per user, from the sorted lexeme_id strings.
+- user_id (int) = the user's index in the sorted list of ALL user_id strings in the file, so the
+  id does not depend on which users were sampled.
+- Order inside a user: timestamp, then lexeme_id, then original file row (stable sort).
+  review_idx = 0..n-1 in that order.
+- day_offset = floor((timestamp - T0) / 86400), where T0 = the minimum timestamp in the whole
+  file (computed once in the scan and stored in the cache).
+- y = 1 if p_recall >= 0.5 else 0 (the group's existing convention in `data_pipeline.py`).
+- rating = 3 (Good) if y == 1 else 1 (Again). FSRS only sees Again/Good on this data.
+- is_first = the card's first row in the log. Its history before the log window is unknown
+  (history_seen > 0), so this row starts the replay and is never scored. state = 0 on is_first,
+  else 2.
+- elapsed_days = day_offset difference to the card's previous row (-1 on is_first).
+  dt_days = timestamp difference to the card's previous row / 86400 (NaN on is_first).
+  raw_elapsed_days = floor(delta / 86400).
+- history_seen/history_correct, lexeme features and session counts are NOT used by any model
+  (every model only sees the replayed history), so the comparison stays like-for-like. This is a
+  known limitation versus the original HLR paper and must be written up.
+- User sampling: only users with at least `--min_user_rows` rows are eligible; sample
+  `--n_users` of them with `np.random.default_rng(seed).choice` over the sorted eligible ids.
+
+**Scale decision (user, 2026-11-03): run on ALL Duolingo data.** Measured: 12,854,226 rows,
+115,222 users, 5,861,629 (user, lexeme) cards, card length median 1 / p99 12 / max 352, 11.9 days
+span, y rate 0.927, 47% of rows have a gap >= 1 day. Consequences:
+- `--n_users 0` means all users; `--min_user_rows 1`; `--max_cards` large enough to never bind.
+- The numba `ours` cannot run on this (~270 s/sweep estimated); only `ours_gpu` runs on the full
+  data. Equivalence of the GPU port with the original is established by the 5.3 tests.
+- One padded N x Tm matrix would be 5.9M x 352 doubles (~16 GB), so the GPU port stores
+  sequences in LENGTH BUCKETS (see 5.3). Kept posterior draws are limited (thin so that about
+  100 draws are kept) because beta and psi_last are per card (millions of entries per draw).
+- FSRS predict must run in parallel over users (`--workers`), since py-fsrs replays in Python.
+
+**Task 5.1: Duolingo loader** (`fsrs_benchmark/duolingo.py`, tests in `fsrs_benchmark/tests/test_duolingo.py`)
+- `scan(path, cache_path)`: one chunked pass (pandas `chunksize`, `usecols=["user_id","timestamp"]`)
+  that returns and caches (parquet) a table of user_id string -> row count, plus T0. The cache is
+  reused when it exists and the source file's size and mtime match the stored values.
+- `sample_users(counts, n_users, seed, min_rows)` -> sorted list of user_id strings. It raises a
+  clear ValueError when fewer eligible users exist than requested.
+- `load_users(path, user_strings, counts_table, T0)` -> one DataFrame with exactly LOAD_COLUMNS
+  (same dtypes as `data._empty_frame()`), built with the rules above, chunked so memory stays
+  bounded.
+- Done means: unit tests on a tiny synthetic csv.gz (written in the test) cover ordering, ties,
+  y/rating mapping, is_first, elapsed_days/dt_days, int user ids that are independent of the
+  sample, the cache reuse/invalidation, and the not-enough-users error; `split.make_split` accepts
+  the output; and a real-file check loads 3 users.
+
+**Task 5.2: Runner and report integration** (`fsrs_benchmark/run.py`, `fsrs_benchmark/report.py` if needed, tests)
+- New flags: `--dataset {anki,duolingo}` (default anki), `--duolingo_path` (default the path
+  above), `--min_user_rows` (default 100). With duolingo, the runner uses the 5.1 functions
+  instead of `data.download_users`/`load_user`; everything after loading is unchanged.
+- `model_config` adds `dataset` (and `min_user_rows`) only when the dataset is not anki, so
+  existing Anki sidecars still resume. `run_info.json` records the dataset.
+- The report title/text names the dataset taken from run_info (Anki stays the default wording).
+- Done means: existing tests still pass; new tests cover the flag parsing and the resume config;
+  a smoke run `--dataset duolingo --n_users 5 --iters 60 --burn 30` finishes end to end and the
+  report builds.
+
+**Task 5.3: GPU port of our model, same equations** (`fsrs_benchmark/models/dynamic_retention_gpu.py`, tests in `fsrs_benchmark/tests/test_dynamic_retention_gpu.py`)
+- User request: a GPU (Kaggle) version of `DynamicRetentionModelDT` in a NEW file. The equations,
+  priors, defaults, update order and the predict() filter must be IDENTICAL to
+  `AnkiFirstRun/dynamic_retention_dt.py` and `pg_sampler.py` (do not modify those two files). Only
+  the array library changes: PyTorch (already installed; CPU build locally, CUDA on Kaggle).
+- Class `DynamicRetentionModelGPU(sequences, rng=None, ..., device=None, dtype=torch.float64)`:
+  same constructor arguments and defaults as the original plus `device` (default: "cuda" if
+  available else "cpu") and `dtype`. Same public attributes (N, Tm, lens, n_users, n_items, lam,
+  kappa, sigma2, b0, g0, alpha, beta, gamma, tau2, step, step_k, acc_rate, use_kappa, samples,
+  key2idx, R, init_var, dt_bounds) and the same methods: `_dyn, _mu, _ffbs, _gauss,
+  _inv_gamma_tau2, _update_effects, _update_lam_sigma2(psi, it, adapt), run, fit, summary,
+  print_summary, predict`. `run()` must call `self._update_lam_sigma2` once per sweep (the
+  progress/acceptance wrapper in ours.py replaces that attribute). After `run()`, `samples` holds
+  NUMPY arrays with the same keys and shapes as the original; scalar parameters (lam, kappa,
+  sigma2, b0, g0, acc_rate, tau2 values) are Python floats. Reuse `split_rhat` and `ess` by
+  importing them from the original module (add AnkiFirstRun and the repo root to sys.path the
+  way ours.py does).
+- Randomness: a `torch.Generator` on the device seeded from `rng.integers(2**62)`; the small scalar
+  draws (MH proposals/accepts, inverse-gamma draws, b0/g0 normals) may use the numpy `rng` as the
+  original does. Bitwise equality with numpy is NOT required; equality in distribution is.
+- Polya-Gamma: same truncated series with n_terms=200, computed on the device. Gamma(1,1) draws
+  may be generated as Exponential(1) (identical distribution). Process events in chunks so memory
+  stays bounded (chunk size parameter, default about 2e7 elements per chunk).
+- Memory layout (needed for the full data): sequences are grouped into length buckets
+  (lengths 1, 2, 3-4, 5-8, ..., powers of two up to the max); each bucket has its own padded
+  (N_b x T_b) tensors and the FFBS runs per bucket. This is mathematically identical, since
+  sequences are independent given the parameters and every other update sums over observed
+  entries only. Flattened per-event views (u, i, x, r, dt, C, transition mask) are kept for the
+  effects and lambda/sigma2 updates. Attribute names N, Tm, lens etc. keep their meaning.
+- predict() processes test sequences in chunks so S x K x T never has to fit at once.
+- FFBS: the forward filter loops over t and is vectorised over the N sequences exactly as the
+  numba kernel; the backward sampler is the same recursion vectorised over n (the numba code
+  loops over n only for speed). Same 1e-12 floors, same `last[n] == t` and `t <= last[n]` rules.
+  Expose `_ffbs_forward(omega, phi, q, mu)` returning (m, P, a, Rp) and `_ffbs_backward(m, P, a,
+  Rp, phi, eps)` so tests can pass a fixed eps.
+- predict(): the same Kalman one-step filter over posterior draws as the original, on the device,
+  returning a list of numpy arrays like the original (`return_draws` supported).
+- Done means (tests run on CPU torch locally):
+  1. Deterministic parity with the original within 1e-9 when both are given the same state:
+     `_dyn`, `_mu`, the forward filter (compare against a NumPy re-implementation of the numba
+     forward loop inside the test), the backward recursion for a fixed eps, and `predict()` when
+     the GPU model is given a copy of a fitted original model's `samples` (and R, lens, key2idx).
+  2. PG sampler: empirical mean matches tanh(c/2)/(2c) within 0.01 for c in {0, 0.5, 1, 2, 5, -3}.
+  3. Statistical parity: on a small synthetic data set, fit the original and the GPU model with
+     the same settings (e.g. 400 sweeps, 200 burn) and check that posterior means of b0, lam and
+     sigma2 and the mean predicted probability agree within tolerances set from the chains' own
+     spread; log loss of the two prediction sets differs by < 0.01.
+  4. `samples` keys, shapes and types match the original; `summary()` works.
+  5. A rough timing print (not an assertion) of one sweep on CPU for N about 5000 sequences.
+
+**Task 5.4: Wire the GPU model into the pipeline** (`fsrs_benchmark/models/ours.py`, `fsrs_benchmark/run.py`, tests)
+- `OursModel(..., backend="numba")`: backend "gpu" builds `DynamicRetentionModelGPU` (device from a
+  new `device=None` argument) instead of `DynamicRetentionModelDT`; everything else (sequence
+  building, diagnostics, progress logging, predict mapping) is shared.
+- Runner: new model keys `ours_gpu` and `ours_kappa_gpu`, a `--device` flag (default auto) and a
+  `--thin` flag (default 4) passed to OursModel.
+- `FSRSModel.predict` runs per-user replays in parallel when n_workers > 1 (same results as serial;
+  test it), and the runner passes `--workers` to both FSRS variants.
+  The keys are opt-in: ALL_MODELS default list behaviour for existing runs must not change
+  (add the new keys to the allowed set, not to the default `--models`).
+- `model_config` for the GPU keys records iters/burn like the numba ones, plus `backend`.
+- Teammates' work (pulled 2026-11-03, docs/reports/VALIDATION_REPORT.md): add the validated
+  LagLogit+dt baseline as model key `laglogit`. New adapter `fsrs_benchmark/models/laglogit.py`
+  wraps `baselines.LaggedLogistic(use_dt=True)` (do not modify baselines.py) using the same
+  sequence building as ours.py (`_sequences`, dense ids from TRAIN rows, unseen users/cards get
+  the padding index, which LaggedLogistic already ignores). fit on TRAIN sequences, predict on TEST
+  sequences, keep scored rows only, clip to [1e-6, 1-1e-6]. Opt-in key like the GPU keys. Test:
+  no leakage (changing a scored event's own outcome or later ones does not change its prediction)
+  and every scored event is predicted.
+- Done means: existing tests pass; new tests cover the backend switch and the new keys; a smoke
+  run `--dataset duolingo --n_users 5 --models fsrs_default,hlr,ours,ours_gpu --iters 60 --burn 30`
+  finishes on CPU and the report builds.
+
+Note: VALIDATION_REPORT.md flags an unverified FFBS padding concern; the 5.3 bucketed-vs-padded
+parity test addresses it and must be reported in phase-5.md.
+
+**Task 5.5 (orchestrator): Kaggle GPU run, docs, PDF.** Run on a Kaggle GPU notebook (planned P100; run on T4 x2 because the P100 was not offered; float64):
+clone the public repo (github.com/PMS61/Axiom, branch BayesianScheduler) and download the
+Duolingo file from Dataverse inside the notebook, so no data is uploaded. Full run in
+`results/duolingo_*`, then add a Duolingo section to `docs/EVALUATION.md` and to the PDF report,
+and write `docs/reports/phase-5.md`.
+

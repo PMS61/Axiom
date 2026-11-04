@@ -26,3 +26,8 @@
 - Ours sampler gives no progress output (verbose=False in the adapter) and no checkpointing; a 9 h fit is lost on shutdown. Consider verbose logging every 100 sweeps.
 - run_info.json loses earlier timings/fallbacks when the first invocation is interrupted; consider writing per-model info into the pred_<model>.json sidecar.
 - ours.py progress: first line's ETA still includes numba warm-up, so it is overstated; later lines are accurate.
+
+## Phase 5
+- `--thin` is not part of the resume config check (`model_config` in run.py records iters/burn and backend, not thin), so a resumed run with a different `--thin` reuses old draws.
+- The full pytest suite can hang when torch and numba test files run in one process; run them individually.
+- FSRS-opt on Duolingo falls back for almost all users (115,110 of 115,222), so it is nearly FSRS-6 default there.

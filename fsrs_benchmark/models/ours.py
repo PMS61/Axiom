@@ -36,6 +36,9 @@ for _folder in (_REPO, _REPO / "AnkiFirstRun"):
         sys.path.append(str(_folder))
 
 from dynamic_retention_dt import DynamicRetentionModelDT  # noqa: E402
+from fsrs_benchmark.models.dynamic_retention_gpu import DynamicRetentionModelGPU  # noqa: E402
+
+BACKENDS = ("numba", "gpu")
 
 
 def _finite_or_none(x):
@@ -136,11 +139,16 @@ class OursModel:
     fit() runs the Gibbs sampler on TRAIN sequences (iters sweeps, the first burn are
     discarded, every thin-th kept). predict() uses at most max_draws posterior draws.
     progress_every > 0 logs one stderr line every that many sweeps during fit().
+    backend="numba" uses the CPU model; backend="gpu" uses DynamicRetentionModelGPU on
+    `device` (None = cuda if available, else cpu) with float32 stored draws, which saves
+    host RAM at full scale. Both backends run the same equations.
     After fit(): `model_` is the fitted sampler and `fit_seconds_` is the wall time.
     """
 
     def __init__(self, use_kappa=False, iters=2000, burn=1000, thin=4, seed=0, max_draws=100,
-                 progress_every=0):
+                 progress_every=0, backend="numba", device=None):
+        if backend not in BACKENDS:
+            raise ValueError(f"backend must be one of {BACKENDS}, got {backend!r}")
         self.use_kappa = use_kappa
         self.iters = iters
         self.burn = burn
@@ -148,6 +156,8 @@ class OursModel:
         self.seed = seed
         self.max_draws = max_draws
         self.progress_every = progress_every
+        self.backend = backend
+        self.device = device
         self.model_ = None
         self.fit_seconds_ = None
 
@@ -176,8 +186,13 @@ class OursModel:
         if not train_seqs:
             raise ValueError("no TRAIN rows to fit on")
         started = time.perf_counter()
-        self.model_ = DynamicRetentionModelDT(
-            train_seqs, rng=np.random.default_rng(self.seed), use_kappa=self.use_kappa)
+        rng = np.random.default_rng(self.seed)
+        if self.backend == "gpu":
+            self.model_ = DynamicRetentionModelGPU(
+                train_seqs, rng=rng, use_kappa=self.use_kappa, device=self.device,
+                store_dtype=np.float32)
+        else:
+            self.model_ = DynamicRetentionModelDT(train_seqs, rng=rng, use_kappa=self.use_kappa)
         label = "ours_kappa" if self.use_kappa else "ours"
         acceptance = _record_lam_acceptance(self.model_, total=self.iters,
                                             progress_every=self.progress_every, label=label)

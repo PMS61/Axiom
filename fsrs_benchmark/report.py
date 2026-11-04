@@ -29,13 +29,17 @@ import pandas as pd  # noqa: E402
 
 from fsrs_benchmark import metrics  # noqa: E402
 
-ALL_MODELS = ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa"]
+ALL_MODELS = ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa",
+              "ours_gpu", "ours_kappa_gpu", "laglogit"]
 DISPLAY = {
     "fsrs_default": "FSRS-6 (default)",
     "fsrs_opt": "FSRS-6 (optimised)",
     "hlr": "HLR (Settles & Meeder)",
     "ours": "Ours (dynamic, learned λ)",
     "ours_kappa": "Ours (+κ)",
+    "ours_gpu": "Ours (GPU port)",
+    "ours_kappa_gpu": "Ours (+κ, GPU port)",
+    "laglogit": "LagLogit + dt (baseline)",
 }
 # Okabe-Ito colourblind-safe palette, one colour per model.
 COLOURS = {
@@ -44,6 +48,9 @@ COLOURS = {
     "hlr": "#009E73",
     "ours": "#D55E00",
     "ours_kappa": "#CC79A7",
+    "ours_gpu": "#56B4E9",
+    "ours_kappa_gpu": "#882255",
+    "laglogit": "#000000",
 }
 ID_COLUMNS = ["event_id", "user_id", "card_id", "y", "elapsed_days", "day_offset"]
 # Scored events have elapsed_days >= 1, so the first bin is exactly one day.
@@ -51,7 +58,23 @@ GAP_BINS = [("1d", 1, 1), ("2-3d", 2, 3), ("4-14d", 4, 14), ("15-60d", 15, 60), 
 PAIR_METRICS = ["log_loss", "brier", "auc", "ece"]
 PAIRED_COLUMNS = ["reference", "model", "metric", "diff", "lo", "hi", "ci_excludes_zero"]
 WINS_COLUMNS = ["reference", "model", "users", "users_lower_log_loss", "share"]
-MARKERS = {"fsrs_default": "o", "fsrs_opt": "s", "hlr": "^", "ours": "D", "ours_kappa": "v"}
+MARKERS = {"fsrs_default": "o", "fsrs_opt": "s", "hlr": "^", "ours": "D", "ours_kappa": "v",
+           "ours_gpu": "P", "ours_kappa_gpu": "X", "laglogit": "*"}
+
+
+class _Fallback(dict):
+    """dict that returns a default for unknown model keys, so a new model cannot crash plotting."""
+    def __init__(self, data, default):
+        super().__init__(data)
+        self._default = default
+
+    def __missing__(self, key):
+        return key if self._default is None else self._default
+
+
+MARKERS = _Fallback(MARKERS, "o")
+COLOURS = _Fallback(COLOURS, "#777777")
+DISPLAY = _Fallback(DISPLAY, None)  # unknown key -> shown as its own name
 SPARSE_N = 30  # bins with fewer events are drawn faded
 REFERENCES = ["fsrs_opt", "ours"]
 N_BOOT = 1000
@@ -246,7 +269,8 @@ def _table(header, rows, bold_cols=None):
     return "\n".join(out)
 
 
-MCMC_VARIANTS = [("ours", "Ours (dynamic, learned λ)"), ("ours_kappa", "Ours (+κ)")]
+MCMC_VARIANTS = [("ours", "Ours (dynamic, learned λ)"), ("ours_kappa", "Ours (+κ)"),
+                 ("ours_gpu", "Ours (GPU port)"), ("ours_kappa_gpu", "Ours (+κ, GPU port)")]
 
 
 def mcmc_section(run_dir):
@@ -274,13 +298,18 @@ def mcmc_section(run_dir):
 
 
 def write_report(run_dir, out_dir, preds, info, models, mt, pt, uw):
-    lines = [f"# Results: {run_dir.name}", ""]
+    duolingo = bool(info) and info.get("dataset") == "duolingo"
+    title = f"# Results: {run_dir.name}" + (" (Duolingo dataset)" if duolingo else "")
+    lines = [title, ""]
 
     lines += ["## Data", ""]
     if info:
         c = info["counts"]
         scored_recall = float(preds["y"].mean())
         fb = info["models"].get("fsrs_opt", {}).get("fallback_count")
+        if duolingo:
+            lines += [f"- Dataset: Duolingo learning traces (Settles & Meeder 2016), "
+                      f"min_user_rows={info['args'].get('min_user_rows')}"]
         lines += [
             f"- Users: {c['users']}, cards: {c['cards']}, events: {c['events']} "
             f"({c['train']} train, {c['test']} test)",
