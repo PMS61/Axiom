@@ -216,6 +216,44 @@ The chains did not converge at 2{,}000 iterations (Table~\ref{tab:mcmc}). The de
 
 The predictions nevertheless appear insensitive to this. The two variants settle on clearly different $\lambda$ posteriors (means 1.87 and 1.46), yet their predictions correlate at $r=0.992$ over the 95{,}400 events, and every metric agrees to about three decimals. This suggests that the poorly mixed directions of the posterior barely move the predicted recall. It is evidence, not proof: the results for our model should be treated as provisional until a longer multi-chain run is available.
 
+\section{Duolingo dataset (full)}
+The same protocol was run on Duolingo's public learning traces (Settles \& Meeder 2016), using all 115{,}222 users and all 5{,}861{,}629 (user, lexeme) cards. Each row of the file is one practice session of one lexeme, and it is one review event. The label is $y=1$ if the recorded $p_\text{recall}\geq 0.5$. The split is the same per-user 80th-percentile day cutoff as on Anki. Of the 12{,}854{,}226 events, 1{,}189{,}355 are scored, with a recall rate of 0.920. The data span is about 12 days, so the 15--60\,d and 61\,d+ bins are empty. The per-gap tables are in \texttt{results/duolingo\_full/report.md}.
+
+\begin{table}[H]
+\centering
+\caption{Duolingo (full dataset): overall results on the same 1{,}189{,}355 scored events. Lower is better except for AUC. The best value in each column is in bold.}
+\label{tab:duo}
+\begin{tabular}{lcccccc}
+\toprule
+Model & Log loss & Brier & AUC & ECE & RMSE(bins) & Mean bias \\
+\midrule
+FSRS-6 (optimised) & 0.300 & 0.078 & 0.570 & 0.050 & 0.070 & $-$0.026 \\
+FSRS-6 (default)   & 0.302 & 0.078 & 0.566 & 0.051 & 0.070 & $-$0.025 \\
+Ours (GPU port)    & \best{0.268} & \best{0.071} & \best{0.656} & \best{0.014} & \best{0.017} & 0.004 \\
+LagLogit + dt      & 0.291 & 0.076 & 0.653 & 0.020 & 0.068 & \best{$-$0.001} \\
+HLR                & 0.418 & 0.079 & 0.521 & 0.072 & 0.072 & 0.072 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On this dataset the Anki ordering is reversed: Ours (GPU port) has the lowest log loss, and it is the only model with a clearly better AUC than FSRS-6. Against FSRS-6 (optimised), its log loss difference is $-0.032$ [$-0.033$, $-0.031$] and its AUC difference is $+0.087$ [$+0.083$, $+0.091$], both from the user-clustered paired bootstrap. LagLogit + dt differs by $-0.009$ [$-0.012$, $-0.007$] in log loss, and HLR by $+0.118$ [$+0.112$, $+0.124$]. Ours wins on log loss for 74\% of the 41{,}223 users with finite log loss for both models.
+
+The result is weakened by the following, and it should not be read as general evidence that our model beats FSRS.
+\begin{itemize}
+  \item \textbf{FSRS-6 (optimised) is nearly the default model.} Its optimiser needs 512 informative training reviews per user, and 115{,}110 of 115{,}222 users fall back to the default weights. The difference from FSRS-6 (default) is $+0.0015$ in log loss.
+  \item \textbf{64{,}254 users have no training rows.} Their cards are predicted from population-level parameters.
+  \item \textbf{The label thresholds a recorded value.} $y$ is $p_\text{recall}\geq 0.5$, not a single observed recall answer. FSRS sees only two grades (Good for $y=1$, Again otherwise), so it does not use the Hard and Easy distinction.
+  \item \textbf{HLR has no lexeme features,} so it is weaker than the published model.
+  \item \textbf{Lambda is not identified.} At 2{,}000 sweeps its split $\hat R$ is 2.48 and its ESS is 3.0. Ours (GPU port) is the same equations as the Anki model, ported to PyTorch and run on a GPU in float64 (2{,}000 sweeps, 1{,}000 burn-in, thin 10). A run of 8{,}000 sweeps drifts further (lambda 1.73 at sweep 8{,}000, $\hat R=2.33$), and $\sigma^2$ drifts with it. So lambda and $\sigma^2$ are weakly identified and should not be interpreted. The predictions barely change: test log loss is 0.2682 at 2{,}000 sweeps and 0.2679 at 8{,}000, and the two runs' predictions correlate at 0.992. The headline uses the 2{,}000-sweep run, as on Anki.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.66\linewidth]{../../results/duolingo_full/reliability.png}
+\caption{Duolingo (full dataset): reliability diagram over all gaps (10 equal-width bins). Marker area is proportional to the bin count.}
+\label{fig:duo-rel}
+\end{figure}
+
 \section{Discussion}
 \begin{itemize}
   \item \textbf{FSRS is the stronger model on this data.} It is better in every gap bin, on discrimination and on calibration. FSRS also models a latent memory state per card (stability and difficulty), so it is not one of the static baselines our earlier updates compared against.

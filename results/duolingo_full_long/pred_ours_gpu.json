@@ -1,0 +1,16 @@
+{
+  "n_users": 0,
+  "max_cards": 1000000000,
+  "seed": 0,
+  "scored_event_sha256": "f6722a12b190464f3b6b55c4da1e3a4525d2977f9afb5ed397cb63efa6abd1c6",
+  "iters": 8000,
+  "burn": 6000,
+  "backend": "gpu",
+  "dataset": "duolingo",
+  "min_user_rows": 1,
+  "details": {
+    "fit_seconds": 9518.351,
+    "predict_seconds": 1861.601,
+    "device": "cuda"
+  }
+}

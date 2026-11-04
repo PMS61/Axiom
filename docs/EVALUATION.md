@@ -14,7 +14,7 @@ We compare five recall predictors on the same held-out review events:
 
 Data: the `open-spaced-repetition/anki-revlogs-10k` review logs (Section 2). Metrics: log loss, Brier score, AUC, expected calibration error (ECE), mean bias and RMSE over bins (the overall table in `report.md` shows all of them; its per-gap tables omit RMSE, which `metrics.csv` has), with user-clustered bootstrap confidence intervals on paired differences (Section 6).
 
-This document describes the protocol and the code. The numerical results are in Section 9.
+This document describes the protocol and the code. The numerical results are in Section 9 (Anki) and Section 10 (Duolingo).
 
 ### 1.1 Glossary
 
@@ -325,3 +325,111 @@ The other hyper-parameters mix better (for `Ours`, `g0`, `tau2_alpha` and `tau2_
 - Our model is much worse than FSRS-6 (optimised) and somewhat worse than FSRS-6 (default), but far better than HLR. Given the non-convergence in Section 9.8, the size of the gap to FSRS-6 is a provisional result.
 - κ adds nothing measurable here. The paired difference is about 0.000 in log loss, with a CI that includes zero, and the two variants' predictions correlate at 0.992. The fitted kappa of about -0.16 is not interpretable, because its chain did not converge.
 - HLR's weak AUC of 0.555 is in line with the AUC of about 0.54 that the original paper reports for HLR, which is expected here because this run has no lexeme features. The original paper's figure of about 0.54 is quoted from memory and was not in any file in this repo, so check it against the paper before submission.
+
+## 10. Duolingo (full dataset)
+
+This section runs the same protocol on Duolingo's public learning traces (Settles & Meeder 2016), using every user and every card. Only the data layer is new. The split, the scoring rule, the metrics, the runner and the report are the same code as for Anki. The GPU port (`ours_gpu`) and LagLogit + dt (`laglogit`) are the models added for this run. The run folder is `results/duolingo_full/`.
+
+### 10.1 Event definition
+
+- **Source.** `data/duolingo/settles.acl16.learning_traces.13m.csv.gz` (Harvard Dataverse, doi:10.7910/DVN/N8XJME, CC BY-NC 4.0). The loader is `fsrs_benchmark/duolingo.py`. It returns the columns of `data.load_user`, so `split`, the models, `run` and `report` are reused.
+- **Event.** One row of the file is one review: one practice session of one lexeme by one user. A card is a (user, lexeme) pair.
+- **Order.** Within a user, rows are sorted by timestamp, then lexeme id, then file row (a stable sort). `review_idx` is dense within the user.
+- **Label.** `y = 1` if `p_recall >= 0.5`, else `0`. `p_recall` is the value the dataset records for that session, so `y` is a threshold of it and not a single yes or no answer.
+- **FSRS rating.** `rating = 3` (Good) when `y = 1`, else `1` (Again). FSRS therefore sees only two grades on this data.
+- **Time.** `day_offset = floor((timestamp - T0) / 86400)`, where `T0` is the earliest timestamp in the whole file. `elapsed_days` is the day-offset difference to the card's previous row (-1 on a first row). `dt_days` is the timestamp difference to the previous row, in days (NaN on a first row).
+- **First rows.** A card's first row in the log starts its replay and is never scored, because its history before the log window is unknown.
+- **Unused fields.** `history_seen`, `history_correct`, the lexeme strings and the session counts are not used by any model, so every model sees only the replayed history.
+- **Sample.** All users (`--n_users 0`), `--min_user_rows 1`, and no card cap (`--max_cards 1000000000`).
+- **Split.** The same per-user 80th-percentile day cutoff as Section 4. A test event is scored when it is not a card's first row and `elapsed_days >= 1`.
+
+### 10.2 Data counts
+
+| Quantity | Value |
+|---|---|
+| Users | 115,222 |
+| Cards | 5,861,629 |
+| Review events (all) | 12,854,226 |
+| Train events | 6,468,512 |
+| Test events | 6,385,714 |
+| Scored events | 1,189,355 |
+| Recall rate on scored events | 0.920 |
+| Users with zero train rows | 64,254 |
+| FSRS-6 (optimised) users that kept the default weights | 115,110 |
+
+### 10.3 Overall results
+
+All five models are scored on the same 1,189,355 events. The best value in each column is in bold, as in Section 9.2. The `ours` and `ours_kappa` rows of Section 9 are not run here.
+
+| Model | Log loss | Brier | AUC | ECE | RMSE (bins) | Mean bias |
+|---|---|---|---|---|---|---|
+| FSRS-6 (default) | 0.302 | 0.078 | 0.566 | 0.051 | 0.070 | -0.025 |
+| FSRS-6 (optimised) | 0.300 | 0.078 | 0.570 | 0.050 | 0.070 | -0.026 |
+| HLR (Settles & Meeder) | 0.418 | 0.079 | 0.521 | 0.072 | 0.072 | 0.072 |
+| Ours (GPU port) | **0.268** | **0.071** | **0.656** | **0.014** | **0.017** | 0.004 |
+| LagLogit + dt (baseline) | 0.291 | 0.076 | 0.653 | 0.020 | 0.068 | **-0.001** |
+
+On this dataset the ordering reverses the Anki result (Section 9.2): Ours (GPU port) has the lowest log loss, and FSRS-6 (optimised) is no longer the best model. Section 10.7 explains why this does not show that our model beats FSRS in general.
+
+### 10.4 Results by gap
+
+The gap is the number of days since the card's previous review. The data span is about 12 days, so the 15-60d and 61d+ bins have no scored events.
+
+| Gap | n | FSRS-6 (default) | FSRS-6 (optimised) | HLR | Ours (GPU port) | LagLogit + dt |
+|---|---|---|---|---|---|---|
+| 1d | 444,662 | 0.290 / 0.580 | 0.288 / 0.584 | 0.481 / 0.543 | **0.261 / 0.660** | 0.290 / 0.652 |
+| 2-3d | 376,692 | 0.293 / 0.564 | 0.292 / 0.567 | 0.407 / 0.530 | **0.270 / 0.652** | 0.291 / 0.650 |
+| 4-14d | 368,001 | 0.325 / 0.554 | 0.324 / 0.556 | 0.353 / 0.522 | **0.275 / 0.655** | 0.292 / 0.658 |
+| 15-60d | 0 | - | - | - | - | - |
+| 61d+ | 0 | - | - | - | - | - |
+
+Each cell is log loss / AUC. Log loss is lower-is-better and AUC is higher-is-better. The per-bin ECE and mean bias are in `results/duolingo_full/report.md`. The log-loss-by-gap figure is `results/duolingo_full/gapbins_logloss.png`.
+
+### 10.5 Paired differences and user wins
+
+Each difference is model minus reference, on the same events. The 95% interval comes from a user-clustered paired bootstrap (1000 resamples of users, seed 0). The reference is FSRS-6 (optimised). All intervals exclude zero. Values are from `paired.csv`, rounded to four decimals.
+
+| Comparison | Log loss diff [95% CI] | Brier diff [95% CI] | AUC diff [95% CI] |
+|---|---|---|---|
+| FSRS-6 (default) - FSRS-6 (optimised) | 0.0015 [0.0011, 0.0020] * | 0.0002 [0.0001, 0.0004] * | -0.0033 [-0.0048, -0.0018] * |
+| HLR - FSRS-6 (optimised) | 0.1178 [0.1124, 0.1236] * | 0.0010 [0.0003, 0.0016] * | -0.0489 [-0.0555, -0.0428] * |
+| Ours (GPU port) - FSRS-6 (optimised) | -0.0320 [-0.0330, -0.0311] * | -0.0064 [-0.0066, -0.0062] * | 0.0865 [0.0826, 0.0906] * |
+| LagLogit + dt - FSRS-6 (optimised) | -0.0092 [-0.0117, -0.0068] * | -0.0017 [-0.0022, -0.0013] * | 0.0838 [0.0797, 0.0880] * |
+
+User wins on log loss, over the 41,223 users with a finite log loss for both models: Ours (GPU port) beats FSRS-6 (optimised) for 30,511 users (0.740). LagLogit + dt beats it for 29,525 (0.716). HLR beats it for 23,766 (0.577). FSRS-6 (default) beats FSRS-6 (optimised) for 10 users (0.000).
+
+### 10.6 MCMC convergence of Ours (GPU port)
+
+The run kept 100 posterior draws (2000 sweeps, 1000 burn-in, thin 10). Its lambda Metropolis-Hastings acceptance was 0.152 after burn-in (0.160 over all sweeps). Values are from `diagnostics_ours_gpu.json`. R-hat is a split R-hat on one chain.
+
+| Parameter | Mean | 95% interval | ESS | Split R-hat |
+|---|---|---|---|---|
+| lam | 1.034 | [0.956, 1.136] | 3.0 | 2.48 |
+| sigma2 | 0.603 | [0.571, 0.648] | 2.9 | 2.45 |
+| b0 | 3.673 | [3.649, 3.686] | 4.0 | 1.77 |
+| g0 | -0.184 | [-0.206, -0.171] | 9.7 | 1.16 |
+| tau2_alpha | 1.341 | [1.314, 1.363] | 20.0 | 1.01 |
+| tau2_beta | 0.205 | [0.198, 0.218] | 3.1 | 2.15 |
+| tau2_gamma | 0.340 | [0.302, 0.373] | 3.0 | 2.64 |
+
+**The chain did not converge, and lambda is not identified here.** At 2000 sweeps, lambda has an R-hat of 2.48 and an ESS of 3, against a target of R-hat below 1.01 and an ESS in the hundreds. The same is true for sigma2, tau2_beta and tau2_gamma. A longer run (8000 sweeps, 6000 burn-in, thin 20, in `results/duolingo_full_long/`) shows the drift directly. Lambda is 0.95 at sweep 1000, 1.24 at sweep 4000 and 1.73 at sweep 8000, with R-hat 2.33. Sigma2 drifts with it, from a mean of 0.60 at 2000 sweeps to 1.14 in the long run (R-hat 2.89). Lambda and sigma2 are therefore weakly identified (they lie along a ridge), and their values on Duolingo should not be interpreted.
+
+The predictions are insensitive to this. Test log loss is 0.2682 at 2000 sweeps and 0.2679 at 8000 sweeps, Brier 0.0715 and 0.0714, and the correlation between the two runs' per-event predictions is 0.992. The headline results (Sections 10.3 to 10.5) use the 2000-sweep run, which matches the Anki protocol. The long run is a sensitivity check.
+
+### 10.7 Caveats
+
+- **(a) FSRS-6 (optimised) is nearly FSRS-6 (default).** The per-user optimiser needs at least 512 informative train reviews (`MIN_INFORMATIVE_TRAIN` in `fsrs_benchmark/models/fsrs_model.py`). Only 112 of the 115,222 users reach it, so the default weights were kept for 115,110 users. The "optimised" row is almost the default model, and its difference from FSRS-6 (default) is small (Section 10.5).
+- **(b) 64,254 users have zero train rows.** Their cards have no TRAIN history, so they are predicted from population-level parameters. This affects Ours (which uses the padding index, the cold path) and both FSRS variants through the default weights.
+- **(c) Ours (GPU port).** The equations are the same as `AnkiFirstRun/dynamic_retention_dt.py`, ported to torch in `fsrs_benchmark/models/dynamic_retention_gpu.py` (the file is unchanged). The run used a Kaggle T4 GPU in float64 for the computation, with 2000 sweeps, 1000 burn-in and thin 10. The kept draws are stored as float32 to save host memory. Its lambda chain did not converge (Section 10.6).
+- **(d) The label is a threshold.** `y` thresholds the recorded `p_recall` at 0.5. It is not an observed yes or no recall, so the metrics measure how well each model predicts that threshold.
+- **(e) FSRS sees two grades.** The rating is 3 or 1 only, so FSRS does not use the Hard and Easy distinction that it uses on Anki.
+- **(f) HLR has no lexeme features.** The official Duolingo model uses lexeme features that this comparison does not use, so this HLR is weaker than the published one (as on Anki, Section 8).
+- **(g) No long gaps.** The data span is about 12 days, so the comparison covers only the 1d, 2-3d and 4-14d bins.
+- **(h) One seed, one chain.** The run used seed 0 and one MCMC chain. The paired intervals reflect only user sampling.
+- **(i) FSRS predict ran serially.** The run recorded `workers = 1`, so the parallel predict path (Section 5.1) was not used for the full run.
+
+### 10.8 Run notes
+
+The run was split over two Kaggle notebooks, one GPU and one CPU. The GPU notebook (`amalverma27/notebook2ef9000f5a`) produced `ours_gpu`, `hlr` and `laglogit`. The CPU notebook (`notebooke7d641abde`) produced `fsrs_default` and `fsrs_opt`. The two sets of prediction files were merged locally with `--resume`, which skips finished per-model files whose sidecars match the config. The merge wrote `predictions.parquet` (1,189,355 rows) and `run_info.json`. The git commit recorded in `run_info.json` is `ea51d42`, with `dirty: true`.
+
+Total fit and predict times per model are in `results/duolingo_full/report.md`. The FSRS-6 predict times (about 2,500 s each, run serially) and the `ours_gpu` fit (about 2,600 s) are the largest per-model costs.

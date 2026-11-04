@@ -105,6 +105,20 @@ def _optimize_user(user_id, train):
     return int(user_id), status, value, time.perf_counter() - started
 
 
+def _replay_user(user_id, params, user):
+    """Replay every card of one user with that user's weights. Module-level for worker processes.
+
+    Returns {event_id: p} for the user's scored rows. Users are independent, so the
+    result does not depend on which process ran it.
+    """
+    scheduler = Scheduler(parameters=params, enable_fuzzing=False)
+    values = {}
+    ordered = user.sort_values(["card_id", "review_idx"])
+    for card_id, rows in ordered.groupby("card_id", sort=True):
+        values.update(_replay_card(scheduler, card_id, rows))
+    return int(user_id), values
+
+
 def _worker_init():
     """One torch thread per worker, so N workers do not oversubscribe the CPU."""
     import torch
@@ -118,8 +132,9 @@ class FSRSModel:
     history (train and test rows, in review_idx order) and returns p for the scored
     rows only, indexed by event_id.
 
-    n_workers > 1 runs the per-user Optimizer fits in a process pool. Each user is
-    independent and the fit is deterministic, so the results match n_workers=1.
+    n_workers > 1 runs the per-user Optimizer fits and the per-user replays in a process
+    pool. Each user is independent and both steps are deterministic, so the results match
+    n_workers=1.
 
     After fit(), these attributes describe what happened:
       params_       {user_id: tuple of 21 weights}
@@ -151,7 +166,8 @@ class FSRSModel:
                 continue
             jobs.append((int(user_id), train))
 
-        for user_id, status, value, seconds in self._run_jobs(jobs):
+        results = self._map_jobs(_optimize_user, [(uid, train) for uid, train in jobs])
+        for user_id, status, value, seconds in results:
             if status == "error":
                 self._fall_back(user_id, f"optimizer error: {value}")
                 continue
@@ -162,14 +178,14 @@ class FSRSModel:
             self.params_[user_id] = value
         return self
 
-    def _run_jobs(self, jobs):
-        """Results in the same order as jobs, serially or in a spawn-context process pool."""
-        if self.n_workers == 1 or len(jobs) <= 1:
-            return [_optimize_user(uid, train) for uid, train in jobs]
+    def _map_jobs(self, fn, arg_tuples):
+        """fn(*args) for each tuple, in order: serially, or in a spawn-context process pool."""
+        if self.n_workers == 1 or len(arg_tuples) <= 1:
+            return [fn(*args) for args in arg_tuples]
         context = multiprocessing.get_context("spawn")
         with ProcessPoolExecutor(max_workers=self.n_workers, mp_context=context,
                                  initializer=_worker_init) as pool:
-            futures = [pool.submit(_optimize_user, uid, train) for uid, train in jobs]
+            futures = [pool.submit(fn, *args) for args in arg_tuples]
             return [f.result() for f in futures]
 
     def _fall_back(self, user_id, reason):
@@ -181,14 +197,14 @@ class FSRSModel:
         """Return a Series of recall probabilities, indexed by event_id, for scored rows."""
         if not self.params_:
             raise RuntimeError("call fit() before predict()")
-        values = {}
+        jobs = []
         for user_id, user in events.groupby("user_id", sort=True):
             if int(user_id) not in self.params_:
                 raise KeyError(f"user {user_id} was not seen in fit()")
-            scheduler = Scheduler(parameters=self.params_[int(user_id)], enable_fuzzing=False)
-            ordered = user.sort_values(["card_id", "review_idx"])
-            for card_id, rows in ordered.groupby("card_id", sort=True):
-                values.update(_replay_card(scheduler, card_id, rows))
+            jobs.append((int(user_id), self.params_[int(user_id)], user))
+        values = {}
+        for _, user_values in self._map_jobs(_replay_user, jobs):
+            values.update(user_values)
         series = pd.Series(values, dtype=float, name="p")
         series.index.name = "event_id"
         series = series.sort_index()
