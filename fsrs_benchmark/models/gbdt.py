@@ -47,8 +47,13 @@ GROUP_FEATURES = {
 
 
 @njit(cache=True)
-def _card_kernel(key, el, rating, yv, day, w):
-    """Rows sorted by (card key, time). Past-only per-card features and the FSRS-6 default state."""
+def _card_kernel(key, gkey, el, rating, yv, day, w):
+    """Rows sorted by (card key, time). Past-only per-card features and the FSRS-6 default state.
+
+    Rows of one card with the same `gkey` (raw timestamp; unique per row when there is none) are
+    simultaneous: all of them get features from the card state BEFORE the group, and the state is then
+    updated with the group's rows in order.
+    """
     n = len(key)
     out = np.full((n, 16), np.nan)
     decay = w[20]
@@ -62,81 +67,91 @@ def _card_kernel(key, el, rating, yv, day, w):
     g1 = g2 = g3 = -1.0
     y1 = y2 = y3 = -1.0
     e1 = e2 = e3 = -1.0
-    for i in range(n):
-        if i == 0 or key[i] != key[i - 1]:
+    a = 0
+    while a < n:
+        b = a + 1
+        while b < n and key[b] == key[a] and gkey[b] == gkey[a]:
+            b += 1
+        if a == 0 or key[a] != key[a - 1]:
             cnt = 0
             lapses = 0
             ysum = 0.0
-            first_day = day[i]
+            first_day = day[a]
             g1 = g2 = g3 = -1.0
             y1 = y2 = y3 = -1.0
             e1 = e2 = e3 = -1.0
-        g = rating[i]
-        gf = float(g)
-        out[i, 0] = cnt
-        out[i, 1] = lapses
-        if cnt > 0:
-            out[i, 2] = ysum / cnt
-        if g1 >= 0:
-            out[i, 3] = g1
-            out[i, 6] = y1
-            out[i, 9] = e1
-        if g2 >= 0:
-            out[i, 4] = g2
-            out[i, 7] = y2
-            out[i, 10] = e2
-        if g3 >= 0:
-            out[i, 5] = g3
-            out[i, 8] = y3
-            out[i, 11] = e3
-        out[i, 12] = day[i] - first_day
-        t = float(el[i])
-        if cnt == 0:
-            S_new = min(max(w[g - 1], S_MIN), S_MAX)
-            D_new = min(max(w[4] - math.exp(w[5] * (gf - 1.0)) + 1.0, 1.0), 10.0)
-        else:
-            if t < 0.0:
-                t = 0.0
-            R = (1.0 + factor * t / S) ** (-decay)
-            out[i, 13] = S
-            out[i, 14] = D
-            out[i, 15] = R
-            Rc = min(max(R, 1e-4), 1.0)
-            hard = w[15] if g == 2 else 1.0
-            easy = w[16] if g == 4 else 1.0
-            inc = (math.exp(w[8]) * (11.0 - D) * S ** (-w[9]) * (math.exp(w[10] * (1.0 - Rc)) - 1.0)
-                   * hard * easy)
-            S_rec = S * (1.0 + inc)
-            S_fl = (w[11] * D ** (-w[12]) * ((S + 1.0) ** w[13] - 1.0) * math.exp((1.0 - Rc) * w[14]))
-            S_fs = S / math.exp(w[17] * w[18])
-            S_fail = min(S_fl, S_fs)
-            S_long = S_fail if g == 1 else S_rec
-            sti = math.exp(w[17] * (gf - 3.0 + w[18])) * S ** (-w[19])
-            if g >= 2 and sti < 1.0:
-                sti = 1.0
-            S_short = S * sti
-            S_new = S_short if t < 1.0 else S_long
-            S_new = min(max(S_new, S_MIN), S_MAX)
-            d0_easy = w[4] - math.exp(w[5] * 3.0) + 1.0
-            delta = -(w[6] * (gf - 3.0))
-            d_tmp = D + (10.0 - D) * delta / 9.0
-            D_new = min(max(w[7] * d0_easy + (1.0 - w[7]) * d_tmp, 1.0), 10.0)
-        S = S_new
-        D = D_new
-        # push this review into the card history AFTER the features were written
-        g3 = g2
-        y3 = y2
-        e3 = e2
-        g2 = g1
-        y2 = y1
-        e2 = e1
-        g1 = gf
-        y1 = float(yv[i])
-        e1 = float(el[i])
-        cnt += 1
-        ysum += float(yv[i])
-        if g == 1:
-            lapses += 1
+        # features of every row of the group, from the state before the group
+        for i in range(a, b):
+            out[i, 0] = cnt
+            out[i, 1] = lapses
+            if cnt > 0:
+                out[i, 2] = ysum / cnt
+            if g1 >= 0:
+                out[i, 3] = g1
+                out[i, 6] = y1
+                out[i, 9] = e1
+            if g2 >= 0:
+                out[i, 4] = g2
+                out[i, 7] = y2
+                out[i, 10] = e2
+            if g3 >= 0:
+                out[i, 5] = g3
+                out[i, 8] = y3
+                out[i, 11] = e3
+            out[i, 12] = day[i] - first_day
+            if cnt > 0:
+                t = max(float(el[i]), 0.0)
+                out[i, 13] = S
+                out[i, 14] = D
+                out[i, 15] = (1.0 + factor * t / S) ** (-decay)
+        # then update the state with the group's rows, in order
+        for i in range(a, b):
+            g = rating[i]
+            gf = float(g)
+            t = float(el[i])
+            if cnt == 0:
+                S_new = min(max(w[g - 1], S_MIN), S_MAX)
+                D_new = min(max(w[4] - math.exp(w[5] * (gf - 1.0)) + 1.0, 1.0), 10.0)
+            else:
+                if t < 0.0:
+                    t = 0.0
+                R = (1.0 + factor * t / S) ** (-decay)
+                Rc = min(max(R, 1e-4), 1.0)
+                hard = w[15] if g == 2 else 1.0
+                easy = w[16] if g == 4 else 1.0
+                inc = (math.exp(w[8]) * (11.0 - D) * S ** (-w[9]) * (math.exp(w[10] * (1.0 - Rc)) - 1.0)
+                       * hard * easy)
+                S_rec = S * (1.0 + inc)
+                S_fl = (w[11] * D ** (-w[12]) * ((S + 1.0) ** w[13] - 1.0) * math.exp((1.0 - Rc) * w[14]))
+                S_fs = S / math.exp(w[17] * w[18])
+                S_fail = min(S_fl, S_fs)
+                S_long = S_fail if g == 1 else S_rec
+                sti = math.exp(w[17] * (gf - 3.0 + w[18])) * S ** (-w[19])
+                if g >= 2 and sti < 1.0:
+                    sti = 1.0
+                S_short = S * sti
+                S_new = S_short if t < 1.0 else S_long
+                S_new = min(max(S_new, S_MIN), S_MAX)
+                d0_easy = w[4] - math.exp(w[5] * 3.0) + 1.0
+                delta = -(w[6] * (gf - 3.0))
+                d_tmp = D + (10.0 - D) * delta / 9.0
+                D_new = min(max(w[7] * d0_easy + (1.0 - w[7]) * d_tmp, 1.0), 10.0)
+            S = S_new
+            D = D_new
+            g3 = g2
+            y3 = y2
+            e3 = e2
+            g2 = g1
+            y2 = y1
+            e2 = e1
+            g1 = gf
+            y1 = float(yv[i])
+            e1 = float(el[i])
+            cnt += 1
+            ysum += float(yv[i])
+            if g == 1:
+                lapses += 1
+        a = b
     return out
 
 
@@ -222,10 +237,6 @@ def base_features(events, span=20, user_group="auto"):
 
     key = uid * (int(cid.max()) + 1) + cid
     order = np.argsort(key, kind="stable")
-    card_out = np.empty((n, 16))
-    card_out[order] = _card_kernel(key[order], el[order], rating[order], yv[order], day[order], W)
-
-    inform = (~first) & (el >= 1)
     # Which rows of a user are simultaneous? "ts": equal raw timestamp (Duolingo logs a whole session at one
     # timestamp). "row": none (Anki: every review is individually timed, and the file order is
     # chronological: day_offset never decreases, and 2.0M same-day consecutive card pairs in 100 users all
@@ -237,8 +248,13 @@ def base_features(events, span=20, user_group="auto"):
         mode = "ts" if "ts" in ev.columns else "day"
     gkey = {"ts": lambda: ev["ts"].to_numpy(np.int64), "day": lambda: day,
             "row": lambda: np.arange(n, dtype=np.int64)}[mode]()
-    if mode == "ts":      # a card is never reviewed twice at one timestamp (simultaneous rows would leak)
-        assert not pd.DataFrame({"k": key, "t": gkey}).duplicated().any(), "same card repeated within one ts"
+    # Card rows are simultaneous only when they share a raw timestamp (a duplicate row of the same user and
+    # lexeme in the full Duolingo file); without ts every row is its own group (Anki: per-row).
+    ckey = ev["ts"].to_numpy(np.int64) if "ts" in ev.columns else np.arange(n, dtype=np.int64)
+    card_out = np.empty((n, 16))
+    card_out[order] = _card_kernel(key[order], ckey[order], el[order], rating[order], yv[order], day[order], W)
+
+    inform = (~first) & (el >= 1)
     user_out = _user_kernel(uid, gkey, day, yv.astype(np.float64), inform, float(span))
 
     f = pd.DataFrame(card_out, columns=CARD_COLS, index=pos)
