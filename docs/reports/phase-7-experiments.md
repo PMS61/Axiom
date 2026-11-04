@@ -223,3 +223,36 @@ The user kernel now treats all rows of a user with the same raw timestamp `ts` (
 Notes on the Anki per-row rerun: Anki frozen `nf_l15_lr02_sm3_nup` is 0.36136 again (dLL -0.0238 [-0.0344, -0.0164] WIN), all groups 0.3632, no_user 0.3771; ranking and FROZEN CHOICE unchanged. So the day-grouping cost on Anki (0.3742) was lost legitimate same-day history, not a leak. Current valid numbers: Anki 0.36136, Duolingo 0.2578 (ts grouping). Predictions `pred_gbdt_anki.parquet` regenerated.
 
 Known limitation (accepted, orchestrator ruling): the lexeme rate `lex_*` pools fit rows of other users, and users have different cutoff days, so a fit row of another user can be later in calendar time than a scored row t. No validation or test label is used; this is the same situation as global parameters learned from all users' train rows under the per-user split. The lexeme ablation is small (Duolingo about 0.001 log loss), so the effect on the result is negligible. `user_group="auto"` now defaults to day grouping without a `ts`; Anki is passed `user_group="row"` explicitly (run.py and the validation runner), so the numbers above are unchanged.
+
+## Task 7.5: stacking
+
+Validation only. Stackers are fitted cross-fitted by user (5 user folds inside the validation set; every prediction is out-of-fold) on the logits of GBDT (frozen), ours_v3 (q2), FSRS-opt, and v2 (stack4*); `x` adds log1p(elapsed_days) and log1p(review_idx); `blend_gv` is a convex blend of GBDT and v3 with w on a 0.05 grid chosen on the 4 training folds. CIs are user-cluster bootstrap (1000 reps) of the log-loss difference; negative = better than the reference.
+
+
+**anki**
+
+| model | log_loss | auc | ece | dLL vs GBDT [95% CI] | dLL vs FSRS-opt [95% CI] |
+|---|---|---|---|---|---|
+| gbdt | 0.36136 | 0.8072 | 0.0063 | - | -0.0238 [-0.0344, -0.0164] |
+| v3 | 0.37915 | 0.7841 | 0.0086 | +0.0178 [+0.0114, +0.0263] | -0.0060 [-0.0102, -0.0023] |
+| stack3 | 0.36166 | 0.8068 | 0.0029 | +0.0003 [-0.0003, +0.0010] | -0.0234 [-0.0340, -0.0162] |
+| stack4 | 0.36152 | 0.8069 | 0.0035 | +0.0002 [-0.0006, +0.0010] | -0.0236 [-0.0343, -0.0162] |
+| stack3x | 0.36185 | 0.8064 | 0.0030 | +0.0005 [-0.0005, +0.0015] | -0.0233 [-0.0340, -0.0160] |
+| stack4x | 0.36167 | 0.8065 | 0.0033 | +0.0003 [-0.0008, +0.0013] | -0.0234 [-0.0343, -0.0161] |
+| stack_gv | 0.36143 | 0.8071 | 0.0032 | +0.0001 [-0.0006, +0.0007] | -0.0237 [-0.0344, -0.0163] |
+| blend_gv | 0.36152 | 0.8071 | 0.0062 | +0.0002 [-0.0001, +0.0005] | -0.0236 [-0.0340, -0.0163] |
+
+**duolingo**
+
+| model | log_loss | auc | ece | dLL vs GBDT [95% CI] | dLL vs FSRS-opt [95% CI] |
+|---|---|---|---|---|---|
+| gbdt | 0.25777 | 0.6978 | 0.0055 | - | -0.0316 [-0.0372, -0.0263] |
+| v3 | 0.27066 | 0.6368 | 0.0171 | +0.0129 [+0.0094, +0.0166] | -0.0187 [-0.0236, -0.0138] |
+| stack3 | 0.25762 | 0.6976 | 0.0019 | -0.0001 [-0.0008, +0.0005] | -0.0317 [-0.0373, -0.0267] |
+| stack4 | 0.25764 | 0.6974 | 0.0012 | -0.0001 [-0.0008, +0.0005] | -0.0317 [-0.0373, -0.0266] |
+| stack3x | 0.25756 | 0.6982 | 0.0022 | -0.0002 [-0.0010, +0.0005] | -0.0318 [-0.0374, -0.0265] |
+| stack4x | 0.25752 | 0.6984 | 0.0024 | -0.0003 [-0.0011, +0.0006] | -0.0318 [-0.0375, -0.0266] |
+| stack_gv | 0.25754 | 0.6980 | 0.0022 | -0.0002 [-0.0009, +0.0004] | -0.0318 [-0.0374, -0.0267] |
+| blend_gv | 0.25775 | 0.6986 | 0.0061 | -0.0000 [-0.0003, +0.0002] | -0.0316 [-0.0372, -0.0264] |
+
+**Decision** (rule: a stacker is used only if it beats GBDT alone on BOTH datasets with a CI excluding 0; lowest mean log loss among those): **gbdt**. No stacker qualifies, so GBDT alone is the final pick.
