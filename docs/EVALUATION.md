@@ -491,3 +491,34 @@ GBDT is the best model on both datasets and on every metric, and the gap to FSRS
 - One seed and one split. The bootstrap intervals reflect user sampling only.
 - The GBDT features are built for one-step-ahead prediction, not for multi-step forecasting.
 - The GRU sequence model (task 7.4) and the v1 plus v2 ensemble (task 7.1) were not completed. See `docs/BACKLOG.md`.
+
+## 12. Robustness checks and related work (2026-11-06)
+
+### 12.1 Is the GBDT overfitting?
+No. Four checks, all on data the model never trained on:
+
+| Check | Result |
+|---|---|
+| Validation vs test (the pick was frozen on validation before the test run) | Anki 0.3614 to 0.3584; Duolingo 0.2578 (dev sample) to 0.2588 (all users). The test is no worse. |
+| Train vs test log loss (Anki, frozen config refitted on TRAIN) | train 0.3467 (341,739 rows), test 0.3584 (95,400 rows). The gap is 0.012; the test period is also later in time. Early stopping chose 975 rounds on a fit-data holdout. |
+| Duolingo users with NO train rows (2,004 users, 15,918 scored reviews) | GBDT 0.2329, v3 0.2604, v1 0.2647, FSRS-opt 0.2748. GBDT's lead is largest on users it never saw. Users with train data: GBDT 0.2592, v1 0.2683, v3 0.2833, FSRS-opt 0.3006. |
+| Breadth | Better than FSRS-opt for 82/100 Anki users and 78% of Duolingo users; best calibrated (ECE 0.005 / 0.001). |
+
+Remaining caveats:
+- About 54 GBDT variants were tried on validation, so a little selection optimism is possible. The validation-test agreement suggests it is small.
+- The Anki test checks the future of the same 100 users, not new Anki users.
+- Part of the GBDT's edge comes from information FSRS does not use (the user's results on other cards). This is a fairness and framing point, not overfitting.
+
+### 12.2 Related work and what is new here (literature search, 2026-11-06)
+- **The open-spaced-repetition srs-benchmark** (about 10k Anki users) evaluates FSRS v1-7, HLR, Ebisu, DASH, ACT-R, GRU, LSTM, RWKV, logistic regression and constant baselines. It has **no tree-based model**. Its best model, RWKV-Instant, reads the user's whole review history across cards: log loss 0.277 vs FSRS-6 0.346 (without same-day reviews). This is the same pattern as our GBDT.
+- **DASH** (Lindsey, Shroyer, Pashler & Mozer, Psychological Science 2014) and **DAS3H** (Choffin et al., EDM 2019) model student ability and item difficulty with study history. Our v2/v3 user effects follow this tradition.
+- **KAR3L** (Shu et al., EMNLP 2024) predicts recall from the learner's history on semantically similar cards.
+- **Gradient-boosted trees in neighbouring tasks:** in the Duolingo SLAM 2018 shared task (word-level error prediction), the winning system was a LightGBM plus RNN ensemble (Osika et al.), and Rich et al. used GBDT. In knowledge tracing there is an XGBoost-based KT model (2023).
+
+So the cross-card "user ability" signal is **not new**. What this project adds:
+1. a tree-based recall model with FSRS-state features (none found in the spaced-repetition literature);
+2. one leakage-audited protocol on two very different datasets, where model rankings flip;
+3. the Duolingo same-session leakage pitfall and how to avoid it;
+4. a Bayesian-vs-ML trade-off study (MCMC vs MAP vs GBDT).
+
+The strongest next step for a paper is to run the GBDT inside the srs-benchmark on its 10k users, so it is compared directly with RWKV, LSTM, GRU and FSRS-6.
