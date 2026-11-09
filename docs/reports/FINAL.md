@@ -20,7 +20,7 @@ are in `docs/EVALUATION.md` (Sections 1-12).
 | `hlr` | Half-Life Regression (Duolingo's official training, ported) |
 | `laglogit` | lagged-outcome logistic baseline (teammates' validated baseline) |
 | `ours`, `ours_kappa`, `ours_gpu` | **v1**: our Bayesian dynamic retention model (Gibbs / Polya-Gamma MCMC; torch GPU port with the same equations) |
-| `ours_v2` | **v2**: FSRS-6 functional forms with 21 weights learned jointly, plus 5 hierarchical user effects (MAP) |
+| `ours_v2` | **v2**: FSRS-6 functional forms with 21 weights learned jointly, plus 6 hierarchical user effects (MAP) |
 | `ours_v3` | **v3**: v2 plus a penalty on the user-effect scales, a lagged outcome and a fixed-scale per-card effect (MAP) |
 | `gbdt` | **GBDT**: LightGBM on past-only features (gap, card history, FSRS-6 state replay, running user stats grouped by session timestamp, smoothed lexeme rate). **Final pick.** |
 

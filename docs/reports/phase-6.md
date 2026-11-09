@@ -19,7 +19,7 @@ Details: `docs/reports/phase-6-experiments.md` (every variant, CIs, rules) and `
 Validation (Anki 100 users; Duolingo 5,000-user dev sample; log loss, lower is better; FSRS-opt is 0.385 on Anki and 0.289 on Duolingo):
 
 - Nine variants (v1 to v9). The first rule chose v5. v5 wins on Duolingo but only ties on Anki.
-- The rule was revised after seeing validation CIs (post hoc, disclosed). The revised rule chose v2 (20 epochs, 5 user effects, no process noise). It wins on both datasets (Anki -0.0049 [-0.0090, -0.0012], Duolingo -0.0123 [-0.0186, -0.0054]).
+- The rule was revised after seeing validation CIs (post hoc, disclosed). The revised rule chose v2 (20 epochs, 6 user effects, no process noise). It wins on both datasets (Anki -0.0049 [-0.0090, -0.0012], Duolingo -0.0123 [-0.0186, -0.0054]).
 
 Test (one look, all events; the first look at test in the project for this model family):
 
