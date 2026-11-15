@@ -43,7 +43,7 @@ paper.
 
 ## Phases
 
-### Phase 1: Close the evidence gaps — IN PROGRESS (1.1, 1.2 and 1.2b DONE; 1.3 on Kaggle in progress; see reports/UPDATE-2026-11-15.md)
+### Phase 1: Close the evidence gaps — DONE (2026-11-15, report: reports/phase-1.md)
 Goal: every number the paper needs exists in a results file, including the constant floor.
 
 - **1.1 Constant-recall baselines.** Add two prediction "models" to `fsrs_benchmark/report.py`.
@@ -89,7 +89,7 @@ Goal: every number the paper needs exists in a results file, including the const
   mean and spread of each model's log loss. v1 is not re-run.
   Done when: the runs finish, are reported, and are added to FACTS.md.
 
-### Phase 2: srs-benchmark comparison — TODO
+### Phase 2: srs-benchmark comparison — IN PROGRESS (2.1, 2.2 done; 2.3 running on Kaggle)
 Goal: compare the GBDT directly with RWKV, LSTM, GRU and FSRS-6 on the public srs-benchmark
 (about 10k Anki users).
 - **2.1 Scoping (no heavy runs).** Clone `open-spaced-repetition/srs-benchmark` into
@@ -113,7 +113,7 @@ Goal: compare the GBDT directly with RWKV, LSTM, GRU and FSRS-6 on the public sr
 - **2.3 Kaggle run.** Set A is 500 users and set B is 1,000 users, all disjoint. Bring the jsonl back,
   run compare.py, and add the numbers to FACTS.md (a new srs-benchmark section).
 
-### Phase 3: Write the paper — TODO
+### Phase 3: Write the paper — IN PROGRESS (3.1, 3.2 done; 3.3 in review)
 EDM template, LaTeX in `paper/`. All numbers come from FACTS.md. The submission is
 anonymous, double-blind.
 - 3.1 Template, skeleton, bib and the build script.
