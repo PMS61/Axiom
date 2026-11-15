@@ -144,7 +144,8 @@ METRICS = {
 }
 
 
-def paired_bootstrap(user_ids, y, p_a, p_b, metric, n_boot=1000, seed=0):
+def _paired_bootstrap_reference(user_ids, y, p_a, p_b, metric, n_boot=1000, seed=0):
+    """Slow reference: rebuilds each resample and recomputes the metric. Kept to test the fast path."""
     """Cluster bootstrap CI for metric(model A) - metric(model B).
 
     Why resample users, not events: reviews from one user are correlated (the same
@@ -178,6 +179,113 @@ def paired_bootstrap(user_ids, y, p_a, p_b, metric, n_boot=1000, seed=0):
         pick = rng.integers(0, len(per_user), size=len(per_user))
         idx = np.concatenate([per_user[i] for i in pick])
         d = fn(y[idx], p_a[idx]) - fn(y[idx], p_b[idx])
+        if np.isfinite(d):
+            draws.append(d)
+    if not draws:
+        return {"diff": float(diff), "lo": float("nan"), "hi": float("nan")}
+    lo, hi = np.percentile(draws, [2.5, 97.5])
+    return {"diff": float(diff), "lo": float(lo), "hi": float(hi)}
+
+
+# ---------------------------------------------------------------------------
+# Fast paired bootstrap. A resample only changes how many times each user is drawn,
+# so each metric is computed as a weighted version of the full data: user weights
+# w_e = count of e's user in the draw. Same RNG draws as the reference, so the results agree.
+# ---------------------------------------------------------------------------
+
+FAST_METRICS = ("log_loss", "brier", "auc", "ece", "rmse_bins", "mean_bias")
+
+
+class _WeightedMetric:
+    """One model's metric on the full data, evaluated for any per-event weight vector w.
+
+    The sort (for AUC) and the bin indices (for ECE / RMSE) are computed once here,
+    outside the bootstrap loop.
+    """
+
+    def __init__(self, name, y, p):
+        self.name = name
+        self.y = y
+        self.p = p
+        self.pos = y == 1
+        if name == "log_loss":
+            pc = np.clip(p, 1e-6, 1 - 1e-6)
+            self.loss = -(y * np.log(pc) + (1 - y) * np.log(1 - pc))
+        elif name == "brier":
+            self.sq = (p - y) ** 2
+        elif name == "ece":
+            self.idx = _bin_index(p, 10)
+            self.nb = 10
+        elif name == "rmse_bins":
+            self.idx = _bin_index(p, 20)
+            self.nb = 20
+        elif name == "auc":
+            # One sort: groups of tied p values, ascending.
+            _, self.grp = np.unique(p, return_inverse=True)
+            self.n_groups = int(self.grp.max()) + 1
+        elif name != "mean_bias":
+            raise ValueError(f"no fast path for metric {name!r}")
+
+    def value(self, w):
+        """Metric on the resample described by weights w (w.sum() > 0). NaN if undefined."""
+        total = w.sum()
+        if self.name == "log_loss":
+            return float(np.sum(w * self.loss) / total)
+        if self.name == "brier":
+            return float(np.sum(w * self.sq) / total)
+        if self.name == "mean_bias":
+            return float(np.sum(w * self.p) / total - np.sum(w * self.y) / total)
+        if self.name in ("ece", "rmse_bins"):
+            bw = np.bincount(self.idx, weights=w, minlength=self.nb)
+            sp = np.bincount(self.idx, weights=w * self.p, minlength=self.nb)
+            sy = np.bincount(self.idx, weights=w * self.y, minlength=self.nb)
+            if self.name == "ece":
+                return float(np.sum(np.abs(sp - sy)) / total)
+            occupied = bw > 0
+            term = np.zeros(self.nb)
+            term[occupied] = (sp[occupied] - sy[occupied]) ** 2 / bw[occupied]
+            return float(np.sqrt(np.sum(term) / total))
+        # AUC: weighted Mann-Whitney. Ties count 0.5, as in auc().
+        w_pos = np.bincount(self.grp, weights=w * self.pos, minlength=self.n_groups)
+        w_neg = np.bincount(self.grp, weights=w * (~self.pos), minlength=self.n_groups)
+        n_pos, n_neg = w_pos.sum(), w_neg.sum()
+        if n_pos == 0 or n_neg == 0:
+            return float("nan")
+        below = np.cumsum(w_neg) - w_neg  # negatives strictly below each tie group
+        u = np.sum(w_pos * (below + 0.5 * w_neg))
+        return float(u / (n_pos * n_neg))
+
+
+def paired_bootstrap(user_ids, y, p_a, p_b, metric, n_boot=1000, seed=0):
+    """Cluster bootstrap CI for metric(model A) - metric(model B). Same contract as the reference.
+
+    Users are resampled with replacement (same draws as _paired_bootstrap_reference), and
+    each draw is turned into a count per user, so metrics are computed with weights rather
+    than by building the resampled rows. Named metrics in FAST_METRICS take this path;
+    a callable metric falls back to the reference.
+    """
+    if not (isinstance(metric, str) and metric in FAST_METRICS):
+        return _paired_bootstrap_reference(user_ids, y, p_a, p_b, metric, n_boot=n_boot, seed=seed)
+    user_ids = np.asarray(user_ids).ravel()
+    y, p_a = _as_arrays(y, p_a)
+    _, p_b = _as_arrays(y, p_b)
+    if user_ids.shape != y.shape:
+        raise ValueError("user_ids must have one entry per event")
+
+    fn = METRICS[metric]
+    diff = fn(y, p_a) - fn(y, p_b)
+    uniq, codes = np.unique(user_ids, return_inverse=True)
+    codes = codes.ravel()
+    n_users = len(uniq)
+    fast_a = _WeightedMetric(metric, y, p_a)
+    fast_b = _WeightedMetric(metric, y, p_b)
+    rng = np.random.default_rng(seed)
+    draws = []
+    for _ in range(n_boot):
+        pick = rng.integers(0, n_users, size=n_users)  # identical draw to the reference
+        counts = np.bincount(pick, minlength=n_users)
+        w = counts[codes].astype(float)
+        d = fast_a.value(w) - fast_b.value(w)
         if np.isfinite(d):
             draws.append(d)
     if not draws:
