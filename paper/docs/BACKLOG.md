@@ -12,3 +12,6 @@
 - Duolingo run_info.json "users_zero_train" (64254) is not defined anywhere; document it.
 - metrics.py _paired_bootstrap_reference: two docstrings in a row; merge them.
 - paper_export.py: smoothed-wins FACTS lines don't name their reference in the line itself.
+- srs remove_outliers picks scored rows from full-user counts (shared with FSRS-6, so fair); mention in the paper.
+- srsb jsonl omits smECE, precision@90 and recall@90.
+- srsb TrainPool.parts holds all train X until finalize() (about 2x peak memory).

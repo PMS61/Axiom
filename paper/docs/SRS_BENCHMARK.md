@@ -10,15 +10,15 @@ Clone: `external/srs-benchmark` (git-ignored; shallow clone of open-spaced-repet
   single 80th-percentile day cutoff.
 - **Scored rows:** in the "without same-day reviews" table, same-day reviews are not scored but can feed history
   (the `--short` flag). A per-user outlier filter is applied inside `create_features`.
-- **Metrics:** per-user LogLoss, RMSE(bins) (their bin definition), AUC, ICI and MBE. The headline is the **mean over users
-  weighted by review count** (`size`), with 99% CIs from a weighted bootstrap (`evaluate.py`). Ours pools events instead.
+- **Metrics:** per-user LogLoss, RMSE(bins) (their bin definition), AUC, ICI and MBE. The README headline is the **unweighted mean over users**
+  (`evaluate.py` with scale="users"; verified in 2.2, where all 11 values reproduce). Report both the unweighted mean and the mean weighted by `size`. Ours pools events instead.
 - **Training scope:** most models are fitted per user. RWKV is the exception. It is trained on 5k users, evaluated on the other
   5k, and then the roles swap. A cross-user GBDT fits this RWKV-style protocol.
 - **Published per-user results** are in `result/*.jsonl`, one line per user: `{"metrics": {...}, "user": id, "size": n}`.
   So a new model can be compared **paired, user by user**, on exactly the same users, if it reproduces their test rows
   (check `size` per user).
 
-## Published numbers (README, without same-day reviews, weighted mean ± 99% CI)
+## Published numbers (README, without same-day reviews, unweighted per-user mean ± 99% CI)
 | Model | LogLoss | RMSE(bins) | AUC |
 |---|---|---|---|
 | RWKV-Instant | 0.2773 | 0.0250 | 0.8329 |
@@ -44,7 +44,7 @@ Note that MOVING-AVG, which uses no memory model, beats FSRS-6 here. This suppor
 
 ## GBDT protocol inside srs-benchmark (decided)
 - **Pooled, RWKV-style.** Train one LightGBM model on a pool of training users (set A) with past-only features. Evaluate it
-  on a disjoint set of users (set B), on their TimeSeriesSplit test folds (folds 1-4, no same-day rows scored).
+  on a disjoint set of users (set B), on their TimeSeriesSplit test folds (all 5 test folds; only the first chunk is train-only; no same-day rows scored).
 - Features per row use only that user's earlier rows (by `review_th`, with same-timestamp grouping as in our leak fix):
   - the gap;
   - the card's review count, lapses, and the last 3 grades and gaps;
