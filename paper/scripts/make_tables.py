@@ -152,15 +152,15 @@ def _win_share(wins, model, reference):
     return None
 
 
-def _signed(x):
-    return (MINUS if x < 0 else "+") + f"{abs(x):.{DECIMALS}f}"
+def _signed(x, decimals=DECIMALS):
+    return (MINUS if x < 0 else "+") + f"{abs(x):.{decimals}f}"
 
 
-def _diff_cell(res):
+def _diff_cell(res, decimals=DECIMALS):
     if res is None:
         return "--"
     d, lo, hi = res
-    return f"{_signed(d)} [{_signed(lo)}, {_signed(hi)}]"
+    return f"{_signed(d, decimals)} [{_signed(lo, decimals)}, {_signed(hi, decimals)}]"
 
 
 def paired_tex(data_dir):
@@ -190,8 +190,10 @@ def paired_tex(data_dir):
         cols = []
         for ds in DATASETS:
             key = _key(ds, row)
-            cols.append(_diff_cell(None if key == "fsrs_opt" else _paired_lookup(pt[ds], key, "fsrs_opt")))
-            cols.append(_diff_cell(_paired_lookup(pt[ds], key, "const_user_smooth")))
+            # Duolingo differences are small, so they get 4 decimals; Anki keeps 3.
+            dec = 4 if ds == "duolingo" else DECIMALS
+            cols.append(_diff_cell(None if key == "fsrs_opt" else _paired_lookup(pt[ds], key, "fsrs_opt"), dec))
+            cols.append(_diff_cell(_paired_lookup(pt[ds], key, "const_user_smooth"), dec))
             share = None if key == "fsrs_opt" else _win_share(wins[ds], key, "fsrs_opt")
             cols.append("--" if share is None else f"{100 * share:.0f}\\%")
         lines.append(f"{label} & " + " & ".join(cols) + " \\\\")
@@ -207,8 +209,9 @@ def seeds_tex(data_dir):
         "\\begin{table*}[t]",
         "\\centering",
         "\\caption{Anki robustness: log loss on three 100-user samples (seeds 0, 1, 2). "
-        "The GBDT row gives the per-seed difference GBDT minus FSRS-6 (opt.) with its 95\\% CI. "
-        "v1 and v2 are not part of the robustness runs.}",
+        "Lower is better. The last row gives the per-seed difference GBDT minus FSRS-6 (opt.) with its 95\\% CI; "
+        "its Mean column is the mean of the three per-seed differences. "
+        "v1 was not run on seeds 1 and 2, and v2 is not in this table.}",
         "\\label{tab:seeds}",
         "\\small",
         "\\setlength{\\tabcolsep}{3pt}",

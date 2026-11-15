@@ -124,7 +124,7 @@ def plot_reliability(table, dataset, out_path):
     ax.set_ylabel("Observed recall")
     ax.set_aspect("equal")
     ax.grid(color="#eeeeee", linewidth=0.5)
-    ax.legend(frameon=False, loc="upper left")
+    ax.legend(frameon=False, loc="lower right")
     fig.tight_layout()
     fig.savefig(out_path)
     plt.close(fig)
