@@ -1,0 +1,45 @@
+% Paper: "Beating the Floor: A Leakage-Audited Benchmark of Recall Prediction for Spaced Repetition"
+% Template: official EDM LaTeX template (edm_article.cls), from
+%   https://educationaldatamining.org/wp-content/uploads/2024/EDM-template2024.zip
+%   (linked from https://educationaldatamining.org/edm2026/instructions-for-authors/).
+%   Copy kept in template_src/. Build with ./build.sh (TEXINPUTS points at template_src/).
+% Submission is double-blind: keep the author block anonymous.
+\documentclass{edm_article}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+
+\title{Beating the Floor: A Leakage-Audited Benchmark of Recall Prediction for Spaced Repetition}
+
+% Double-blind: no names, affiliations or identifying URLs.
+\numberofauthors{1}
+\author{
+\alignauthor
+Anonymous Submission\\
+\affaddr{Anonymous Affiliation}\\
+\email{anonymous@anonymous.edu}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+TODO: abstract (Phase 3.4). Numbers only from paper/FACTS.md.
+\end{abstract}
+
+\keywords{spaced repetition, recall prediction, benchmark, data leakage, FSRS} % Replace with final 3-5 keywords
+
+\input{sections/intro}
+\input{sections/related}
+\input{sections/protocol}
+\input{sections/models}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+\bibliographystyle{abbrv}
+\bibliography{references}
+
+\end{document}
