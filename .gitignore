@@ -29,3 +29,4 @@ __pycache__/
 results/timing_*/
 results/**/*.parquet
 !paper/data/
+external/

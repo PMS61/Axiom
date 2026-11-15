@@ -9,3 +9,23 @@ FSRS-6 (optimised),LagLogit + dt (baseline),fsrs_opt,laglogit,41223,29525,0.7162
 FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,41223,29013,0.7038
 FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,41223,29473,0.715
 FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,41223,32151,0.7799
+Ours (GPU port),Constant (global),ours_gpu,const_global,41223,14766,0.3582
+Ours (GPU port),Constant (per user),ours_gpu,const_user,41223,16033,0.3889
+Ours (GPU port),"Constant (per user, smoothed)",ours_gpu,const_user_smooth,41223,15104,0.3664
+Ours (GPU port),FSRS-6 (default),ours_gpu,fsrs_default,41223,10706,0.2597
+Ours (GPU port),FSRS-6 (optimised),ours_gpu,fsrs_opt,41223,10712,0.2599
+Ours (GPU port),HLR (Settles & Meeder),ours_gpu,hlr,41223,21289,0.5164
+Ours (GPU port),LagLogit + dt (baseline),ours_gpu,laglogit,41223,23502,0.5701
+Ours (GPU port),Ours v2 (hierarchical Bayesian FSRS-style),ours_gpu,ours_v2,41223,16480,0.3998
+Ours (GPU port),"Ours v3 (v2 + user-scale penalty, lag, card effect)",ours_gpu,ours_v3,41223,16364,0.397
+Ours (GPU port),GBDT (LightGBM on history features),ours_gpu,gbdt,41223,21968,0.5329
+"Constant (per user, smoothed)",Constant (global),const_user_smooth,const_global,41223,12888,0.3126
+"Constant (per user, smoothed)",Constant (per user),const_user_smooth,const_user,41223,13543,0.3285
+"Constant (per user, smoothed)",FSRS-6 (default),const_user_smooth,fsrs_default,41223,13915,0.3376
+"Constant (per user, smoothed)",FSRS-6 (optimised),const_user_smooth,fsrs_opt,41223,13925,0.3378
+"Constant (per user, smoothed)",HLR (Settles & Meeder),const_user_smooth,hlr,41223,21908,0.5315
+"Constant (per user, smoothed)",Ours (GPU port),const_user_smooth,ours_gpu,41223,26119,0.6336
+"Constant (per user, smoothed)",LagLogit + dt (baseline),const_user_smooth,laglogit,41223,24737,0.6001
+"Constant (per user, smoothed)",Ours v2 (hierarchical Bayesian FSRS-style),const_user_smooth,ours_v2,41223,21359,0.5181
+"Constant (per user, smoothed)","Ours v3 (v2 + user-scale penalty, lag, card effect)",const_user_smooth,ours_v3,41223,20772,0.5039
+"Constant (per user, smoothed)",GBDT (LightGBM on history features),const_user_smooth,gbdt,41223,27712,0.6722

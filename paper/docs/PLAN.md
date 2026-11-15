@@ -100,7 +100,18 @@ Goal: compare the GBDT directly with RWKV, LSTM, GRU and FSRS-6 on the public sr
   - the data size, RAM and time estimates, and the smallest honest subset;
   - its published numbers for the baseline models.
 
-  The orchestrator then decides tasks 2.2 and later.
+  The orchestrator then decides tasks 2.2 and later. DONE: see `paper/docs/SRS_BENCHMARK.md`.
+- **2.2 GBDT driver for srs-benchmark, local smoke test.** Write `fsrs_benchmark/srsb/run_gbdt.py`
+  following SRS_BENCHMARK.md, with the pooled RWKV-style protocol. Reuse srs-benchmark's loader, split
+  and metrics by import, without modifying them. Add tests.
+  Done when:
+  - on 10 local users, the per-user test row counts equal the `size` in the published
+    `FSRS-6-short.jsonl` (or the closest matching file; name it);
+  - the driver writes jsonl lines in their format;
+  - a script `fsrs_benchmark/srsb/compare.py` reproduces the README weighted mean of FSRS-6 and AVG
+    from the published jsonl (on all users), and computes paired comparisons on any user subset.
+- **2.3 Kaggle run.** Set A is 500 users and set B is 1,000 users, all disjoint. Bring the jsonl back,
+  run compare.py, and add the numbers to FACTS.md (a new srs-benchmark section).
 
 ### Phase 3: Write the paper — TODO
 EDM template, LaTeX in `paper/`. All numbers come from FACTS.md. The submission is

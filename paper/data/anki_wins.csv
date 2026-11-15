@@ -19,3 +19,13 @@ FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,100,82,0.82
 "Ours (dynamic, learned λ)",Ours v2 (hierarchical Bayesian FSRS-style),ours,ours_v2,100,82,0.82
 "Ours (dynamic, learned λ)","Ours v3 (v2 + user-scale penalty, lag, card effect)",ours,ours_v3,100,81,0.81
 "Ours (dynamic, learned λ)",GBDT (LightGBM on history features),ours,gbdt,100,94,0.94
+"Constant (per user, smoothed)",Constant (global),const_user_smooth,const_global,100,36,0.36
+"Constant (per user, smoothed)",Constant (per user),const_user_smooth,const_user,100,41,0.41
+"Constant (per user, smoothed)",FSRS-6 (default),const_user_smooth,fsrs_default,100,71,0.71
+"Constant (per user, smoothed)",FSRS-6 (optimised),const_user_smooth,fsrs_opt,100,77,0.77
+"Constant (per user, smoothed)",HLR (Settles & Meeder),const_user_smooth,hlr,100,15,0.15
+"Constant (per user, smoothed)","Ours (dynamic, learned λ)",const_user_smooth,ours,100,55,0.55
+"Constant (per user, smoothed)",Ours (+κ),const_user_smooth,ours_kappa,100,55,0.55
+"Constant (per user, smoothed)",Ours v2 (hierarchical Bayesian FSRS-style),const_user_smooth,ours_v2,100,82,0.82
+"Constant (per user, smoothed)","Ours v3 (v2 + user-scale penalty, lag, card effect)",const_user_smooth,ours_v3,100,80,0.8
+"Constant (per user, smoothed)",GBDT (LightGBM on history features),const_user_smooth,gbdt,100,95,0.95
