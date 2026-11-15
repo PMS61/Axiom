@@ -43,7 +43,7 @@ paper.
 
 ## Phases
 
-### Phase 1: Close the evidence gaps — IN PROGRESS
+### Phase 1: Close the evidence gaps — IN PROGRESS (1.1, 1.2 and 1.2b DONE; 1.3 on Kaggle in progress; see reports/UPDATE-2026-11-15.md)
 Goal: every number the paper needs exists in a results file, including the constant floor.
 
 - **1.1 Constant-recall baselines.** Add two prediction "models" to `fsrs_benchmark/report.py`.
