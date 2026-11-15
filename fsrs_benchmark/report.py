@@ -30,12 +30,15 @@ import pandas as pd  # noqa: E402
 from fsrs_benchmark import metrics  # noqa: E402
 
 # The constants come first: they are the floor every model is compared against.
-CONSTANT_MODELS = ["const_global", "const_user"]
+CONSTANT_MODELS = ["const_global", "const_user", "const_user_smooth"]
+# Pseudo-count for const_user_smooth. Fixed in advance (not tuned on any split).
+SMOOTH_M = 10
 ALL_MODELS = CONSTANT_MODELS + ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa",
                                 "ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3", "gbdt"]
 DISPLAY = {
     "const_global": "Constant (global)",
     "const_user": "Constant (per user)",
+    "const_user_smooth": "Constant (per user, smoothed)",
     "fsrs_default": "FSRS-6 (default)",
     "fsrs_opt": "FSRS-6 (optimised)",
     "hlr": "HLR (Settles & Meeder)",
@@ -52,6 +55,7 @@ DISPLAY = {
 COLOURS = {
     "const_global": "#999999",
     "const_user": "#B8860B",
+    "const_user_smooth": "#8C564B",
     "fsrs_default": "#E69F00",
     "fsrs_opt": "#0072B2",
     "hlr": "#009E73",
@@ -70,7 +74,7 @@ GAP_BINS = [("1d", 1, 1), ("2-3d", 2, 3), ("4-14d", 4, 14), ("15-60d", 15, 60), 
 PAIR_METRICS = ["log_loss", "brier", "auc", "ece"]
 PAIRED_COLUMNS = ["reference", "model", "metric", "diff", "lo", "hi", "ci_excludes_zero"]
 WINS_COLUMNS = ["reference", "model", "users", "users_lower_log_loss", "share"]
-MARKERS = {"const_global": "<", "const_user": ">",
+MARKERS = {"const_global": "<", "const_user": ">", "const_user_smooth": "8",
            "fsrs_default": "o", "fsrs_opt": "s", "hlr": "^", "ours": "D", "ours_kappa": "v",
            "ours_gpu": "P", "ours_kappa_gpu": "X", "laglogit": "*", "ours_v2": "h", "ours_v3": "p", "gbdt": "d"}
 
@@ -120,8 +124,11 @@ def constant_predictions(preds, events):
     Rate rows: is_train, not a card's first review, elapsed_days >= 1 (the same kind of
     row as a scored event, but from the train side). const_global is the mean y over
     those rows. const_user is each user's own mean over those rows, and a user with no
-    such rows gets const_global. Test rows never enter a rate, so the baselines use no
-    test labels.
+    such rows gets const_global. const_user_smooth shrinks each user's rate towards
+    const_global with a fixed pseudo-count SMOOTH_M:
+        rate = (k + SMOOTH_M * g) / (n + SMOOTH_M)
+    where k is the user's recalled rate rows, n their count and g = const_global. A user
+    with n = 0 gets g. Test rows never enter a rate, so the baselines use no test labels.
     """
     is_train = events["is_train"].astype(bool)
     is_first = events["is_first"].astype(bool)
@@ -131,11 +138,49 @@ def constant_predictions(preds, events):
     global_rate = float(rate_rows["y"].mean())
     per_user = rate_rows.groupby("user_id")["y"].mean()
     user_rate = preds["user_id"].map(per_user).fillna(global_rate).to_numpy(float)
-    return {"const_global": np.full(len(preds), global_rate), "const_user": user_rate}
+    sums = rate_rows.groupby("user_id")["y"].sum()
+    counts = rate_rows.groupby("user_id")["y"].count()
+    k = preds["user_id"].map(sums).fillna(0).to_numpy(float)
+    n = preds["user_id"].map(counts).fillna(0).to_numpy(float)
+    smooth_rate = (k + SMOOTH_M * global_rate) / (n + SMOOTH_M)
+    return {"const_global": np.full(len(preds), global_rate), "const_user": user_rate,
+            "const_user_smooth": smooth_rate}
+
+
+EVENT_CHECK_COLUMNS = ["user_id", "y", "elapsed_days"]
+
+
+def check_events_match(preds, events):
+    """Raise ValueError unless events.parquet describes exactly the scored rows in preds.
+
+    Joins on event_id. Every prediction row must find its event, and user_id, y and
+    elapsed_days must agree. A stale or mismatched events file would otherwise give
+    silently wrong constant baselines.
+    """
+    if "event_id" not in events.columns:
+        raise ValueError("events.parquet has no event_id column; cannot check it against predictions")
+    if not events["event_id"].is_unique:
+        raise ValueError("events.parquet has duplicate event_id values")
+    ev = events[["event_id"] + EVENT_CHECK_COLUMNS]
+    merged = preds[["event_id"] + EVENT_CHECK_COLUMNS].merge(
+        ev, on="event_id", how="left", suffixes=("", "_events"), indicator=True)
+    missing = int((merged["_merge"] != "both").sum())
+    if missing:
+        raise ValueError(f"events.parquet is missing {missing} scored event_id(s) in predictions")
+    for col in EVENT_CHECK_COLUMNS:
+        a = merged[col].to_numpy(float)
+        b = merged[f"{col}_events"].to_numpy(float)
+        bad = ~np.isclose(a, b, rtol=0, atol=0, equal_nan=True)
+        if bad.any():
+            first = merged.loc[bad, "event_id"].iloc[0]
+            raise ValueError(
+                f"events.parquet disagrees with predictions on {col} for {int(bad.sum())} scored row(s) "
+                f"(first event_id {int(first)}); the events file is not from this run")
 
 
 def add_constant_models(preds, events):
-    """Return a copy of preds with the two constant columns added (events is the events table)."""
+    """Return a copy of preds with the constant columns added (events is the events table)."""
+    check_events_match(preds, events)
     out = preds.copy()
     for name, values in constant_predictions(preds, events).items():
         out[name] = values
@@ -283,13 +328,19 @@ def _fmt(x, digits=3):
     return f"{x:.{digits}f}"
 
 
-def _table(header, rows, bold_cols=None):
-    """Markdown table. bold_cols maps column index -> 'min', 'max' or 'closest0' to bold the best cell."""
+def _table(header, rows, bold_cols=None, no_bold=()):
+    """Markdown table. bold_cols maps column index -> 'min', 'max' or 'closest0' to bold the best cell.
+
+    Rows whose index is in no_bold are never bolded and never count as the best (used for
+    the constant baselines, which are floors and not candidates).
+    """
     out = ["| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
     bold_cols = bold_cols or {}
+    no_bold = set(no_bold)
     best = {}  # column -> set of row indices holding the best value (ties included)
     for col, rule in bold_cols.items():
-        vals = [(r[col], i) for i, r in enumerate(rows) if isinstance(r[col], float) and np.isfinite(r[col])]
+        vals = [(r[col], i) for i, r in enumerate(rows)
+                if i not in no_bold and isinstance(r[col], float) and np.isfinite(r[col])]
         if vals:
             key = {"min": lambda v: v, "max": lambda v: -v, "closest0": lambda v: abs(v)}[rule]
             top = min(key(v) for v, _ in vals)
@@ -384,8 +435,11 @@ def write_report(run_dir, out_dir, preds, info, models, mt, pt, uw):
              float(overall.loc[m, "log_loss"]), float(overall.loc[m, "brier"]),
              float(overall.loc[m, "auc"]), float(overall.loc[m, "ece"]),
              float(overall.loc[m, "rmse_bins"]), float(overall.loc[m, "mean_bias"])] for m in models]
-    lines += [_table(header, rows, bold_cols={3: "min", 4: "min", 5: "max", 6: "min", 7: "min", 8: "closest0"}),
-              "", "Best value per column in bold. Mean bias is closest to zero.", ""]
+    no_bold = [i for i, m in enumerate(models) if m.startswith("const_")]
+    lines += [_table(header, rows, bold_cols={3: "min", 4: "min", 5: "max", 6: "min", 7: "min", 8: "closest0"},
+                     no_bold=no_bold),
+              "", "Best value per column in bold. Mean bias is closest to zero.", "",
+              "Constants are floors and are not eligible for bold.", ""]
 
     lines += ["## Gap bins (days since the card's previous review)", ""]
     for label, _, _ in GAP_BINS:
@@ -398,7 +452,8 @@ def write_report(run_dir, out_dir, preds, info, models, mt, pt, uw):
                  float(sub.loc[m, "brier"]), float(sub.loc[m, "auc"]), float(sub.loc[m, "ece"]),
                  float(sub.loc[m, "mean_bias"])] for m in models]
         lines += [_table(["Model", "Recall", "Log loss", "Brier", "AUC", "ECE", "Mean bias"], rows,
-                         bold_cols={2: "min", 3: "min", 4: "max", 5: "min", 6: "closest0"}), ""]
+                         bold_cols={2: "min", 3: "min", 4: "max", 5: "min", 6: "closest0"},
+                         no_bold=no_bold), ""]
     lines += ["![Log loss by gap bin](gapbins_logloss.png)", ""]
 
     lines += ["## Paired differences (model minus reference), 95% user-cluster bootstrap", "",

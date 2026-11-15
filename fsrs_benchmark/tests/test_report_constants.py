@@ -33,6 +33,7 @@ def _events():
         dict(user_id=3, is_train=False, is_first=False, elapsed_days=7, y=1),
     ]
     df = pd.DataFrame(rows)
+    df["event_id"] = np.arange(len(df), dtype=np.int64)
     df["is_first"] = df["is_first"].astype(bool)
     df["is_train"] = df["is_train"].astype(bool)
     df["elapsed_days"] = df["elapsed_days"].astype(np.int64)
@@ -42,9 +43,9 @@ def _events():
 
 
 def _scored_preds(events):
-    """Predictions for the test rows only, as run.py writes them (user_id, y, elapsed_days)."""
+    """Predictions for the test rows only, as run.py writes them (event_id, user_id, y, elapsed_days)."""
     test = events[~events["is_train"]]
-    out = pd.DataFrame({"event_id": np.arange(len(test), dtype=np.int64),
+    out = pd.DataFrame({"event_id": test["event_id"].to_numpy(np.int64),
                         "user_id": test["user_id"].to_numpy(np.int64),
                         "card_id": np.arange(len(test), dtype=np.int64),
                         "y": test["y"].to_numpy(np.int64),
@@ -145,3 +146,120 @@ def test_no_events_file_means_no_constants(tmp_path):
     out = report.build_report(tmp_path)
     mt = pd.read_csv(out / "metrics.csv")
     assert not mt["model"].str.startswith("const_").any()
+
+
+def test_smoothed_rate_hand_computed():
+    # global g = 0.8 (from the toy events). Smoothed rate = (k + 10 * g) / (n + 10).
+    # user 1: k = 1, n = 2 -> (1 + 8) / 12 = 0.75
+    # user 2: k = 3, n = 3 -> (3 + 8) / 13 = 11/13
+    # user 3: no rate rows -> g = 0.8
+    events = _events()
+    preds = _scored_preds(events)
+    assert report.SMOOTH_M == 10
+    out = report.constant_predictions(preds, events)
+    expected = preds["user_id"].map({1: 0.75, 2: 11 / 13, 3: 0.8}).to_numpy(float)
+    assert np.allclose(out["const_user_smooth"], expected)
+
+
+def test_smoothed_rate_uses_no_test_labels():
+    events = _events()
+    base = report.constant_predictions(_scored_preds(events), events)
+    flipped = events.copy()
+    flipped.loc[~flipped["is_train"], "y"] = 1 - flipped.loc[~flipped["is_train"], "y"]
+    after = report.constant_predictions(_scored_preds(flipped), flipped)
+    assert np.allclose(after["const_user_smooth"], base["const_user_smooth"])
+
+
+def test_smoothed_rate_is_between_global_and_per_user():
+    events = _events()
+    out = report.constant_predictions(_scored_preds(events), events)
+    g = out["const_global"]
+    lo = np.minimum(out["const_user"], g)
+    hi = np.maximum(out["const_user"], g)
+    assert np.all(out["const_user_smooth"] >= lo - 1e-12)
+    assert np.all(out["const_user_smooth"] <= hi + 1e-12)
+
+
+def test_smoothed_model_is_registered():
+    events = _events()
+    preds = report.add_constant_models(_scored_preds(events), events)
+    assert report.model_columns(preds)[:3] == ["const_global", "const_user", "const_user_smooth"]
+    assert report.DISPLAY["const_user_smooth"] == "Constant (per user, smoothed)"
+
+
+def _events_and_preds():
+    events = _events()
+    return events, _scored_preds(events)
+
+
+def test_matching_events_pass_the_check():
+    events, preds = _events_and_preds()
+    report.check_events_match(preds, events)  # must not raise
+
+
+@pytest.mark.parametrize("column", ["y", "user_id", "elapsed_days"])
+def test_mismatched_scored_row_raises(column):
+    events, preds = _events_and_preds()
+    preds = preds.copy()
+    value = {"y": 1 - preds.loc[preds.index[0], "y"], "user_id": 2, "elapsed_days": 9}[column]
+    preds.loc[preds.index[0], column] = value
+    with pytest.raises(ValueError, match=column):
+        report.add_constant_models(preds, events)
+
+
+def test_scored_event_missing_from_events_raises():
+    events, preds = _events_and_preds()
+    preds = preds.copy()
+    preds.loc[preds.index[0], "event_id"] = 9999
+    with pytest.raises(ValueError, match="missing"):
+        report.add_constant_models(preds, events)
+
+
+def test_events_without_event_id_raises():
+    events, preds = _events_and_preds()
+    with pytest.raises(ValueError, match="event_id"):
+        report.add_constant_models(preds, events.drop(columns=["event_id"]))
+
+
+def test_duplicate_event_ids_in_events_raise():
+    events, preds = _events_and_preds()
+    events = pd.concat([events, events.iloc[:1]], ignore_index=True)
+    with pytest.raises(ValueError, match="duplicate"):
+        report.add_constant_models(preds, events)
+
+
+def test_build_report_with_stale_events_raises(tmp_path):
+    events, preds = _events_and_preds()
+    stale = events.copy()
+    stale.loc[~stale["is_train"], "y"] = 1 - stale.loc[~stale["is_train"], "y"]  # events from another run
+    stale.to_parquet(tmp_path / "events.parquet", index=False)
+    preds.to_parquet(tmp_path / "predictions.parquet", index=False)
+    with pytest.raises(ValueError, match="disagrees"):
+        report.build_report(tmp_path)
+
+
+def test_table_bold_skips_no_bold_rows():
+    header = ["Model", "Log loss"]
+    rows = [["Constant (global)", 0.20], ["FSRS-6", 0.30], ["Ours", 0.25]]
+    text = report._table(header, rows, bold_cols={1: "min"}, no_bold=[0])
+    lines = text.splitlines()
+    assert "**" not in lines[2]          # the constant has the lowest value but is not bolded
+    assert "**0.250**" in lines[4]       # the best eligible row is bolded instead
+    assert "**0.300**" not in lines[3]
+
+
+def test_report_bolds_no_constant_and_states_the_rule(tmp_path):
+    events, preds = _events_and_preds()
+    # Make the two real models much worse than the constant, so a constant is the best overall.
+    preds["fsrs_opt"] = 0.99
+    preds["ours"] = 0.01
+    events.to_parquet(tmp_path / "events.parquet", index=False)
+    preds.to_parquet(tmp_path / "predictions.parquet", index=False)
+    out = report.build_report(tmp_path)
+    text = (out / "report.md").read_text()
+    assert "Constants are floors and are not eligible for bold." in text
+    overall = text.split("## Overall", 1)[1].split("## Gap bins", 1)[0]
+    const_rows = [line for line in overall.splitlines() if line.startswith("| Constant")]
+    assert len(const_rows) == 3
+    assert all("**" not in line for line in const_rows)
+    assert "**" in overall  # the non-constant best cells are still bold

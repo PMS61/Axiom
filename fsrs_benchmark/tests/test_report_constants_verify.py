@@ -8,6 +8,7 @@ from fsrs_benchmark import report
 
 def _events(rows):
     df = pd.DataFrame(rows)
+    df["event_id"] = np.arange(len(df), dtype=np.int64)
     df["is_first"] = df["is_first"].astype(bool)
     df["is_train"] = df["is_train"].astype(bool)
     if df["elapsed_days"].isna().any():
@@ -20,6 +21,7 @@ def _events(rows):
 
 
 def _preds(user_ids, ys=None):
+    """Predictions for constant_predictions only (it does not join to events, so ids need not match)."""
     n = len(user_ids)
     out = pd.DataFrame({"event_id": np.arange(n, dtype=np.int64),
                         "user_id": np.asarray(user_ids, np.int64),
@@ -29,6 +31,18 @@ def _preds(user_ids, ys=None):
                         "day_offset": np.zeros(n, np.int64)})
     out["fsrs_opt"] = 0.5
     return out
+
+
+def _matching_preds(events):
+    """Predictions for the test rows of events, copied from them (so the events check passes)."""
+    test = events[~events["is_train"]]
+    return pd.DataFrame({"event_id": test["event_id"].to_numpy(np.int64),
+                         "user_id": test["user_id"].to_numpy(np.int64),
+                         "card_id": test["event_id"].to_numpy(np.int64),
+                         "y": test["y"].to_numpy(np.int64),
+                         "elapsed_days": test["elapsed_days"].to_numpy(np.int64),
+                         "day_offset": np.zeros(len(test), np.int64),
+                         "fsrs_opt": 0.5})
 
 
 BASE = [
@@ -86,8 +100,8 @@ def test_empty_predictions_return_empty_arrays():
 
 
 def test_add_constant_models_does_not_mutate_input():
-    events = _events(BASE)
-    preds = _preds([1, 2])
+    events = _events(BASE + [dict(user_id=1, is_train=False, is_first=False, elapsed_days=3, y=0)])
+    preds = _matching_preds(events)
     before = preds.copy()
     report.add_constant_models(preds, events)
     pd.testing.assert_frame_equal(preds, before)
@@ -97,6 +111,6 @@ def test_build_report_without_train_rows_raises(tmp_path):
     events = _events(BASE)
     events["is_train"] = False
     events.to_parquet(tmp_path / "events.parquet", index=False)
-    _preds([1, 2]).to_parquet(tmp_path / "predictions.parquet", index=False)
-    with pytest.raises(ValueError):
+    _matching_preds(events).to_parquet(tmp_path / "predictions.parquet", index=False)
+    with pytest.raises(ValueError, match="no train rows"):
         report.build_report(tmp_path)
