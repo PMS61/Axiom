@@ -44,3 +44,45 @@ Per-user wins on log loss against FSRS-6 (optimised):
 - GBDT (LightGBM on history features): lower log loss for 82 of 100 users, share 0.8200 (source: results/paper_anki/user_wins.csv)
 - Ours (dynamic, learned λ): lower log loss for 22 of 100 users, share 0.2200 (source: results/paper_anki/user_wins.csv)
 <!-- facts:anki:end -->
+
+<!-- facts:duolingo:start -->
+## Duolingo (results/paper_duolingo)
+
+- Scored events: 1189355 (source: results/paper_duolingo/metrics.csv)
+
+Overall metrics per model (log loss, Brier, AUC, ECE):
+
+- Constant (global): log loss 0.2792, Brier 0.0737, AUC 0.5000, ECE 0.0027 (source: results/paper_duolingo/metrics.csv)
+- Constant (per user): log loss 0.3725, Brier 0.0747, AUC 0.6101, ECE 0.0212 (source: results/paper_duolingo/metrics.csv)
+- Constant (per user, smoothed): log loss 0.2723, Brier 0.0722, AUC 0.6154, ECE 0.0079 (source: results/paper_duolingo/metrics.csv)
+- FSRS-6 (default): log loss 0.3018, Brier 0.0781, AUC 0.5663, ECE 0.0509 (source: results/paper_duolingo/metrics.csv)
+- FSRS-6 (optimised): log loss 0.3003, Brier 0.0779, AUC 0.5696, ECE 0.0505 (source: results/paper_duolingo/metrics.csv)
+- HLR (Settles & Meeder): log loss 0.4181, Brier 0.0788, AUC 0.5206, ECE 0.0716 (source: results/paper_duolingo/metrics.csv)
+- Ours (GPU port): log loss 0.2682, Brier 0.0715, AUC 0.6561, ECE 0.0142 (source: results/paper_duolingo/metrics.csv)
+- LagLogit + dt (baseline): log loss 0.2910, Brier 0.0762, AUC 0.6534, ECE 0.0202 (source: results/paper_duolingo/metrics.csv)
+- Ours v2 (hierarchical Bayesian FSRS-style): log loss 0.2892, Brier 0.0747, AUC 0.6088, ECE 0.0355 (source: results/paper_duolingo/metrics.csv)
+- Ours v3 (v2 + user-scale penalty, lag, card effect): log loss 0.2830, Brier 0.0741, AUC 0.6132, ECE 0.0318 (source: results/paper_duolingo/metrics.csv)
+- GBDT (LightGBM on history features): log loss 0.2588, Brier 0.0700, AUC 0.6968, ECE 0.0006 (source: results/paper_duolingo/metrics.csv)
+
+Constant baselines (floors), log loss:
+
+- Constant (global): log loss 0.2792 (source: results/paper_duolingo/metrics.csv)
+- Constant (per user): log loss 0.3725 (source: results/paper_duolingo/metrics.csv)
+- Constant (per user, smoothed): log loss 0.2723 (source: results/paper_duolingo/metrics.csv)
+
+Paired differences vs FSRS-6 (optimised), with 95% user-cluster bootstrap CIs:
+
+- GBDT (LightGBM on history features) minus FSRS-6 (optimised), log loss: diff -0.0415, 95% CI [-0.0423, -0.0406], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- GBDT (LightGBM on history features) minus FSRS-6 (optimised), Brier: diff -0.0078, 95% CI [-0.0080, -0.0077], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- GBDT (LightGBM on history features) minus FSRS-6 (optimised), AUC: diff 0.1273, 95% CI [0.1239, 0.1313], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- GBDT (LightGBM on history features) minus FSRS-6 (optimised), ECE: diff -0.0498, 95% CI [-0.0506, -0.0488], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- Ours (GPU port) minus FSRS-6 (optimised), log loss: diff -0.0320, 95% CI [-0.0330, -0.0311], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- Ours (GPU port) minus FSRS-6 (optimised), Brier: diff -0.0064, 95% CI [-0.0066, -0.0062], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- Ours (GPU port) minus FSRS-6 (optimised), AUC: diff 0.0865, 95% CI [0.0826, 0.0906], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- Ours (GPU port) minus FSRS-6 (optimised), ECE: diff -0.0363, 95% CI [-0.0373, -0.0353], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+
+Per-user wins on log loss against FSRS-6 (optimised):
+
+- GBDT (LightGBM on history features): lower log loss for 32151 of 41223 users, share 0.7799 (source: results/paper_duolingo/user_wins.csv)
+- Ours (GPU port): lower log loss for 30511 of 41223 users, share 0.7401 (source: results/paper_duolingo/user_wins.csv)
+<!-- facts:duolingo:end -->

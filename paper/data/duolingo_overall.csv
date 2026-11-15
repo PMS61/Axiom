@@ -1,0 +1,12 @@
+display,model,n,recall,log_loss,brier,auc,ece,rmse_bins,mean_bias
+Constant (global),const_global,1189355,0.9198,0.2792,0.0737,0.5,0.0027,0.0027,-0.0027
+Constant (per user),const_user,1189355,0.9198,0.3725,0.0747,0.6101,0.0212,0.048,-0.0022
+"Constant (per user, smoothed)",const_user_smooth,1189355,0.9198,0.2723,0.0722,0.6154,0.0079,0.0165,-0.0036
+FSRS-6 (default),fsrs_default,1189355,0.9198,0.3018,0.0781,0.5663,0.0509,0.0705,-0.0249
+FSRS-6 (optimised),fsrs_opt,1189355,0.9198,0.3003,0.0779,0.5696,0.0505,0.0703,-0.0258
+HLR (Settles & Meeder),hlr,1189355,0.9198,0.4181,0.0788,0.5206,0.0716,0.0716,0.0716
+Ours (GPU port),ours_gpu,1189355,0.9198,0.2682,0.0715,0.6561,0.0142,0.0167,0.0038
+LagLogit + dt (baseline),laglogit,1189355,0.9198,0.291,0.0762,0.6534,0.0202,0.0676,-0.0013
+Ours v2 (hierarchical Bayesian FSRS-style),ours_v2,1189355,0.9198,0.2892,0.0747,0.6088,0.0355,0.0482,-0.0066
+"Ours v3 (v2 + user-scale penalty, lag, card effect)",ours_v3,1189355,0.9198,0.283,0.0741,0.6132,0.0318,0.044,-0.0103
+GBDT (LightGBM on history features),gbdt,1189355,0.9198,0.2588,0.07,0.6968,0.0006,0.0026,0.0002

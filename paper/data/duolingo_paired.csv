@@ -1,0 +1,41 @@
+reference_display,model_display,reference,model,metric,diff,lo,hi,ci_excludes_zero
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,log_loss,-0.0211,-0.0228,-0.0194,True
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,brier,-0.0041,-0.0046,-0.0037,True
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,auc,-0.0696,-0.0757,-0.063,True
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,ece,-0.0478,-0.0495,-0.0459,True
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,log_loss,0.0722,0.0666,0.0779,True
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,brier,-0.0032,-0.0035,-0.0028,True
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,auc,0.0406,0.0361,0.0454,True
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,ece,-0.0292,-0.0305,-0.028,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,log_loss,-0.028,-0.0289,-0.0271,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,brier,-0.0057,-0.0059,-0.0055,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,auc,0.0458,0.0415,0.0506,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,ece,-0.0426,-0.0438,-0.0415,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,log_loss,0.0015,0.0011,0.002,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,brier,0.0002,0.0001,0.0004,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,auc,-0.0033,-0.0048,-0.0018,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,ece,0.0004,0.0001,0.0008,True
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,log_loss,0.1178,0.1124,0.1236,True
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,brier,0.001,0.0003,0.0016,True
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,auc,-0.0489,-0.0555,-0.0428,True
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,ece,0.0212,0.0192,0.023,True
+FSRS-6 (optimised),Ours (GPU port),fsrs_opt,ours_gpu,log_loss,-0.032,-0.033,-0.0311,True
+FSRS-6 (optimised),Ours (GPU port),fsrs_opt,ours_gpu,brier,-0.0064,-0.0066,-0.0062,True
+FSRS-6 (optimised),Ours (GPU port),fsrs_opt,ours_gpu,auc,0.0865,0.0826,0.0906,True
+FSRS-6 (optimised),Ours (GPU port),fsrs_opt,ours_gpu,ece,-0.0363,-0.0373,-0.0353,True
+FSRS-6 (optimised),LagLogit + dt (baseline),fsrs_opt,laglogit,log_loss,-0.0092,-0.0117,-0.0068,True
+FSRS-6 (optimised),LagLogit + dt (baseline),fsrs_opt,laglogit,brier,-0.0017,-0.0022,-0.0013,True
+FSRS-6 (optimised),LagLogit + dt (baseline),fsrs_opt,laglogit,auc,0.0838,0.0797,0.088,True
+FSRS-6 (optimised),LagLogit + dt (baseline),fsrs_opt,laglogit,ece,-0.0302,-0.0314,-0.0291,True
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,log_loss,-0.0111,-0.0122,-0.01,True
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,brier,-0.0032,-0.0034,-0.003,True
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,auc,0.0393,0.0353,0.0432,True
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,ece,-0.015,-0.016,-0.0139,True
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,log_loss,-0.0172,-0.0182,-0.0162,True
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,brier,-0.0038,-0.004,-0.0036,True
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,auc,0.0437,0.0396,0.0479,True
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,ece,-0.0187,-0.0197,-0.0176,True
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,log_loss,-0.0415,-0.0423,-0.0406,True
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,brier,-0.0078,-0.008,-0.0077,True
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,auc,0.1273,0.1239,0.1313,True
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,ece,-0.0498,-0.0506,-0.0488,True
