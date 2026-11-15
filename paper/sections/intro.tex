@@ -11,25 +11,14 @@ Duolingo gives short practice sessions, many learners, and a high base rate of r
 The two datasets differ in size and in scoring rule, so we report each one on its own terms.
 
 The first result concerns the constant floor on Duolingo.
-A smoothed per-user constant has log loss 0.2723.
-FSRS-6 (optimised) has 0.3003, and half-life regression (HLR) has 0.4181.
-% FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723; FSRS-6 (optimised) log loss 0.3003; HLR (Settles & Meeder) log loss 0.4181
-Our maximum a posteriori (MAP) models v2 and v3 reach 0.2892 and 0.2830, so they also trail the constant.
-% FACTS: Duolingo, Ours v2 log loss 0.2892; Ours v3 log loss 0.2830
-The Bayesian model v1 reaches 0.2682, which is second only to GBDT, but it improves on the constant by only 0.0040.
-% FACTS: Duolingo, Ours (GPU port) minus Constant (per user, smoothed), log loss: diff -0.0040
+A smoothed per-user constant beats FSRS-6 (optimised), HLR, LagLogit and both MAP models v2 and v3.
+Only GBDT and the Bayesian model v1 beat it (Section 5).
+% FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723; FSRS-6 (optimised) log loss 0.3003; HLR (Settles & Meeder) log loss 0.4181; Ours v2 log loss 0.2892; Ours v3 log loss 0.2830
 The v1 model is the same Bayesian family on both datasets: the original implementation on Anki and its GPU port on Duolingo.
 
 The second result is a gradient-boosted decision tree model (GBDT) with features from the FSRS-6 state and from the learner's own history.
-On Anki, GBDT has log loss 0.3584, against 0.3794 for FSRS-6 (optimised).
-On Duolingo, it has 0.2588, against 0.3003.
-% FACTS: Anki, GBDT log loss 0.3584; FSRS-6 (optimised) log loss 0.3794. Duolingo, GBDT log loss 0.2588; FSRS-6 (optimised) log loss 0.3003
-On both datasets the log-loss difference is significant under a user-clustered paired bootstrap.
-On Anki the difference is $-$0.0210, with 95\% CI [$-$0.0284, $-$0.0144].
-On Duolingo it is $-$0.0415, with 95\% CI [$-$0.0423, $-$0.0406].
-% FACTS: Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415, 95% CI [-0.0423, -0.0406]
-GBDT also has the lower Brier score and the higher AUC on both datasets.
-% FACTS: Anki, GBDT minus FSRS-6 (optimised), Brier: diff -0.0059, 95% CI [-0.0082, -0.0041]; Anki, AUC: diff 0.0285, 95% CI [0.0185, 0.0402]; Duolingo, Brier: diff -0.0078; Duolingo, AUC: diff 0.1273
+GBDT has lower log loss than FSRS-6 (optimised) on both datasets, and the difference is significant on each.
+% FACTS: Anki, GBDT log loss 0.3584; FSRS-6 (optimised) log loss 0.3794. Duolingo, GBDT log loss 0.2588; FSRS-6 (optimised) log loss 0.3003. Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415, 95% CI [-0.0423, -0.0406]
 The Anki calibration difference is not significant, so we do not claim a calibration gain there.
 % FACTS: Anki, GBDT minus FSRS-6 (optimised), ECE: diff -0.0042, 95% CI [-0.0132, 0.0012], CI includes 0
 % TODO-SRSB: the srs-benchmark comparison of GBDT against RWKV, GRU and FSRS-6 is reported in Section 5; the GBDT numbers there are pending.
@@ -37,7 +26,7 @@ The Anki calibration difference is not significant, so we do not claim a calibra
 The third result is about the Bayesian model v1.
 On Anki, v1 is worse than FSRS-6 (optimised), with a log-loss difference of 0.0427 and 95\% CI [0.0327, 0.0554].
 % FACTS: Anki, Ours (dynamic, learned lambda) minus FSRS-6 (optimised), log loss: diff 0.0427, 95% CI [0.0327, 0.0554]
-Its decay parameter $\lambda$ has not converged on either dataset: in the main runs the split R-hat is 2.44 on Anki and 2.48 on Duolingo, with effective sample sizes of 3.05 and 3.00.
+Its decay parameter $\lambda$ has not converged on either dataset. In the main runs the split R-hat, a chain-agreement statistic whose value near 1 indicates convergence, is 2.44 on Anki and 2.48 on Duolingo, and the effective sample size (ESS, the number of independent draws the chain is worth) is 3.05 and 3.00.
 % FACTS: v1 lambda, Anki: split R-hat 2.44, ESS 3.05. v1 lambda, Duolingo (GPU port): split R-hat 2.48, ESS 3.00
 The predictions change little under two checks, but $\lambda$ must not be read as an estimate, so the v1 results on both datasets are provisional.
 Section 5 treats the Bayesian model as a trade-off between interpretable, uncertainty-aware models and accurate predictors.

@@ -162,3 +162,16 @@ Not generated. These lines are added by hand and sit outside the generated marke
 - Duolingo scored gaps: at most 11 days, so only the 1d, 2-3d and 4-14d bins are populated (source: results/paper_duolingo/predictions.parquet, column elapsed_days, maximum over scored events; docs/EVALUATION.md section 10.4).
 - v1 stability, Anki: correlation between ours and ours_kappa predictions is 0.9923 over 95400 scored events (source: results/full_u100_c1000/supplementary.json, ours_vs_kappa.pearson_r).
 - v1 stability, Duolingo: 8000-sweep run gives test log loss 0.2679, against 0.2682 at 2000 sweeps (source: docs/EVALUATION.md section 10.6).
+- Recall share of scored events (base rate): Anki 0.831; Duolingo 0.9198 (source: data/anki_overall.csv and data/duolingo_overall.csv, column recall).
+- GBDT train vs test on Anki (frozen config refitted on TRAIN): train log loss 0.3467 on 341739 rows; test 0.3584 on 95400 rows; early stopping chose 975 rounds on a fit-data holdout (source: docs/EVALUATION.md section 12.1).
+- GBDT on Duolingo users with NO train rows (2004 users, 15918 scored reviews): GBDT 0.2329, v3 0.2604, v1 0.2647, FSRS-6 (optimised) 0.2748 (source: docs/EVALUATION.md section 12.1).
+- GBDT on Duolingo users with train data: GBDT 0.2592, v1 0.2683, v3 0.2833, FSRS-6 (optimised) 0.3006 (source: docs/EVALUATION.md section 12.1).
+- Anki validation, GBDT without the user-history group: log loss 0.377, against 0.363 with it (source: docs/EVALUATION.md section 11.5).
+- Anki validation, frozen GBDT before the same-day grouping fix: 0.3742; after the fix: 0.3614 (source: docs/EVALUATION.md section 11.4(d)).
+- Duolingo user-share denominator: 41223 users with a finite log loss for both models being compared (source: docs/EVALUATION.md section 10.5; the same 41223 users in results/paper_duolingo/user_wins.csv).
+- Duolingo users with zero TRAIN rows: 64254 of 115222 users; their cards are predicted from population-level parameters (source: docs/EVALUATION.md section 10.7(b)).
+- Ours v2 minus FSRS-6 (optimised), log loss: Anki diff -0.0003, 95% CI [-0.0033, 0.0026], CI includes 0; Duolingo diff -0.0111, 95% CI [-0.0122, -0.0100], CI excludes 0 (source: results/paper_anki/paired.csv and results/paper_duolingo/paired.csv).
+- Ours v3 minus FSRS-6 (optimised), log loss: Anki diff -0.0014, 95% CI [-0.0043, 0.0017], CI includes 0; Duolingo diff -0.0172, 95% CI [-0.0182, -0.0162], CI excludes 0 (source: results/paper_anki/paired.csv and results/paper_duolingo/paired.csv).
+- Ours v2 user wins on log loss against FSRS-6 (optimised): Anki 56 of 100 users (share 0.5600); Duolingo 29013 of 41223 users (share 0.7038) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
+- Ours v3 user wins on log loss against FSRS-6 (optimised): Anki 58 of 100 users (share 0.5800); Duolingo 29473 of 41223 users (share 0.7150) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
+- Ours v3 user wins on log loss against Constant (per user, smoothed): Anki 80 of 100 users (share 0.8000); Duolingo 20772 of 41223 users (share 0.5039) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
