@@ -15,3 +15,5 @@
 - srs remove_outliers picks scored rows from full-user counts (shared with FSRS-6, so fair); mention in the paper.
 - srsb jsonl omits smECE, precision@90 and recall@90.
 - srsb TrainPool.parts holds all train X until finalize() (about 2x peak memory).
+- FACTS 'frozen settings' claim for seed 0 hlr/fsrs cannot be checked from run_info (it only says resumed).
+- Add the FSRS-opt fallback counts for seeds 1 and 2 (4 and 6 users) to FACTS.

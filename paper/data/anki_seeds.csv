@@ -1,0 +1,8 @@
+model,display,log_loss_seed0,log_loss_seed1,log_loss_seed2,mean,min,max,range
+const_global,Constant (global),0.4544,0.393,0.4329,0.4268,0.393,0.4544,0.0613
+const_user,Constant (per user),0.4308,0.3613,0.4063,0.3995,0.3613,0.4308,0.0695
+fsrs_default,FSRS-6 (default),0.396,0.3246,0.3641,0.3616,0.3246,0.396,0.0714
+fsrs_opt,FSRS-6 (optimised),0.3794,0.3142,0.3521,0.3486,0.3142,0.3794,0.0651
+hlr,HLR (Settles & Meeder),0.6805,0.5553,0.5953,0.6104,0.5553,0.6805,0.1252
+ours_v3,"Ours v3 (v2 + user-scale penalty, lag, card effect)",0.378,0.3081,0.351,0.3457,0.3081,0.378,0.0699
+gbdt,GBDT (LightGBM on history features),0.3584,0.2916,0.3311,0.3271,0.2916,0.3584,0.0668

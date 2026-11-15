@@ -1,4 +1,6 @@
 """Tests for paper_export.py, using small synthetic report folders (metrics/paired/user_wins CSVs)."""
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -196,3 +198,129 @@ def test_smoothed_block_missing_row_raises(tmp_path):
     pt.to_csv(run / "paired.csv", index=False)
     with pytest.raises(ValueError, match="ours_v3"):
         pe.export(run, "anki", tmp_path / "paper" / "data")
+
+
+# ---- robustness mode (seed runs) ----
+
+SEED_MODELS = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_v3", "gbdt"]
+
+
+def _seed_run(folder, seed, base, gbdt_diff, models=SEED_MODELS):
+    """A synthetic seed run: report CSVs with known log losses plus run_info.json with the seed."""
+    run = _make_run(folder, models=models, base=base)
+    (run / "run_info.json").write_text(json.dumps({"args": {"seed": seed}}))
+    pt = pd.read_csv(run / "paired.csv")
+    mask = (pt["model"] == "gbdt") & (pt["reference"] == "fsrs_opt") & (pt["metric"] == "log_loss")
+    pt.loc[mask, "diff"] = gbdt_diff
+    pt.loc[mask, "lo"] = gbdt_diff - 0.01
+    pt.loc[mask, "hi"] = gbdt_diff + 0.01
+    pt.loc[mask, "ci_excludes_zero"] = True
+    pt.to_csv(run / "paired.csv", index=False)
+    return run
+
+
+def _three_seeds(tmp_path):
+    base0 = {"const_global": 0.45, "const_user": 0.43, "const_user_smooth": 0.43, "fsrs_opt": 0.38,
+             "ours": 0.42, "ours_v3": 0.378, "gbdt": 0.358}
+    base1 = {"const_global": 0.46, "const_user": 0.44, "const_user_smooth": 0.44, "fsrs_opt": 0.39,
+             "ours_v3": 0.37, "gbdt": 0.35}
+    base2 = {"const_global": 0.47, "const_user": 0.42, "const_user_smooth": 0.42, "fsrs_opt": 0.40,
+             "ours_v3": 0.38, "gbdt": 0.36}
+    seed0 = _make_run(tmp_path / "results" / "full", base=base0)
+    (seed0 / "run_info.json").write_text(json.dumps({"args": {"seed": 0}}))
+    pt = pd.read_csv(seed0 / "paired.csv")
+    mask = (pt["model"] == "gbdt") & (pt["reference"] == "fsrs_opt") & (pt["metric"] == "log_loss")
+    pt.loc[mask, ["diff", "lo", "hi"]] = [-0.021, -0.028, -0.014]
+    pt.loc[mask, "ci_excludes_zero"] = True
+    pt.to_csv(seed0 / "paired.csv", index=False)
+    seed1 = _seed_run(tmp_path / "results" / "seed1", 1, base1, gbdt_diff=-0.02, models=SEED_MODELS)
+    seed2 = _seed_run(tmp_path / "results" / "seed2", 2, base2, gbdt_diff=-0.03, models=SEED_MODELS)
+    return [seed0, seed1, seed2]
+
+
+def test_robustness_table_keeps_only_models_in_every_run(tmp_path):
+    runs = _three_seeds(tmp_path)
+    table, _, seeds = pe.robustness_tables(runs)
+    assert seeds == [0, 1, 2]
+    assert "ours" not in set(table["model"])  # v1 exists only in the final run
+    assert set(table["model"]) == set(SEED_MODELS)
+
+
+def test_robustness_mean_min_max_range_by_hand(tmp_path):
+    runs = _three_seeds(tmp_path)
+    table, _, _ = pe.robustness_tables(runs)
+    row = table[table["model"] == "gbdt"].iloc[0]
+    assert row["log_loss_seed0"] == 0.358 and row["log_loss_seed1"] == 0.35 and row["log_loss_seed2"] == 0.36
+    assert row["mean"] == round((0.358 + 0.35 + 0.36) / 3, 4)
+    assert row["min"] == 0.35 and row["max"] == 0.36  # seed 1 is the lowest, seed 2 the highest
+    assert row["range"] == round(0.36 - 0.35, 4)
+
+
+def test_robustness_gbdt_diff_per_seed(tmp_path):
+    runs = _three_seeds(tmp_path)
+    _, diffs, _ = pe.robustness_tables(runs)
+    got = dict(zip(diffs["seed"], diffs["diff"]))
+    assert got == {0: -0.021, 1: -0.02, 2: -0.03}
+    assert diffs.loc[diffs["seed"] == 1, "lo"].iloc[0] == pytest.approx(-0.03)
+    assert diffs["ci_excludes_zero"].all()
+
+
+def test_robustness_writes_csv_and_facts_section_with_sources(tmp_path):
+    runs = _three_seeds(tmp_path)
+    out = tmp_path / "paper" / "data"
+    facts = pe.export_robustness(runs, "anki_seeds", out)
+    assert (out / "anki_seeds.csv").exists() and (out / "anki_seeds_gbdt_diff.csv").exists()
+    text = facts.read_text()
+    section = text.split("<!-- facts:anki_seeds:start -->", 1)[1].split("<!-- facts:anki_seeds:end -->", 1)[0]
+    assert "## Anki robustness: seeds 0, 1, 2" in section
+    assert "- GBDT (LightGBM on history features): seed 0 0.3580, seed 1 0.3500, seed 2 0.3600" in section
+    assert "- seed 1: diff -0.0200, 95% CI [-0.0300, -0.0100], CI excludes 0" in section
+    assert "Ours (dynamic" not in section
+    bullets = [l for l in section.splitlines() if l.startswith("- ")]
+    assert bullets and all("(source: " in l and l.endswith(")") for l in bullets)
+
+
+def test_robustness_section_coexists_with_dataset_sections_and_rerun_replaces(tmp_path):
+    runs = _three_seeds(tmp_path)
+    out = tmp_path / "paper" / "data"
+    single = _make_run(tmp_path / "results" / "paper_anki")
+    pe.export(single, "anki", out)
+    pe.export_robustness(runs, "anki_seeds", out)
+    facts = pe.export_robustness(runs, "anki_seeds", out)
+    text = facts.read_text()
+    assert text.count("<!-- facts:anki_seeds:start -->") == 1
+    assert text.count("## Anki (") == 1 and "## Anki robustness" in text
+
+
+def test_robustness_rejects_duplicate_seeds_and_single_run(tmp_path):
+    runs = _three_seeds(tmp_path)
+    dup = _seed_run(tmp_path / "results" / "dup", 1, {"fsrs_opt": 0.4, "gbdt": 0.36, "ours_v3": 0.37,
+                                                      "const_global": 0.4, "const_user": 0.4,
+                                                      "const_user_smooth": 0.4}, gbdt_diff=-0.01)
+    with pytest.raises(ValueError, match="duplicate seeds"):
+        pe.robustness_tables([runs[0], runs[1], dup])
+    with pytest.raises(ValueError, match="at least two"):
+        pe.robustness_tables([runs[0]])
+
+
+def test_robustness_missing_gbdt_diff_raises(tmp_path):
+    runs = _three_seeds(tmp_path)
+    pt = pd.read_csv(runs[2] / "paired.csv")
+    pt = pt[~((pt["model"] == "gbdt") & (pt["reference"] == "fsrs_opt") & (pt["metric"] == "log_loss"))]
+    pt.to_csv(runs[2] / "paired.csv", index=False)
+    with pytest.raises(ValueError, match="gbdt"):
+        pe.robustness_tables(runs)
+
+
+def test_robustness_cli(tmp_path):
+    runs = _three_seeds(tmp_path)
+    out = tmp_path / "paper" / "data"
+    argv = ["--robustness", *[str(r) for r in runs], "--name", "anki_seeds", "--out", str(out)]
+    assert pe.main(argv) == 0
+    assert (out / "anki_seeds.csv").exists()
+    assert (tmp_path / "paper" / "FACTS.md").read_text().count("## Anki robustness") == 1
+
+
+def test_single_run_cli_still_requires_run_dir(tmp_path):
+    with pytest.raises(SystemExit):
+        pe.main(["--name", "anki", "--out", str(tmp_path)])
