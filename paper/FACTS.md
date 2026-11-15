@@ -113,3 +113,25 @@ Per-user wins on log loss against Constant (per user, smoothed):
 - FSRS-6 (optimised): lower log loss for 13925 of 41223 users, share 0.3378 (source: results/paper_duolingo/user_wins.csv)
 - Ours v3 (v2 + user-scale penalty, lag, card effect): lower log loss for 20772 of 41223 users, share 0.5039 (source: results/paper_duolingo/user_wins.csv)
 <!-- facts:duolingo:end -->
+
+<!-- facts:anki_seeds:start -->
+## Anki robustness: seeds 0, 1, 2 (100 users each)
+
+Frozen settings, no tuning. Seed 0 is the final run; v1 exists only there and is left out.
+
+Log loss per seed, with mean and min-max range over seeds:
+
+- Constant (global): seed 0 0.4544, seed 1 0.3930, seed 2 0.4329; mean 0.4268, range 0.0613 (source: results/full_u100_c1000_final/metrics.csv, results/anki_u100_c1000_seed1/metrics.csv, results/anki_u100_c1000_seed2/metrics.csv)
+- Constant (per user): seed 0 0.4308, seed 1 0.3613, seed 2 0.4063; mean 0.3995, range 0.0695 (source: results/full_u100_c1000_final/metrics.csv, results/anki_u100_c1000_seed1/metrics.csv, results/anki_u100_c1000_seed2/metrics.csv)
+- FSRS-6 (default): seed 0 0.3960, seed 1 0.3246, seed 2 0.3641; mean 0.3616, range 0.0714 (source: results/full_u100_c1000_final/metrics.csv, results/anki_u100_c1000_seed1/metrics.csv, results/anki_u100_c1000_seed2/metrics.csv)
+- FSRS-6 (optimised): seed 0 0.3794, seed 1 0.3142, seed 2 0.3521; mean 0.3486, range 0.0651 (source: results/full_u100_c1000_final/metrics.csv, results/anki_u100_c1000_seed1/metrics.csv, results/anki_u100_c1000_seed2/metrics.csv)
+- HLR (Settles & Meeder): seed 0 0.6805, seed 1 0.5553, seed 2 0.5953; mean 0.6104, range 0.1252 (source: results/full_u100_c1000_final/metrics.csv, results/anki_u100_c1000_seed1/metrics.csv, results/anki_u100_c1000_seed2/metrics.csv)
+- Ours v3 (v2 + user-scale penalty, lag, card effect): seed 0 0.3780, seed 1 0.3081, seed 2 0.3510; mean 0.3457, range 0.0699 (source: results/full_u100_c1000_final/metrics.csv, results/anki_u100_c1000_seed1/metrics.csv, results/anki_u100_c1000_seed2/metrics.csv)
+- GBDT (LightGBM on history features): seed 0 0.3584, seed 1 0.2916, seed 2 0.3311; mean 0.3271, range 0.0668 (source: results/full_u100_c1000_final/metrics.csv, results/anki_u100_c1000_seed1/metrics.csv, results/anki_u100_c1000_seed2/metrics.csv)
+
+GBDT minus FSRS-6 (optimised), log loss, with 95% user-cluster bootstrap CIs:
+
+- seed 0: diff -0.0210, 95% CI [-0.0284, -0.0144], CI excludes 0 (source: results/full_u100_c1000_final/paired.csv)
+- seed 1: diff -0.0226, 95% CI [-0.0371, -0.0137], CI excludes 0 (source: results/anki_u100_c1000_seed1/paired.csv)
+- seed 2: diff -0.0210, 95% CI [-0.0325, -0.0119], CI excludes 0 (source: results/anki_u100_c1000_seed2/paired.csv)
+<!-- facts:anki_seeds:end -->

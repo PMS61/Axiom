@@ -15,6 +15,7 @@ dataset does not touch the other.
 Usage: .venv/bin/python -m fsrs_benchmark.paper_export --run_dir results/paper_anki --name anki --out paper/data
 """
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
@@ -195,12 +196,99 @@ def export(run_dir, name, out_dir):
     return facts_path
 
 
+def _seed_of(run_dir):
+    info = json.loads((Path(run_dir) / "run_info.json").read_text())
+    return int(info["args"]["seed"])
+
+
+def robustness_tables(run_dirs):
+    """Per-seed log loss for every model present in all runs, and GBDT minus FSRS-6 (optimised) per seed.
+
+    Returns (table, diffs, seeds). The table has one row per model, with log loss per seed, the mean
+    over seeds, min, max and range (max - min). Models missing from any run (for example v1, which
+    exists only in the 100-user final run) are left out.
+    """
+    runs = [Path(d) for d in run_dirs]
+    if len(runs) < 2:
+        raise ValueError("robustness needs at least two runs")
+    seeds = [_seed_of(r) for r in runs]
+    if len(set(seeds)) != len(seeds):
+        raise ValueError(f"duplicate seeds across runs: {seeds}")
+    mts = [pd.read_csv(r / "metrics.csv") for r in runs]
+    overall = [set(m.loc[m["scope"] == "overall", "model"]) for m in mts]
+    shared = [mdl for mdl in mts[0].loc[mts[0]["scope"] == "overall", "model"].drop_duplicates()
+              if all(mdl in names for names in overall)]
+    rows = []
+    for mdl in shared:
+        vals = [float(_row(m, mdl)["log_loss"]) for m in mts]
+        row = {"model": mdl, "display": _name(mdl)}
+        row.update({f"log_loss_seed{s}": round(v, DECIMALS) for s, v in zip(seeds, vals)})
+        row.update({"mean": round(float(np.mean(vals)), DECIMALS), "min": round(min(vals), DECIMALS),
+                    "max": round(max(vals), DECIMALS), "range": round(max(vals) - min(vals), DECIMALS)})
+        rows.append(row)
+    table = pd.DataFrame(rows)
+    diff_rows = []
+    for run, seed in zip(runs, seeds):
+        pt = pd.read_csv(run / "paired.csv")
+        hit = pt[(pt["model"] == "gbdt") & (pt["reference"] == "fsrs_opt") & (pt["metric"] == "log_loss")]
+        if hit.empty:
+            raise ValueError(f"{run}/paired.csv has no gbdt vs fsrs_opt log_loss row")
+        r = hit.iloc[0]
+        diff_rows.append({"seed": seed, "reference_display": _name("fsrs_opt"), "model_display": _name("gbdt"),
+                          "diff": round(float(r["diff"]), DECIMALS), "lo": round(float(r["lo"]), DECIMALS),
+                          "hi": round(float(r["hi"]), DECIMALS),
+                          "ci_excludes_zero": bool(r["ci_excludes_zero"]), "source": f"{run.as_posix()}/paired.csv"})
+    return table, pd.DataFrame(diff_rows), seeds
+
+
+def robustness_facts(run_dirs, table, diffs, seeds):
+    """Markdown lines for the robustness section. Every line ends with its source file."""
+    sources = ", ".join(f"{Path(d).as_posix()}/metrics.csv" for d in run_dirs)
+    seed_text = ", ".join(str(s) for s in seeds)
+    lines = [f"## Anki robustness: seeds {seed_text} (100 users each)", "",
+             "Frozen settings, no tuning. Seed 0 is the final run; v1 exists only there and is left out.", "",
+             "Log loss per seed, with mean and min-max range over seeds:", ""]
+    for _, r in table.iterrows():
+        per_seed = ", ".join(f"seed {s} {r[f'log_loss_seed{s}']:.4f}" for s in seeds)
+        lines.append(f"- {r['display']}: {per_seed}; mean {r['mean']:.4f}, range {r['range']:.4f} "
+                     f"(source: {sources})")
+    lines += ["", "GBDT minus FSRS-6 (optimised), log loss, with 95% user-cluster bootstrap CIs:", ""]
+    for _, r in diffs.iterrows():
+        flag = "CI excludes 0" if bool(r["ci_excludes_zero"]) else "CI includes 0"
+        lines.append(f"- seed {int(r['seed'])}: diff {r['diff']:.4f}, 95% CI [{r['lo']:.4f}, {r['hi']:.4f}], "
+                     f"{flag} (source: {r['source']})")
+    return lines
+
+
+def export_robustness(run_dirs, name, out_dir):
+    """Write <name>.csv (per-seed log loss), <name>_gbdt_diff.csv and the FACTS.md section for <name>."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    table, diffs, seeds = robustness_tables(run_dirs)
+    table.to_csv(out_dir / f"{name}.csv", index=False)
+    diffs.to_csv(out_dir / f"{name}_gbdt_diff.csv", index=False)
+    facts_path = out_dir.parent / "FACTS.md"
+    update_facts(facts_path, name, robustness_facts(run_dirs, table, diffs, seeds))
+    return facts_path
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Export report tables and FACTS.md for the paper.")
-    parser.add_argument("--run_dir", required=True, help="a folder written by fsrs_benchmark.report")
-    parser.add_argument("--name", required=True, choices=NAMES)
+    parser.add_argument("--run_dir", default=None, help="a folder written by fsrs_benchmark.report")
+    parser.add_argument("--robustness", nargs="+", default=None,
+                        help="run folders for a seed-robustness table (use with --name, e.g. anki_seeds)")
+    parser.add_argument("--name", required=True,
+                        help=f"dataset name ({', '.join(NAMES)}), or a robustness name such as anki_seeds")
     parser.add_argument("--out", default="paper/data", help="output folder; FACTS.md goes in its parent")
     args = parser.parse_args(argv)
+    if args.robustness:
+        facts = export_robustness(args.robustness, args.name, args.out)
+        print(f"wrote {args.name} robustness tables to {args.out} and updated {facts}", flush=True)
+        return 0
+    if args.run_dir is None:
+        parser.error("--run_dir is required unless --robustness is given")
+    if args.name not in NAMES:
+        parser.error(f"--name must be one of {NAMES} for a single run")
     facts = export(args.run_dir, args.name, args.out)
     print(f"wrote {args.name} tables to {args.out} and updated {facts}", flush=True)
     return 0

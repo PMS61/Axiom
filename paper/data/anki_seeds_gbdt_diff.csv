@@ -1,0 +1,4 @@
+seed,reference_display,model_display,diff,lo,hi,ci_excludes_zero,source
+0,FSRS-6 (optimised),GBDT (LightGBM on history features),-0.021,-0.0284,-0.0144,True,results/full_u100_c1000_final/paired.csv
+1,FSRS-6 (optimised),GBDT (LightGBM on history features),-0.0226,-0.0371,-0.0137,True,results/anki_u100_c1000_seed1/paired.csv
+2,FSRS-6 (optimised),GBDT (LightGBM on history features),-0.021,-0.0325,-0.0119,True,results/anki_u100_c1000_seed2/paired.csv
