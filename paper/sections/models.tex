@@ -1,6 +1,110 @@
 \section{Models}
-% TODO (3.3). Bullets from OUTLINE.md section 4:
-% - FSRS-6 (default and optimised), HLR, LagLogit.
-% - v1: Bayesian dynamic retention model, Gibbs sampling with Polya-Gamma augmentation (GPU port).
-% - v2 and v3: hierarchical FSRS-form models fitted by MAP.
-% - GBDT (LightGBM): feature groups, frozen settings, validation-only selection.
+We compare five groups of recall predictors on the same scored events.
+Every model is fitted on TRAIN rows and frozen before the test period.
+Settings are chosen on validation data only, as described at the end of this section.
+
+\subsection{FSRS-6}
+We use py-fsrs, the reference FSRS-6 implementation \cite{ye2022stochastic, srsbenchmark}.
+The default variant uses its default weights for every user.
+The optimised variant fits the weights for each user on that user's TRAIN reviews.
+py-fsrs limits its optimiser to the first 64 reviews of each card, and it returns the default weights for users with fewer than 512 informative training reviews.
+% FACTS: Protocol, data and disclosures: py-fsrs optimiser limits: first 64 reviews per card; default weights below 512 informative train reviews
+Most Duolingo users keep the default weights, so on Duolingo the optimised variant is close to the default one.
+% FACTS: Protocol, data and disclosures: FSRS-6 (optimised) fallback to default weights, Duolingo: 115110 of 115222 users
+Prediction is the retrievability that py-fsrs gives before each event, and the card state is updated with the event's own rating afterwards.
+
+\subsection{Half-life regression (HLR)}
+HLR \cite{settles2016trainable} predicts recall probability from the time gap $\Delta$ and a half-life $h$:
+\begin{align}
+  p &= 2^{-\Delta/h}, \\
+  h &= 2^{\theta^\top x}, \quad x = \bigl(\sqrt{1+n_{\mathrm{right}}},\ \sqrt{1+n_{\mathrm{wrong}}},\ 1\bigr)^\top.
+\end{align}
+Here $n_{\mathrm{right}}$ and $n_{\mathrm{wrong}}$ count the card's earlier correct and wrong answers, so the two square-root features grow with the number of reviews.
+Training minimises a squared error on $p$ plus a weighted squared error on $h$, with an L2 penalty on the weights.
+We port the training procedure of the official code, which uses stochastic gradient descent.
+Our port repeats shuffled passes until the weights settle, rather than making one pass.
+On Anki we drop the per-lexeme features of the official code, because the Anki data has no lexemes.
+
+LagLogit is a lagged-outcome logistic baseline, which we implement ourselves and do not attribute to a paper.
+It has no latent state.
+It uses the previous outcome, the square-root counts of earlier correct and wrong answers, the log gap, and user and card effects.
+It was run on Duolingo only.
+
+\subsection{v1: Bayesian dynamic retention model}
+v1 treats each card's memory as a latent state on the logit scale.
+The state follows a first-order autoregression whose decay depends on the time gap $\Delta_t$:
+\begin{align}
+  x_t &= \phi_t\,x_{t-1} + (1-\phi_t)\,\mu + \varepsilon_t, \qquad \varepsilon_t \sim \mathcal{N}(0, q_t), \\
+  \phi_t &= e^{-\lambda \Delta_t}.
+\end{align}
+and the outcome is $y_t \sim \mathrm{Bernoulli}(\sigma(x_t))$.
+Here $\mu$ is a hierarchical mean that combines user and card effects, and $\lambda$ is a learned base decay.
+P{\'o}lya--Gamma augmentation \cite{polson2013pg} turns the logistic likelihood into a Gaussian one, so the latent states can be sampled.
+We sample the states by forward-filtering backward-sampling (FFBS) \cite{carter1994gibbs}, inside a Gibbs sampler.
+The Gibbs sampler also draws the effects, and it draws $\lambda$ by Metropolis--Hastings.
+Predictions average over a subset of the posterior draws.
+
+$\lambda$ has not converged on either dataset: the split R-hat is 2.44 on Anki and 2.48 on Duolingo, with effective sample sizes of 3.05 and 3.00.
+% FACTS: v1 lambda, Anki: split R-hat 2.44, ESS 3.05. v1 lambda, Duolingo (GPU port): split R-hat 2.48, ESS 3.00
+The predictions are stable under two checks, but $\lambda$ must not be read as an estimate.
+On Anki, the predictions of the v1 variant with a kappa term correlate at 0.9923 with those of v1, over 95400 scored events.
+% FACTS: Protocol, data and disclosures: v1 stability on Anki: correlation of ours and ours_kappa predictions 0.9923 over 95400 events
+On Duolingo, an 8000-sweep run gives test log loss 0.2679, against 0.2682 at 2000 sweeps.
+% FACTS: Protocol, data and disclosures: v1 stability on Duolingo: 8000-sweep test log loss 0.2679 against 0.2682 at 2000 sweeps
+So the v1 scores on both datasets are provisional (Section 7).
+
+\subsection{v2 and v3: hierarchical MAP models}
+v2 uses the functional forms of FSRS-6 for forgetting and for stability updates.
+Its weights are shared across users, and a set of user-level effects shifts them for each user.
+The user effects are partially pooled towards the shared weights.
+We fit v2 by maximum a posteriori (MAP) estimation with torch, so it gives point estimates and not posterior samples.
+v3 adds three changes to v2.
+(1) An L2 penalty on the scale of the user effects, which controls the overfitting of the learned user-effect scale on Duolingo.
+(2) A lagged-outcome term, so the previous review's outcome also enters the prediction.
+(3) A per-card logit effect with a fixed scale.
+Validation did not support this card effect, but we kept it in the frozen model; without it, log loss changes by less than 0.0001.
+% FACTS: Protocol, data and disclosures: v3 card effect: without it, log loss is within 0.0001
+v3 is still a MAP fit.
+Its intervals on the test set come from the user-clustered bootstrap, not from posterior sampling.
+
+\subsection{GBDT}
+GBDT is a gradient-boosted tree model, implemented with LightGBM \cite{ke2017lightgbm}, on review-level features.
+It has no memory equation.
+Each feature uses only the same card's and the same user's reviews that come before the current review:
+\begin{itemize}
+\item the gap since the card's previous review;
+\item the card's history: review count, lapses, and the last few grades, outcomes and gaps;
+\item the FSRS-6 default state (stability, difficulty and retrievability), replayed over the card's history;
+\item running user statistics: the user's recall rate and count so far;
+\item on Duolingo only, a smoothed lexeme recall rate.
+\end{itemize}
+The lexeme and user rates use fit rows only.
+The lexeme rate pools fit rows from all users, which can put a training row of one user later in calendar time than a scored row of another.
+No validation or test label enters the rate.
+In the all-groups configuration, the lexeme feature is worth about 0.001 in Duolingo validation log loss (0.2622 with it, 0.2633 without).
+% FACTS: Protocol, data and disclosures: Lexeme feature, Duolingo validation, all-groups configuration: about 0.001; log loss 0.2622 with it and 0.2633 without
+GBDT is trained on all non-first rows, including same-day rows.
+Its frozen settings are 15 leaves, a learning rate of 0.02, and a smoothing pseudo-count of 3 for the user and lexeme rates.
+% FACTS: Protocol, data and disclosures: GBDT frozen settings: 15 leaves; learning rate 0.02; smoothing pseudo-count m = 3 for user and lexeme rates
+The other frozen settings are a minimum of 100 rows per leaf, a feature fraction of 0.8, an L2 penalty of 1.0, a holdout fraction of 0.15, at most 2000 rounds, and early-stopping patience of 50.
+% FACTS: Protocol, data and disclosures: GBDT other frozen settings (Duolingo run): min_data_in_leaf 100; feature_fraction 0.8; lambda_l2 1.0; holdout fraction 0.15; max rounds 2000; patience 50
+GBDT does not use the counts of exposures before the log window, or the Anki state column, because no other model sees them.
+
+\subsection{Selection on validation data only}
+Selection uses a validation split inside each user's TRAIN period.
+The last 20\% of TRAIN days are validation, and candidates are fitted on the first 80\%.
+% FACTS: Protocol, data and disclosures: validation split: last 20 percent of TRAIN days
+% PROTOCOL: validation split, EVALUATION.md 11.3. Not a result.
+Validation events are scored with the same rule as the test events.
+Anki validation uses all 100 users, with 74092 scored events.
+% FACTS: Protocol, data and disclosures: validation scored events: Anki 74092
+Duolingo validation uses a development sample of 5000 users, with 26084 scored events.
+% FACTS: Protocol, data and disclosures: Duolingo development sample for validation: 5000 users; validation scored events: Duolingo 26084
+The rule for choosing a variant was fixed before its test run: the lowest mean validation log loss over the two datasets, among variants whose validation interval does not show a loss against FSRS-6 (optimised) on either dataset.
+No test event is read while a candidate is chosen.
+The test set was looked at more than once, which we disclose in Section 7.
+We tried 9 v2 variants, 23 v3 variants, and 38 GBDT variants per dataset in a first sweep, then 16 per dataset on the fixed code.
+% FACTS: Protocol, data and disclosures: variant counts: v2 9; v3 23 (rounds 12, 8 and 3); GBDT 38 per dataset in the first sweep, then 16 per dataset; stacking 6
+The first sweep contained a leak that we fixed (Section 3), so its GBDT results are not reported.
+The rule for v2 was revised after its validation intervals were read, and we disclose that change in Section 7.
+Stacking candidates were tried and none beat GBDT alone, so the final model is GBDT without a blend.

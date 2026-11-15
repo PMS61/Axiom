@@ -1,8 +1,30 @@
 \section{Related Work}
-% TODO (3.3). Bullets from OUTLINE.md section 2:
-% - Memory models: HLR (Settles & Meeder 2016), FSRS (Ye et al. 2022), ACT-R (Pavlik & Anderson 2005),
-%   DAS3H (Choffin et al. 2019), Lindsey et al. 2014, KARL (Shu et al. 2024).
-% - srs-benchmark: GRU, LSTM, RWKV; AVG and MOVING-AVG floors; MOVING-AVG beats FSRS-6 there.
-% - GBDTs in neighbouring tasks: SLAM 2018 (Osika et al.; Settles et al.), knowledge tracing.
-% - Benchmark hygiene and leakage (Kaufman et al. 2012).
-% - Sources: paper/docs and the black book references.
+\paragraph{Memory models for recall.}
+Half-life regression \cite{settles2016trainable} models recall as an exponential forgetting curve whose half-life depends on the counts of past correct and wrong answers.
+FSRS \cite{ye2022stochastic, srsbenchmark} schedules reviews with a memory model that tracks stability and difficulty.
+We use its sixth version as a baseline.
+ACT-R models of spacing \cite{pavlik2005practice} explain the spacing effect through activation of memory traces.
+DASH and DAS3H \cite{lindsey2014improving, choffin2019das3h} add learner and item effects to a model of the practice history.
+KARL \cite{shu2024karl} uses the history of related cards to predict recall.
+Our v2 and v3 models follow the tradition of per-user effects.
+
+\paragraph{Public benchmarks.}
+The srs-benchmark \cite{srsbenchmark} compares FSRS, HLR, DASH, sequence models (GRU, LSTM and RWKV) and simple per-user floors on a large public collection of Anki reviews.
+Its data is the source of our Anki dataset \cite{ankirevlogs10k}.
+Its moving-average floor, which uses no memory model, beats FSRS-6 on that benchmark \cite{srsbenchmark}.
+Its RWKV model reads a user's full review history across cards \cite{srsbenchmark}.
+This is close to the cross-card user signal in our GBDT, so that signal is not new.
+
+\paragraph{Gradient-boosted trees in neighbouring tasks.}
+The SLAM 2018 shared task on second-language acquisition modelling \cite{settles2018slam} drew many systems.
+Osika et al. describe an ensemble approach to the same task \cite{osika2018slam}.
+We use LightGBM \cite{ke2017lightgbm} for our GBDT.
+
+\paragraph{Leakage.}
+Leakage, where information from the target or from the future enters a model's features or training data, is a known cause of over-optimistic benchmark results \cite{kaufman2012leakage}.
+The same-session pitfall in Section 3 is an instance of this general problem.
+
+\paragraph{What is new here.}
+We did not find a tree-based recall model with FSRS-state features in the spaced-repetition work we reviewed, so we present GBDT as a new comparison point.
+We do not claim priority for using other cards' history.
+Our contributions are the floor-based comparison, the leakage audit, and the Bayesian versus tree-based comparison on two datasets.

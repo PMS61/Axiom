@@ -126,6 +126,11 @@ All metrics are written from scratch in `fsrs_benchmark/metrics.py`. y is 0 or 1
 
 **Why cluster by user.** Reviews from one person are correlated (the same memory habits and the same schedule). Resampling single events would treat them as independent and give intervals that are too narrow. Resampling users keeps that correlation.
 
+**Constant floors.** Three constant predictors are fitted on TRAIN rows only (not a card's first review, gap at least one day):
+- `const_global`: the global recall rate.
+- `const_user`: each user's own rate, or the global rate for a user with no such rows.
+- `const_user_smooth`: `(k + m * g) / (n + m)`, with `k` and `n` the user's recalled and total TRAIN rows, `g` the global rate and **m = 10**. The pseudo-count m = 10 was fixed in advance and not tuned on any split (`SMOOTH_M` in `fsrs_benchmark/report.py`).
+
 ## 7. Reproducibility
 
 **Environment.**
