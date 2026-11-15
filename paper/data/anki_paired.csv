@@ -1,0 +1,81 @@
+reference_display,model_display,reference,model,metric,diff,lo,hi,ci_excludes_zero
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,log_loss,0.075,0.0588,0.0949,True
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,brier,0.0236,0.0175,0.0317,True
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,auc,-0.2766,-0.3051,-0.2499,True
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,ece,-0.0056,-0.0147,0.0219,False
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,log_loss,0.0515,0.0392,0.067,True
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,brier,0.0177,0.0127,0.0237,True
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,auc,-0.1076,-0.1406,-0.0818,True
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,ece,0.0219,0.0051,0.0381,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,log_loss,0.0513,0.0391,0.0669,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,brier,0.0177,0.0127,0.0237,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,auc,-0.1075,-0.1406,-0.0818,True
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,ece,0.0218,0.0049,0.0379,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,log_loss,0.0167,0.0082,0.025,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,brier,0.0039,0.0019,0.0059,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,auc,-0.0317,-0.0472,-0.0159,True
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,ece,0.0026,-0.0096,0.0186,False
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,log_loss,0.3011,0.2455,0.3605,True
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,brier,0.0529,0.0401,0.0667,True
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,auc,-0.2212,-0.2771,-0.1731,True
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,ece,0.1373,0.1134,0.1565,True
+FSRS-6 (optimised),"Ours (dynamic, learned λ)",fsrs_opt,ours,log_loss,0.0427,0.0327,0.0554,True
+FSRS-6 (optimised),"Ours (dynamic, learned λ)",fsrs_opt,ours,brier,0.0145,0.0106,0.0193,True
+FSRS-6 (optimised),"Ours (dynamic, learned λ)",fsrs_opt,ours,auc,-0.0845,-0.1096,-0.0644,True
+FSRS-6 (optimised),"Ours (dynamic, learned λ)",fsrs_opt,ours,ece,0.0161,0.0013,0.0274,True
+FSRS-6 (optimised),Ours (+κ),fsrs_opt,ours_kappa,log_loss,0.0425,0.0326,0.0549,True
+FSRS-6 (optimised),Ours (+κ),fsrs_opt,ours_kappa,brier,0.0144,0.0106,0.0192,True
+FSRS-6 (optimised),Ours (+κ),fsrs_opt,ours_kappa,auc,-0.0835,-0.1083,-0.0638,True
+FSRS-6 (optimised),Ours (+κ),fsrs_opt,ours_kappa,ece,0.0164,0.0017,0.0271,True
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,log_loss,-0.0003,-0.0033,0.0026,False
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,brier,0.0002,-0.0007,0.001,False
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,auc,0.0016,-0.0027,0.007,False
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,ece,0.0038,-0.0042,0.0077,False
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,log_loss,-0.0014,-0.0043,0.0017,False
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,brier,-0.0003,-0.0013,0.0006,False
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,auc,0.0023,-0.0023,0.0074,False
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,ece,0.0012,-0.0041,0.0052,False
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,log_loss,-0.021,-0.0284,-0.0144,True
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,brier,-0.0059,-0.0082,-0.0041,True
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,auc,0.0285,0.0185,0.0402,True
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,ece,-0.0042,-0.0132,0.0012,False
+"Ours (dynamic, learned λ)",Constant (global),ours,const_global,log_loss,0.0323,0.0164,0.0503,True
+"Ours (dynamic, learned λ)",Constant (global),ours,const_global,brier,0.0092,0.0046,0.0138,True
+"Ours (dynamic, learned λ)",Constant (global),ours,const_global,auc,-0.1921,-0.2316,-0.1528,True
+"Ours (dynamic, learned λ)",Constant (global),ours,const_global,ece,-0.0217,-0.0314,0.0067,False
+"Ours (dynamic, learned λ)",Constant (per user),ours,const_user,log_loss,0.0087,0.0041,0.0141,True
+"Ours (dynamic, learned λ)",Constant (per user),ours,const_user,brier,0.0033,0.0016,0.0053,True
+"Ours (dynamic, learned λ)",Constant (per user),ours,const_user,auc,-0.0231,-0.0363,-0.0134,True
+"Ours (dynamic, learned λ)",Constant (per user),ours,const_user,ece,0.0058,-0.0058,0.0169,False
+"Ours (dynamic, learned λ)","Constant (per user, smoothed)",ours,const_user_smooth,log_loss,0.0086,0.004,0.014,True
+"Ours (dynamic, learned λ)","Constant (per user, smoothed)",ours,const_user_smooth,brier,0.0032,0.0015,0.0053,True
+"Ours (dynamic, learned λ)","Constant (per user, smoothed)",ours,const_user_smooth,auc,-0.023,-0.0362,-0.0133,True
+"Ours (dynamic, learned λ)","Constant (per user, smoothed)",ours,const_user_smooth,ece,0.0057,-0.0059,0.0167,False
+"Ours (dynamic, learned λ)",FSRS-6 (default),ours,fsrs_default,log_loss,-0.0261,-0.0418,-0.0127,True
+"Ours (dynamic, learned λ)",FSRS-6 (default),ours,fsrs_default,brier,-0.0105,-0.0153,-0.0066,True
+"Ours (dynamic, learned λ)",FSRS-6 (default),ours,fsrs_default,auc,0.0528,0.023,0.0869,True
+"Ours (dynamic, learned λ)",FSRS-6 (default),ours,fsrs_default,ece,-0.0135,-0.025,0.0017,False
+"Ours (dynamic, learned λ)",FSRS-6 (optimised),ours,fsrs_opt,log_loss,-0.0427,-0.0554,-0.0327,True
+"Ours (dynamic, learned λ)",FSRS-6 (optimised),ours,fsrs_opt,brier,-0.0145,-0.0193,-0.0106,True
+"Ours (dynamic, learned λ)",FSRS-6 (optimised),ours,fsrs_opt,auc,0.0845,0.0644,0.1096,True
+"Ours (dynamic, learned λ)",FSRS-6 (optimised),ours,fsrs_opt,ece,-0.0161,-0.0274,-0.0013,True
+"Ours (dynamic, learned λ)",HLR (Settles & Meeder),ours,hlr,log_loss,0.2584,0.2037,0.3135,True
+"Ours (dynamic, learned λ)",HLR (Settles & Meeder),ours,hlr,brier,0.0385,0.0256,0.0516,True
+"Ours (dynamic, learned λ)",HLR (Settles & Meeder),ours,hlr,auc,-0.1367,-0.203,-0.0747,True
+"Ours (dynamic, learned λ)",HLR (Settles & Meeder),ours,hlr,ece,0.1212,0.0976,0.1421,True
+"Ours (dynamic, learned λ)",Ours (+κ),ours,ours_kappa,log_loss,-0.0002,-0.0008,0.0004,False
+"Ours (dynamic, learned λ)",Ours (+κ),ours,ours_kappa,brier,-0.0001,-0.0002,0.0001,False
+"Ours (dynamic, learned λ)",Ours (+κ),ours,ours_kappa,auc,0.0009,-0.0003,0.0025,False
+"Ours (dynamic, learned λ)",Ours (+κ),ours,ours_kappa,ece,0.0003,-0.0013,0.0012,False
+"Ours (dynamic, learned λ)",Ours v2 (hierarchical Bayesian FSRS-style),ours,ours_v2,log_loss,-0.043,-0.0545,-0.0337,True
+"Ours (dynamic, learned λ)",Ours v2 (hierarchical Bayesian FSRS-style),ours,ours_v2,brier,-0.0143,-0.0189,-0.0106,True
+"Ours (dynamic, learned λ)",Ours v2 (hierarchical Bayesian FSRS-style),ours,ours_v2,auc,0.0861,0.0676,0.1102,True
+"Ours (dynamic, learned λ)",Ours v2 (hierarchical Bayesian FSRS-style),ours,ours_v2,ece,-0.0123,-0.028,0.0025,False
+"Ours (dynamic, learned λ)","Ours v3 (v2 + user-scale penalty, lag, card effect)",ours,ours_v3,log_loss,-0.0441,-0.0557,-0.0346,True
+"Ours (dynamic, learned λ)","Ours v3 (v2 + user-scale penalty, lag, card effect)",ours,ours_v3,brier,-0.0148,-0.0195,-0.011,True
+"Ours (dynamic, learned λ)","Ours v3 (v2 + user-scale penalty, lag, card effect)",ours,ours_v3,auc,0.0868,0.0683,0.1106,True
+"Ours (dynamic, learned λ)","Ours v3 (v2 + user-scale penalty, lag, card effect)",ours,ours_v3,ece,-0.0149,-0.0285,0.0,False
+"Ours (dynamic, learned λ)",GBDT (LightGBM on history features),ours,gbdt,log_loss,-0.0637,-0.078,-0.0517,True
+"Ours (dynamic, learned λ)",GBDT (LightGBM on history features),ours,gbdt,brier,-0.0204,-0.0259,-0.0158,True
+"Ours (dynamic, learned λ)",GBDT (LightGBM on history features),ours,gbdt,auc,0.1129,0.0901,0.1427,True
+"Ours (dynamic, learned λ)",GBDT (LightGBM on history features),ours,gbdt,ece,-0.0203,-0.0326,-0.0086,True

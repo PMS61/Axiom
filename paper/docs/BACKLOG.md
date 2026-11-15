@@ -10,3 +10,4 @@
 - report.py check_events_match checks only scored rows; also check train count or cutoff against run_info.
 - test_report_constants.py build_report tests take ~35 s each; mark them slow or cache them.
 - Duolingo run_info.json "users_zero_train" (64254) is not defined anywhere; document it.
+- metrics.py _paired_bootstrap_reference: two docstrings in a row; merge them.

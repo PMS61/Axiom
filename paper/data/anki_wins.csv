@@ -1,0 +1,21 @@
+reference_display,model_display,reference,model,users,users_lower_log_loss,share
+FSRS-6 (optimised),Constant (global),fsrs_opt,const_global,100,11,0.11
+FSRS-6 (optimised),Constant (per user),fsrs_opt,const_user,100,23,0.23
+FSRS-6 (optimised),"Constant (per user, smoothed)",fsrs_opt,const_user_smooth,100,23,0.23
+FSRS-6 (optimised),FSRS-6 (default),fsrs_opt,fsrs_default,100,28,0.28
+FSRS-6 (optimised),HLR (Settles & Meeder),fsrs_opt,hlr,100,7,0.07
+FSRS-6 (optimised),"Ours (dynamic, learned λ)",fsrs_opt,ours,100,22,0.22
+FSRS-6 (optimised),Ours (+κ),fsrs_opt,ours_kappa,100,25,0.25
+FSRS-6 (optimised),Ours v2 (hierarchical Bayesian FSRS-style),fsrs_opt,ours_v2,100,56,0.56
+FSRS-6 (optimised),"Ours v3 (v2 + user-scale penalty, lag, card effect)",fsrs_opt,ours_v3,100,58,0.58
+FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,100,82,0.82
+"Ours (dynamic, learned λ)",Constant (global),ours,const_global,100,32,0.32
+"Ours (dynamic, learned λ)",Constant (per user),ours,const_user,100,46,0.46
+"Ours (dynamic, learned λ)","Constant (per user, smoothed)",ours,const_user_smooth,100,45,0.45
+"Ours (dynamic, learned λ)",FSRS-6 (default),ours,fsrs_default,100,68,0.68
+"Ours (dynamic, learned λ)",FSRS-6 (optimised),ours,fsrs_opt,100,78,0.78
+"Ours (dynamic, learned λ)",HLR (Settles & Meeder),ours,hlr,100,14,0.14
+"Ours (dynamic, learned λ)",Ours (+κ),ours,ours_kappa,100,52,0.52
+"Ours (dynamic, learned λ)",Ours v2 (hierarchical Bayesian FSRS-style),ours,ours_v2,100,82,0.82
+"Ours (dynamic, learned λ)","Ours v3 (v2 + user-scale penalty, lag, card effect)",ours,ours_v3,100,81,0.81
+"Ours (dynamic, learned λ)",GBDT (LightGBM on history features),ours,gbdt,100,94,0.94

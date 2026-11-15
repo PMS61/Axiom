@@ -28,3 +28,4 @@ __pycache__/
 # benchmark timing studies (local only)
 results/timing_*/
 results/**/*.parquet
+!paper/data/
