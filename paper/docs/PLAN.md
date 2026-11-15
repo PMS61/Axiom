@@ -73,6 +73,16 @@ Goal: every number the paper needs exists in a results file, including the const
   - the Duolingo numbers match the documented ones (GBDT 0.259, v1 0.268, FSRS-opt 0.300);
   - the export has tests;
   - FACTS.md lists the constant baselines.
+- **1.2b Fast paired bootstrap, then the Duolingo report.** The pure-Python bootstrap takes
+  513 s per call on Duolingo, which comes to about 5 h for the report. Rewrite
+  `metrics.paired_bootstrap` with per-user bootstrap weights: draw the same user indices with
+  the same RNG calls, then compute weighted metrics. Log loss, Brier and ECE use per-user
+  sums. AUC uses a weighted rank computation with ties handled.
+  Done when:
+  - the new paired.csv for results/paper_anki matches the old one to 1e-9;
+  - tests compare the new implementation with the old one on random data;
+  - the Duolingo report builds in under 30 min;
+  - the Duolingo export and FACTS section are written, and its headline numbers match.
 - **1.3 Anki robustness (needs the user's OK before running; compute-heavy).** Re-run the
   cheap models (fsrs_default, fsrs_opt, hlr, ours_v3, gbdt and the constants) on two more
   100-user Anki samples (seeds 1 and 2), with the frozen settings and no tuning. Report the
