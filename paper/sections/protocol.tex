@@ -1,8 +1,86 @@
 \section{Data and Protocol}
-% TODO (3.3). Bullets from OUTLINE.md section 3:
-% - Anki: anki-revlogs-10k, 100 users, plus seeds 1 and 2 robustness samples.
-% - Duolingo: Settles & Meeder traces, all users.
-% - Event definition, per-user 80th-percentile time cutoff, one-step-ahead prediction, scored events.
-% - Metrics: log loss, Brier, AUC, ECE, mean bias; user-clustered paired bootstrap.
-% - Floors: global constant, per-user constant, smoothed per-user constant (m = 10, fixed in advance).
-% - Leakage audit: figure or box on same-session timestamps and how they are grouped.
+\subsection{Datasets}
+The Anki data is the public anki-revlogs-10k collection \cite{ankirevlogs10k}.
+We draw 100 users at random and keep at most 1000 cards per user, chosen at random.
+% PROTOCOL: EVALUATION.md 2 (user draw, card cap 1000). Not a result.
+Each card keeps its full history.
+We repeat the cheap models on two more samples of 100 users, with seeds 1 and 2, and report the spread.
+% FACTS: Anki robustness: seeds 0, 1, 2 (100 users each)
+The Duolingo traces come from the study that introduced half-life regression \cite{settles2016trainable}.
+We use all Duolingo users.
+
+\subsection{Events}
+One row of a revlog is one review.
+We drop rows with rating 0, which are manual reschedules, and keep filtered-deck reviews, which carry real ratings and durations.
+We drop cards whose first kept review is not a new card, because their history is truncated.
+A review is recalled ($y=1$) if its rating is Hard, Good or Easy, and not recalled otherwise.
+Gaps are measured over the kept rows only, so every model sees the same gap.
+
+\subsection{Duolingo events}
+Each Duolingo row is one practice session of one lexeme by one user.
+A card is a (user, lexeme) pair, and rows are sorted by timestamp, then by lexeme id, then by file order.
+The recorded recall probability $p_{\mathrm{recall}}$ is thresholded: a row is recalled ($y=1$) when $p_{\mathrm{recall}} \ge 0.5$.
+% PROTOCOL: label threshold, EVALUATION.md 10.1. Not a result.
+So $y$ is a threshold of a predicted probability, not an observed yes or no answer, and the metrics measure agreement with that threshold.
+FSRS sees only two grades on this data, Good for a recalled row and Again otherwise.
+A card's first row starts its replay and is never scored, because its earlier history is unknown.
+The scored gaps reach at most 11 days, so only the 1d, 2-3d and 4-14d gap bins are populated.
+% FACTS: Duolingo scored gaps: at most 11 days, so only the 1d, 2-3d and 4-14d bins are populated
+
+\subsection{Split and one-step-ahead prediction}
+For each user we take the 80th percentile of the day offsets of that user's kept reviews as a cutoff.
+Reviews before the cutoff are TRAIN, and later reviews are TEST.
+% PROTOCOL: EVALUATION.md 4 (80th percentile cutoff). Not a result.
+All parameters are fitted on TRAIN rows only, and they are frozen for the test period.
+A prediction for a TEST event may use every earlier review of the same card, including earlier TEST outcomes.
+It may not use the event itself or any later event.
+
+\subsection{Scored events}
+A TEST event is scored when it is not a card's first review and its gap is at least one day.
+Same-day reviews still enter the history of later predictions, but they are not scored.
+This follows the inter-day convention of srs-benchmark \cite{srsbenchmark}.
+On Anki there are 95400 scored events.
+% FACTS: Anki, Scored events: 95400
+% PROTOCOL: scoring rule, EVALUATION.md 4. Not a result.
+
+\subsection{Metrics}
+Let $y_i \in \{0,1\}$ be the outcome and $p_i$ the predicted recall for scored event $i$, out of $N$ events.
+Log loss is $-\frac{1}{N}\sum_i [y_i \log p_i + (1-y_i)\log(1-p_i)]$, with $p_i$ clipped to $[10^{-6}, 1-10^{-6}]$.
+We also report the Brier score, AUC (the Mann--Whitney statistic), and the expected calibration error (ECE) over ten equal-width bins.
+% PROTOCOL: metric definitions and bin counts, EVALUATION.md 6. Not a result.
+The mean bias is the mean prediction minus the mean outcome.
+Scored events are grouped by gap into 1d, 2-3d, 4-14d, 15-60d and 61d+ bins.
+Log loss is the main metric, and every other metric is reported with it.
+
+\subsection{Paired differences and user-clustered bootstrap}
+For a model $m$ and reference $r$, the paired difference is $\mathrm{metric}(m) - \mathrm{metric}(r)$.
+We resample users with replacement, 1000 times with seed 0.
+Each resample keeps all events of the drawn users, and both models use the same users.
+The 95\% interval is the 2.5th and 97.5th percentiles of the bootstrap differences.
+% PROTOCOL: EVALUATION.md 6 (1000 resamples, seed 0, 95% CI). Not a result.
+We resample users, not events, because reviews by one learner are correlated.
+Resampling events would give intervals that are too narrow.
+
+\subsection{Floors}
+We fit three constant floors on TRAIN rows only, using rows that are not a card's first review and have a gap of at least one day.
+The global floor is the mean recall rate over all such rows.
+The per-user floor is each user's own mean, and a user with no such rows gets the global rate.
+The smoothed per-user floor shrinks each user's rate towards the global rate with a fixed pseudo-count $m$:
+\begin{equation}
+  \hat p_u = \frac{k_u + m\,\bar p}{n_u + m},
+\end{equation}
+where $k_u$ and $n_u$ are the user's recalled and total TRAIN rows, and $\bar p$ is the global rate.
+We set $m = 10$ before any run and did not tune it.
+% FACTS: Protocol, data and disclosures: m = 10 (source: docs/EVALUATION.md section 6)
+The floors use no test labels.
+
+\subsection{Same-session leakage}
+Duolingo records every review in a practice session with one timestamp.
+Our first GBDT computed user statistics from earlier rows in the file, and that included other rows with the same timestamp.
+A review could therefore see outcomes from its own session, which is leakage in the sense of \cite{kaufman2012leakage}.
+On the Duolingo development sample, the frozen GBDT's validation log loss was 0.2473 with this leak and 0.2578 after the fix.
+% FACTS: Duolingo validation, frozen GBDT, log loss with the same-session leak: 0.2473. Duolingo validation, frozen GBDT, log loss after the fix: 0.2578
+The fix groups rows by timestamp, so a row only uses reviews with strictly earlier timestamps.
+Anki reviews are timed one by one and are already in order, so Anki uses per-row updates.
+The same grouping applies to rows of one card that share a timestamp.
+Section 7 lists this leak as a disclosure.

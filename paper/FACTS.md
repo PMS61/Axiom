@@ -135,3 +135,30 @@ GBDT minus FSRS-6 (optimised), log loss, with 95% user-cluster bootstrap CIs:
 - seed 1: diff -0.0226, 95% CI [-0.0371, -0.0137], CI excludes 0 (source: results/anki_u100_c1000_seed1/paired.csv)
 - seed 2: diff -0.0210, 95% CI [-0.0325, -0.0119], CI excludes 0 (source: results/anki_u100_c1000_seed2/paired.csv)
 <!-- facts:anki_seeds:end -->
+
+## Protocol, data and disclosures (hand-written)
+
+Not generated. These lines are added by hand and sit outside the generated markers. Each line cites its source.
+
+- Constant floor smoothing pseudo-count: m = 10 (source: docs/EVALUATION.md section 6, Constant floors bullet at the end of section 6; fsrs_benchmark/report.py SMOOTH_M).
+- Duolingo validation, frozen GBDT, log loss with the same-session leak: 0.2473 (source: results/phase7_validation/invalid_leak/gbdt_duolingo.csv, row nf_l15_lr02_sm3_nup, 0.24725; docs/EVALUATION.md section 11.4(d)).
+- Duolingo validation, frozen GBDT, log loss after the fix: 0.2578 (source: results/phase7_validation/gbdt_duolingo.csv, row nf_l15_lr02_sm3_nup; docs/EVALUATION.md section 11.4(d)).
+- Duolingo validation, all feature groups, leaky: 0.2534; fixed: 0.2622 (source: results/phase7_validation/invalid_leak/gbdt_duolingo.csv and results/phase7_validation/gbdt_duolingo.csv, row all).
+- Anki validation, frozen GBDT, fixed: 0.3614 (source: results/phase7_validation/gbdt_anki.csv, row nf_l15_lr02_sm3_nup; docs/EVALUATION.md section 11.4(d)).
+- FSRS-6 (optimised) fallback to default weights, Duolingo: 115110 of 115222 users (source: results/duolingo_final/run_info.json, models.fsrs_opt.fallback_count and counts.users; docs/EVALUATION.md sections 10.2 and 10.7(a)).
+- FSRS-6 (optimised) fallback, Anki full run: 1 of 100 users (source: docs/EVALUATION.md section 9.7).
+- FSRS-6 (optimised) fallback, Anki seed 1: 4 users; seed 2: 6 users (source: results/anki_u100_c1000_seed1/run_info.json and results/anki_u100_c1000_seed2/run_info.json, models.fsrs_opt.fallback_count).
+- py-fsrs optimiser limits: first 64 reviews per card; default weights below 512 informative train reviews (source: docs/EVALUATION.md section 5.1).
+- v1 lambda, Anki: split R-hat 2.44, ESS 3.05 (source: results/full_u100_c1000/diagnostics_ours.json, lam; docs/EVALUATION.md section 9.8).
+- v1 lambda, Duolingo (GPU port): split R-hat 2.48, ESS 3.00 (source: results/paper_duolingo/diagnostics_ours_gpu.json, lam; docs/EVALUATION.md section 10.6).
+- Lexeme feature, Duolingo validation, all-groups configuration: about 0.001; log loss 0.2622 with it and 0.2633 without (source: results/phase7_validation/gbdt_duolingo.csv, rows all and no_lexeme; docs/EVALUATION.md section 11.4(e), which says about 0.001). Correction: the 0.0003 figure in docs/reports/phase-7-experiments.md line 150 came from the leaky sweep (results/phase7_validation/invalid_leak/gbdt_duolingo.csv: 0.2534 with, 0.2537 without).
+- GBDT frozen settings: 15 leaves; learning rate 0.02; smoothing pseudo-count m = 3 for user and lexeme rates (source: docs/EVALUATION.md section 11.1).
+- GBDT other frozen settings (Duolingo run): min_data_in_leaf 100; feature_fraction 0.8; lambda_l2 1.0; holdout fraction 0.15; max rounds 2000; patience 50 (source: results/duolingo_final/run_info.json, models.gbdt.hyperparams).
+- Validation scored events: Anki 74092; Duolingo 26084 (source: results/phase7_validation/gbdt_anki.csv and gbdt_duolingo.csv, column n; docs/EVALUATION.md section 11.3).
+- Duolingo development sample for validation: 5000 users (source: docs/EVALUATION.md section 11.3).
+- Validation split: last 20 percent of TRAIN days (source: docs/EVALUATION.md section 11.3).
+- Variant counts: v2 9; v3 23 (rounds 12, 8 and 3); GBDT 38 per dataset in the first sweep, then 16 per dataset on the fixed code; stacking 6 (source: docs/EVALUATION.md section 11.4(c)).
+- v3 card effect: without it, log loss is within 0.0001 (source: docs/EVALUATION.md section 11.1).
+- Duolingo scored gaps: at most 11 days, so only the 1d, 2-3d and 4-14d bins are populated (source: results/paper_duolingo/predictions.parquet, column elapsed_days, maximum over scored events; docs/EVALUATION.md section 10.4).
+- v1 stability, Anki: correlation between ours and ours_kappa predictions is 0.9923 over 95400 scored events (source: results/full_u100_c1000/supplementary.json, ours_vs_kappa.pearson_r).
+- v1 stability, Duolingo: 8000-sweep run gives test log loss 0.2679, against 0.2682 at 2000 sweeps (source: docs/EVALUATION.md section 10.6).

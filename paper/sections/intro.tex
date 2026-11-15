@@ -1,8 +1,64 @@
 \section{Introduction}
-% TODO (3.3). Bullets from OUTLINE.md section 1:
-% - Schedulers rely on a recall predictor; models are compared with each other, rarely with a floor.
-% - Claims: (i) smoothed per-user constant beats FSRS-6, HLR and our MAP Bayesian models on Duolingo;
-%   (ii) GBDT with FSRS-state features and running user history beats FSRS-6 on both datasets, all metrics;
-%   (iii) MCMC Bayesian model is second best on Duolingo but barely beats the floor;
-%   (iv) same-session leakage pitfall in the Duolingo traces.
-% - Contributions: bullet list matching the claims, plus open code.
+Spaced-repetition schedulers decide when a learner should see an item again.
+Each decision depends on a predicted probability of recall, so the quality of that predictor drives how much practice is wasted and how much is forgotten.
+Recent work compares recall models with each other \cite{settles2016trainable, ye2022stochastic, srsbenchmark}.
+A constant recall rate, fitted to training data only, is a floor that uses no memory model at all.
+A floor is cheap, and it shows how much a model's structure adds.
+
+We study this question on two datasets that differ a great deal.
+Anki gives individually timed reviews of many cards.
+Duolingo gives short practice sessions, many learners, and a high base rate of recall.
+The two datasets differ in size and in scoring rule, so we report each one on its own terms.
+
+The first result concerns the constant floor on Duolingo.
+A smoothed per-user constant has log loss 0.2723.
+FSRS-6 (optimised) has 0.3003, and half-life regression (HLR) has 0.4181.
+% FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723; FSRS-6 (optimised) log loss 0.3003; HLR (Settles & Meeder) log loss 0.4181
+Our maximum a posteriori (MAP) models v2 and v3 reach 0.2892 and 0.2830, so they also trail the constant.
+% FACTS: Duolingo, Ours v2 log loss 0.2892; Ours v3 log loss 0.2830
+The Bayesian model v1 reaches 0.2682, which is second only to GBDT, but it improves on the constant by only 0.0040.
+% FACTS: Duolingo, Ours (GPU port) minus Constant (per user, smoothed), log loss: diff -0.0040
+The v1 model is the same Bayesian family on both datasets: the original implementation on Anki and its GPU port on Duolingo.
+
+The second result is a gradient-boosted decision tree model (GBDT) with features from the FSRS-6 state and from the learner's own history.
+On Anki, GBDT has log loss 0.3584, against 0.3794 for FSRS-6 (optimised).
+On Duolingo, it has 0.2588, against 0.3003.
+% FACTS: Anki, GBDT log loss 0.3584; FSRS-6 (optimised) log loss 0.3794. Duolingo, GBDT log loss 0.2588; FSRS-6 (optimised) log loss 0.3003
+On both datasets the log-loss difference is significant under a user-clustered paired bootstrap.
+On Anki the difference is $-$0.0210, with 95\% CI [$-$0.0284, $-$0.0144].
+On Duolingo it is $-$0.0415, with 95\% CI [$-$0.0423, $-$0.0406].
+% FACTS: Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415, 95% CI [-0.0423, -0.0406]
+GBDT also has the lower Brier score and the higher AUC on both datasets.
+% FACTS: Anki, GBDT minus FSRS-6 (optimised), Brier: diff -0.0059, 95% CI [-0.0082, -0.0041]; Anki, AUC: diff 0.0285, 95% CI [0.0185, 0.0402]; Duolingo, Brier: diff -0.0078; Duolingo, AUC: diff 0.1273
+The Anki calibration difference is not significant, so we do not claim a calibration gain there.
+% FACTS: Anki, GBDT minus FSRS-6 (optimised), ECE: diff -0.0042, 95% CI [-0.0132, 0.0012], CI includes 0
+% TODO-SRSB: the srs-benchmark comparison of GBDT against RWKV, GRU and FSRS-6 is reported in Section 5; the GBDT numbers there are pending.
+
+The third result is about the Bayesian model v1.
+On Anki, v1 is worse than FSRS-6 (optimised), with a log-loss difference of 0.0427 and 95\% CI [0.0327, 0.0554].
+% FACTS: Anki, Ours (dynamic, learned lambda) minus FSRS-6 (optimised), log loss: diff 0.0427, 95% CI [0.0327, 0.0554]
+Its decay parameter $\lambda$ has not converged on either dataset: in the main runs the split R-hat is 2.44 on Anki and 2.48 on Duolingo, with effective sample sizes of 3.05 and 3.00.
+% FACTS: v1 lambda, Anki: split R-hat 2.44, ESS 3.05. v1 lambda, Duolingo (GPU port): split R-hat 2.48, ESS 3.00
+The predictions change little under two checks, but $\lambda$ must not be read as an estimate, so the v1 results on both datasets are provisional.
+Section 5 treats the Bayesian model as a trade-off between interpretable, uncertainty-aware models and accurate predictors.
+
+The fourth result is a same-session leakage pitfall in the Duolingo traces.
+Duolingo records a whole practice session at one timestamp, so a feature built from earlier reviews can see outcomes from the same session.
+On the Duolingo development sample, the frozen GBDT's validation log loss was 0.2473 with the leak and 0.2578 after the fix.
+% FACTS: Duolingo validation, frozen GBDT, log loss with the same-session leak: 0.2473. Duolingo validation, frozen GBDT, log loss after the fix: 0.2578
+We give the grouping rule that removes the leak.
+
+In summary, we contribute:
+\begin{itemize}
+\item a comparison of recall predictors against constant floors, on two datasets, with one leakage-audited protocol and paired, user-clustered intervals;
+\item evidence that a per-user constant beats FSRS-6 and HLR on Duolingo, and that GBDT beats FSRS-6 on both datasets;
+\item the same-session leakage pitfall in Duolingo and how to avoid it;
+\item a comparison of Bayesian (Markov chain Monte Carlo, MCMC, and MAP) and tree-based predictors, with their trade-offs.
+\end{itemize}
+Code will be released with the de-anonymised version.
+% TODO: release link after review (anonymity).
+
+Section 2 reviews related work.
+Section 3 defines the data and the protocol.
+Section 4 describes the models.
+Section 5 reports the results, Section 6 discusses them, and Section 7 lists the limitations and disclosures.
