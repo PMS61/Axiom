@@ -29,9 +29,13 @@ import pandas as pd  # noqa: E402
 
 from fsrs_benchmark import metrics  # noqa: E402
 
-ALL_MODELS = ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa",
-              "ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3", "gbdt"]
+# The constants come first: they are the floor every model is compared against.
+CONSTANT_MODELS = ["const_global", "const_user"]
+ALL_MODELS = CONSTANT_MODELS + ["fsrs_default", "fsrs_opt", "hlr", "ours", "ours_kappa",
+                                "ours_gpu", "ours_kappa_gpu", "laglogit", "ours_v2", "ours_v3", "gbdt"]
 DISPLAY = {
+    "const_global": "Constant (global)",
+    "const_user": "Constant (per user)",
     "fsrs_default": "FSRS-6 (default)",
     "fsrs_opt": "FSRS-6 (optimised)",
     "hlr": "HLR (Settles & Meeder)",
@@ -46,6 +50,8 @@ DISPLAY = {
 }
 # Okabe-Ito colourblind-safe palette, one colour per model.
 COLOURS = {
+    "const_global": "#999999",
+    "const_user": "#B8860B",
     "fsrs_default": "#E69F00",
     "fsrs_opt": "#0072B2",
     "hlr": "#009E73",
@@ -64,7 +70,8 @@ GAP_BINS = [("1d", 1, 1), ("2-3d", 2, 3), ("4-14d", 4, 14), ("15-60d", 15, 60), 
 PAIR_METRICS = ["log_loss", "brier", "auc", "ece"]
 PAIRED_COLUMNS = ["reference", "model", "metric", "diff", "lo", "hi", "ci_excludes_zero"]
 WINS_COLUMNS = ["reference", "model", "users", "users_lower_log_loss", "share"]
-MARKERS = {"fsrs_default": "o", "fsrs_opt": "s", "hlr": "^", "ours": "D", "ours_kappa": "v",
+MARKERS = {"const_global": "<", "const_user": ">",
+           "fsrs_default": "o", "fsrs_opt": "s", "hlr": "^", "ours": "D", "ours_kappa": "v",
            "ours_gpu": "P", "ours_kappa_gpu": "X", "laglogit": "*", "ours_v2": "h", "ours_v3": "p", "gbdt": "d"}
 
 
@@ -105,6 +112,34 @@ def _metric_row(y, p):
     row["mean_bias"] = _safe(metrics.mean_bias, y, p)
     row["rmse_bins"] = _safe(metrics.rmse_bins, y, p)
     return row
+
+
+def constant_predictions(preds, events):
+    """Constant-recall baselines, fitted on the TRAIN rows of events.parquet only.
+
+    Rate rows: is_train, not a card's first review, elapsed_days >= 1 (the same kind of
+    row as a scored event, but from the train side). const_global is the mean y over
+    those rows. const_user is each user's own mean over those rows, and a user with no
+    such rows gets const_global. Test rows never enter a rate, so the baselines use no
+    test labels.
+    """
+    is_train = events["is_train"].astype(bool)
+    is_first = events["is_first"].astype(bool)
+    rate_rows = events[is_train & ~is_first & (events["elapsed_days"] >= 1)]
+    if rate_rows.empty:
+        raise ValueError("no train rows with a non-first review and elapsed_days >= 1")
+    global_rate = float(rate_rows["y"].mean())
+    per_user = rate_rows.groupby("user_id")["y"].mean()
+    user_rate = preds["user_id"].map(per_user).fillna(global_rate).to_numpy(float)
+    return {"const_global": np.full(len(preds), global_rate), "const_user": user_rate}
+
+
+def add_constant_models(preds, events):
+    """Return a copy of preds with the two constant columns added (events is the events table)."""
+    out = preds.copy()
+    for name, values in constant_predictions(preds, events).items():
+        out[name] = values
+    return out
 
 
 def model_columns(preds):
@@ -397,6 +432,9 @@ def build_report(run_dir, out_dir=None):
     out_dir = Path(out_dir) if out_dir else run_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     preds = pd.read_parquet(run_dir / "predictions.parquet")
+    events_path = run_dir / "events.parquet"
+    if events_path.exists():  # constants need the train split; runs without it simply lack them
+        preds = add_constant_models(preds, pd.read_parquet(events_path))
     info_path = run_dir / "run_info.json"
     info = json.loads(info_path.read_text()) if info_path.exists() else None
     models = model_columns(preds)
