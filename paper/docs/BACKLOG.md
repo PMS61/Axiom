@@ -17,3 +17,4 @@
 - srsb TrainPool.parts holds all train X until finalize() (about 2x peak memory).
 - FACTS 'frozen settings' claim for seed 0 hlr/fsrs cannot be checked from run_info (it only says resumed).
 - Add the FSRS-opt fallback counts for seeds 1 and 2 (4 and 6 users) to FACTS.
+- Figure captions still say 'Caption TODO' (fill in 3.4); the reliability_duolingo legend touches markers; the seeds table sits alone on page 3.
