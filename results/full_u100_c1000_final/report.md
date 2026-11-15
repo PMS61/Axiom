@@ -28,6 +28,8 @@ n/a: model reused from an interrupted earlier run via --resume; its timing was n
 
 | Model | n | Recall | Log loss | Brier | AUC | ECE | RMSE (bins) | Mean bias |
 |---|---|---|---|---|---|---|---|---|
+| Constant (global) | 95400 | 0.831 | 0.454 | 0.140 | 0.500 | **0.004** | **0.004** | 0.004 |
+| Constant (per user) | 95400 | 0.831 | 0.431 | 0.135 | 0.669 | 0.031 | 0.051 | -0.003 |
 | FSRS-6 (default) | 95400 | 0.831 | 0.396 | 0.121 | 0.745 | 0.012 | 0.017 | 0.011 |
 | FSRS-6 (optimised) | 95400 | 0.831 | 0.379 | 0.117 | 0.777 | 0.009 | 0.014 | -0.002 |
 | HLR (Settles & Meeder) | 95400 | 0.831 | 0.680 | 0.170 | 0.555 | 0.146 | 0.176 | 0.060 |
@@ -35,7 +37,7 @@ n/a: model reused from an interrupted earlier run via --resume; its timing was n
 | Ours (+κ) | 95400 | 0.831 | 0.422 | 0.131 | 0.693 | 0.026 | 0.032 | 0.011 |
 | Ours v2 (hierarchical Bayesian FSRS-style) | 95400 | 0.831 | 0.379 | 0.117 | 0.778 | 0.013 | 0.020 | -0.009 |
 | Ours v3 (v2 + user-scale penalty, lag, card effect) | 95400 | 0.831 | 0.378 | 0.117 | 0.779 | 0.010 | 0.018 | -0.007 |
-| GBDT (LightGBM on history features) | 95400 | 0.831 | **0.358** | **0.111** | **0.805** | **0.005** | **0.010** | **0.002** |
+| GBDT (LightGBM on history features) | 95400 | 0.831 | **0.358** | **0.111** | **0.805** | 0.005 | 0.010 | **0.002** |
 
 Best value per column in bold. Mean bias is closest to zero.
 
@@ -45,6 +47,8 @@ Best value per column in bold. Mean bias is closest to zero.
 
 | Model | Recall | Log loss | Brier | AUC | ECE | Mean bias |
 |---|---|---|---|---|---|---|
+| Constant (global) | 0.825 | 0.465 | 0.145 | 0.500 | 0.010 | 0.010 |
+| Constant (per user) | 0.825 | 0.434 | 0.138 | 0.683 | 0.027 | -0.011 |
 | FSRS-6 (default) | 0.825 | 0.409 | 0.126 | 0.748 | 0.020 | 0.017 |
 | FSRS-6 (optimised) | 0.825 | 0.396 | 0.122 | 0.769 | 0.017 | 0.010 |
 | HLR (Settles & Meeder) | 0.825 | 0.942 | 0.172 | 0.658 | 0.170 | 0.170 |
@@ -58,19 +62,23 @@ Best value per column in bold. Mean bias is closest to zero.
 
 | Model | Recall | Log loss | Brier | AUC | ECE | Mean bias |
 |---|---|---|---|---|---|---|
+| Constant (global) | 0.835 | 0.449 | 0.138 | 0.500 | **0.000** | **-0.000** |
+| Constant (per user) | 0.835 | 0.434 | 0.136 | 0.654 | 0.034 | -0.033 |
 | FSRS-6 (default) | 0.835 | 0.402 | 0.124 | 0.730 | 0.021 | 0.016 |
-| FSRS-6 (optimised) | 0.835 | 0.389 | 0.121 | 0.755 | 0.013 | **-0.006** |
+| FSRS-6 (optimised) | 0.835 | 0.389 | 0.121 | 0.755 | 0.013 | -0.006 |
 | HLR (Settles & Meeder) | 0.835 | 0.734 | 0.160 | 0.637 | 0.153 | 0.153 |
 | Ours (dynamic, learned λ) | 0.835 | 0.426 | 0.134 | 0.676 | 0.033 | -0.027 |
 | Ours (+κ) | 0.835 | 0.426 | 0.134 | 0.677 | 0.035 | -0.027 |
 | Ours v2 (hierarchical Bayesian FSRS-style) | 0.835 | 0.388 | 0.121 | 0.759 | 0.014 | -0.013 |
 | Ours v3 (v2 + user-scale penalty, lag, card effect) | 0.835 | 0.387 | 0.121 | 0.758 | 0.014 | -0.011 |
-| GBDT (LightGBM on history features) | 0.835 | **0.372** | **0.116** | **0.782** | **0.009** | -0.007 |
+| GBDT (LightGBM on history features) | 0.835 | **0.372** | **0.116** | **0.782** | 0.009 | -0.007 |
 
 ### 4-14d (n = 29204)
 
 | Model | Recall | Log loss | Brier | AUC | ECE | Mean bias |
 |---|---|---|---|---|---|---|
+| Constant (global) | 0.849 | 0.424 | 0.128 | 0.500 | 0.015 | -0.015 |
+| Constant (per user) | 0.849 | 0.413 | 0.127 | 0.649 | 0.039 | -0.037 |
 | FSRS-6 (default) | 0.849 | 0.369 | 0.110 | 0.737 | 0.017 | 0.006 |
 | FSRS-6 (optimised) | 0.849 | 0.361 | 0.109 | 0.760 | 0.017 | -0.015 |
 | HLR (Settles & Meeder) | 0.849 | 0.555 | 0.141 | 0.616 | 0.123 | 0.123 |
@@ -84,19 +92,23 @@ Best value per column in bold. Mean bias is closest to zero.
 
 | Model | Recall | Log loss | Brier | AUC | ECE | Mean bias |
 |---|---|---|---|---|---|---|
+| Constant (global) | 0.832 | 0.453 | 0.140 | 0.500 | **0.003** | **0.003** |
+| Constant (per user) | 0.832 | 0.430 | 0.133 | 0.671 | 0.049 | 0.017 |
 | FSRS-6 (default) | 0.832 | 0.401 | 0.121 | 0.725 | 0.026 | 0.021 |
 | FSRS-6 (optimised) | 0.832 | 0.374 | 0.114 | 0.781 | 0.009 | 0.008 |
 | HLR (Settles & Meeder) | 0.832 | 0.473 | 0.143 | 0.599 | 0.076 | 0.075 |
 | Ours (dynamic, learned λ) | 0.832 | 0.419 | 0.130 | 0.703 | 0.040 | 0.036 |
 | Ours (+κ) | 0.832 | 0.419 | 0.130 | 0.705 | 0.040 | 0.036 |
-| Ours v2 (hierarchical Bayesian FSRS-style) | 0.832 | 0.375 | 0.115 | 0.779 | 0.009 | **0.005** |
-| Ours v3 (v2 + user-scale penalty, lag, card effect) | 0.832 | 0.375 | 0.115 | 0.779 | **0.008** | 0.008 |
+| Ours v2 (hierarchical Bayesian FSRS-style) | 0.832 | 0.375 | 0.115 | 0.779 | 0.009 | 0.005 |
+| Ours v3 (v2 + user-scale penalty, lag, card effect) | 0.832 | 0.375 | 0.115 | 0.779 | 0.008 | 0.008 |
 | GBDT (LightGBM on history features) | 0.832 | **0.360** | **0.111** | **0.799** | 0.014 | 0.011 |
 
 ### 61d+ (n = 17507)
 
 | Model | Recall | Log loss | Brier | AUC | ECE | Mean bias |
 |---|---|---|---|---|---|---|
+| Constant (global) | 0.802 | 0.501 | 0.160 | 0.500 | 0.032 | 0.032 |
+| Constant (per user) | 0.802 | 0.456 | 0.145 | 0.738 | 0.068 | 0.068 |
 | FSRS-6 (default) | 0.802 | 0.418 | 0.130 | 0.771 | **0.011** | 0.002 |
 | FSRS-6 (optimised) | 0.802 | 0.389 | 0.124 | 0.817 | 0.027 | 0.003 |
 | HLR (Settles & Meeder) | 0.802 | 0.771 | 0.248 | 0.628 | 0.249 | -0.249 |
@@ -114,6 +126,14 @@ Bootstrap: 1000 user-cluster resamples with replacement, seed 0, 95% percentile 
 
 | Comparison | Metric | Diff | 95% CI |
 |---|---|---|---|
+| Constant (global) - FSRS-6 (optimised) | log_loss | 0.075 | [0.059, 0.095] * |
+| Constant (global) - FSRS-6 (optimised) | brier | 0.024 | [0.018, 0.032] * |
+| Constant (global) - FSRS-6 (optimised) | auc | -0.277 | [-0.305, -0.250] * |
+| Constant (global) - FSRS-6 (optimised) | ece | -0.006 | [-0.015, 0.022] |
+| Constant (per user) - FSRS-6 (optimised) | log_loss | 0.051 | [0.039, 0.067] * |
+| Constant (per user) - FSRS-6 (optimised) | brier | 0.018 | [0.013, 0.024] * |
+| Constant (per user) - FSRS-6 (optimised) | auc | -0.108 | [-0.141, -0.082] * |
+| Constant (per user) - FSRS-6 (optimised) | ece | 0.022 | [0.005, 0.038] * |
 | FSRS-6 (default) - FSRS-6 (optimised) | log_loss | 0.017 | [0.008, 0.025] * |
 | FSRS-6 (default) - FSRS-6 (optimised) | brier | 0.004 | [0.002, 0.006] * |
 | FSRS-6 (default) - FSRS-6 (optimised) | auc | -0.032 | [-0.047, -0.016] * |
@@ -142,6 +162,14 @@ Bootstrap: 1000 user-cluster resamples with replacement, seed 0, 95% percentile 
 | GBDT (LightGBM on history features) - FSRS-6 (optimised) | brier | -0.006 | [-0.008, -0.004] * |
 | GBDT (LightGBM on history features) - FSRS-6 (optimised) | auc | 0.028 | [0.019, 0.040] * |
 | GBDT (LightGBM on history features) - FSRS-6 (optimised) | ece | -0.004 | [-0.013, 0.001] |
+| Constant (global) - Ours (dynamic, learned λ) | log_loss | 0.032 | [0.016, 0.050] * |
+| Constant (global) - Ours (dynamic, learned λ) | brier | 0.009 | [0.005, 0.014] * |
+| Constant (global) - Ours (dynamic, learned λ) | auc | -0.192 | [-0.232, -0.153] * |
+| Constant (global) - Ours (dynamic, learned λ) | ece | -0.022 | [-0.031, 0.007] |
+| Constant (per user) - Ours (dynamic, learned λ) | log_loss | 0.009 | [0.004, 0.014] * |
+| Constant (per user) - Ours (dynamic, learned λ) | brier | 0.003 | [0.002, 0.005] * |
+| Constant (per user) - Ours (dynamic, learned λ) | auc | -0.023 | [-0.036, -0.013] * |
+| Constant (per user) - Ours (dynamic, learned λ) | ece | 0.006 | [-0.006, 0.017] |
 | FSRS-6 (default) - Ours (dynamic, learned λ) | log_loss | -0.026 | [-0.042, -0.013] * |
 | FSRS-6 (default) - Ours (dynamic, learned λ) | brier | -0.011 | [-0.015, -0.007] * |
 | FSRS-6 (default) - Ours (dynamic, learned λ) | auc | 0.053 | [0.023, 0.087] * |
@@ -177,6 +205,8 @@ Bootstrap: 1000 user-cluster resamples with replacement, seed 0, 95% percentile 
 
 | Comparison | Users | Users with lower log loss | Share |
 |---|---|---|---|
+| Constant (global) vs FSRS-6 (optimised) | 100 | 11 | 0.110 |
+| Constant (per user) vs FSRS-6 (optimised) | 100 | 23 | 0.230 |
 | FSRS-6 (default) vs FSRS-6 (optimised) | 100 | 28 | 0.280 |
 | HLR (Settles & Meeder) vs FSRS-6 (optimised) | 100 | 7 | 0.070 |
 | Ours (dynamic, learned λ) vs FSRS-6 (optimised) | 100 | 22 | 0.220 |
@@ -184,6 +214,8 @@ Bootstrap: 1000 user-cluster resamples with replacement, seed 0, 95% percentile 
 | Ours v2 (hierarchical Bayesian FSRS-style) vs FSRS-6 (optimised) | 100 | 56 | 0.560 |
 | Ours v3 (v2 + user-scale penalty, lag, card effect) vs FSRS-6 (optimised) | 100 | 58 | 0.580 |
 | GBDT (LightGBM on history features) vs FSRS-6 (optimised) | 100 | 82 | 0.820 |
+| Constant (global) vs Ours (dynamic, learned λ) | 100 | 32 | 0.320 |
+| Constant (per user) vs Ours (dynamic, learned λ) | 100 | 46 | 0.460 |
 | FSRS-6 (default) vs Ours (dynamic, learned λ) | 100 | 68 | 0.680 |
 | FSRS-6 (optimised) vs Ours (dynamic, learned λ) | 100 | 78 | 0.780 |
 | HLR (Settles & Meeder) vs Ours (dynamic, learned λ) | 100 | 14 | 0.140 |
