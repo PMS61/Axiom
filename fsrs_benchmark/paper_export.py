@@ -29,6 +29,10 @@ NAMES = ("anki", "duolingo")
 FACT_DIFFS = {"anki": [("gbdt", "fsrs_opt"), ("ours", "fsrs_opt")],
               "duolingo": [("gbdt", "fsrs_opt"), ("ours_gpu", "fsrs_opt")]}
 FACT_CONSTANTS = ["const_global", "const_user", "const_user_smooth"]
+# Models compared with the smoothed constant (the floor), per dataset. v3 is the same key on both.
+SMOOTH_REF = "const_user_smooth"
+FACT_SMOOTH = {"anki": ["ours", "gbdt", "fsrs_opt", "ours_v3"],
+               "duolingo": ["ours_gpu", "gbdt", "fsrs_opt", "ours_v3"]}
 DATASET_TITLE = {"anki": "Anki", "duolingo": "Duolingo"}
 OVERALL_COLUMNS = ["model", "n", "recall", "log_loss", "brier", "auc", "ece", "rmse_bins", "mean_bias"]
 GAP_COLUMNS = ["model", "bin", "n", "recall", "log_loss", "brier", "auc", "ece", "mean_bias"]
@@ -123,6 +127,27 @@ def facts_section(name, run_dir, mt, pt, uw):
         hit = uw[(uw["model"] == model) & (uw["reference"] == ref)]
         if hit.empty:
             raise ValueError(f"user_wins.csv has no {model} vs {ref} row; FACTS would be incomplete")
+        r = hit.iloc[0]
+        lines.append(f"- {_name(model)}: lower log loss for {int(r['users_lower_log_loss'])} of "
+                     f"{int(r['users'])} users, share {_fmt(r['share'])} "
+                     f"(source: {run_dir}/user_wins.csv)")
+    smooth_models = FACT_SMOOTH.get(name)
+    if smooth_models is None:
+        raise ValueError(f"no smoothed-constant models defined for {name!r}")
+    lines += ["", f"Paired log-loss differences vs {_name(SMOOTH_REF)}, with 95% user-cluster bootstrap CIs:", ""]
+    for model in smooth_models:
+        hit = pt[(pt["model"] == model) & (pt["reference"] == SMOOTH_REF) & (pt["metric"] == "log_loss")]
+        if hit.empty:
+            raise ValueError(f"paired.csv has no {model} vs {SMOOTH_REF} row; FACTS would be incomplete")
+        r = hit.iloc[0]
+        flag = "CI excludes 0" if bool(r["ci_excludes_zero"]) else "CI includes 0"
+        lines.append(f"- {_name(model)} minus {_name(SMOOTH_REF)}, log loss: diff {_fmt(r['diff'])}, "
+                     f"95% CI [{_fmt(r['lo'])}, {_fmt(r['hi'])}], {flag} (source: {p_src})")
+    lines += ["", f"Per-user wins on log loss against {_name(SMOOTH_REF)}:", ""]
+    for model in smooth_models:
+        hit = uw[(uw["model"] == model) & (uw["reference"] == SMOOTH_REF)]
+        if hit.empty:
+            raise ValueError(f"user_wins.csv has no {model} vs {SMOOTH_REF} row; FACTS would be incomplete")
         r = hit.iloc[0]
         lines.append(f"- {_name(model)}: lower log loss for {int(r['users_lower_log_loss'])} of "
                      f"{int(r['users'])} users, share {_fmt(r['share'])} "

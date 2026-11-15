@@ -39,3 +39,83 @@ FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,log_loss,-0
 FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,brier,-0.0078,-0.008,-0.0077,True
 FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,auc,0.1273,0.1239,0.1313,True
 FSRS-6 (optimised),GBDT (LightGBM on history features),fsrs_opt,gbdt,ece,-0.0498,-0.0506,-0.0488,True
+Ours (GPU port),Constant (global),ours_gpu,const_global,log_loss,0.011,0.0092,0.0129,True
+Ours (GPU port),Constant (global),ours_gpu,const_global,brier,0.0022,0.0018,0.0028,True
+Ours (GPU port),Constant (global),ours_gpu,const_global,auc,-0.1561,-0.1625,-0.1493,True
+Ours (GPU port),Constant (global),ours_gpu,const_global,ece,-0.0115,-0.0132,-0.0097,True
+Ours (GPU port),Constant (per user),ours_gpu,const_user,log_loss,0.1042,0.0988,0.1098,True
+Ours (GPU port),Constant (per user),ours_gpu,const_user,brier,0.0032,0.0029,0.0035,True
+Ours (GPU port),Constant (per user),ours_gpu,const_user,auc,-0.0459,-0.0491,-0.0429,True
+Ours (GPU port),Constant (per user),ours_gpu,const_user,ece,0.007,0.0061,0.008,True
+Ours (GPU port),"Constant (per user, smoothed)",ours_gpu,const_user_smooth,log_loss,0.004,0.0035,0.0045,True
+Ours (GPU port),"Constant (per user, smoothed)",ours_gpu,const_user_smooth,brier,0.0007,0.0006,0.0008,True
+Ours (GPU port),"Constant (per user, smoothed)",ours_gpu,const_user_smooth,auc,-0.0407,-0.0438,-0.0378,True
+Ours (GPU port),"Constant (per user, smoothed)",ours_gpu,const_user_smooth,ece,-0.0063,-0.0071,-0.0054,True
+Ours (GPU port),FSRS-6 (default),ours_gpu,fsrs_default,log_loss,0.0336,0.0326,0.0346,True
+Ours (GPU port),FSRS-6 (default),ours_gpu,fsrs_default,brier,0.0066,0.0064,0.0068,True
+Ours (GPU port),FSRS-6 (default),ours_gpu,fsrs_default,auc,-0.0898,-0.094,-0.0859,True
+Ours (GPU port),FSRS-6 (default),ours_gpu,fsrs_default,ece,0.0367,0.0356,0.0379,True
+Ours (GPU port),FSRS-6 (optimised),ours_gpu,fsrs_opt,log_loss,0.032,0.0311,0.033,True
+Ours (GPU port),FSRS-6 (optimised),ours_gpu,fsrs_opt,brier,0.0064,0.0062,0.0066,True
+Ours (GPU port),FSRS-6 (optimised),ours_gpu,fsrs_opt,auc,-0.0865,-0.0906,-0.0826,True
+Ours (GPU port),FSRS-6 (optimised),ours_gpu,fsrs_opt,ece,0.0363,0.0353,0.0373,True
+Ours (GPU port),HLR (Settles & Meeder),ours_gpu,hlr,log_loss,0.1498,0.1442,0.1558,True
+Ours (GPU port),HLR (Settles & Meeder),ours_gpu,hlr,brier,0.0074,0.0067,0.0081,True
+Ours (GPU port),HLR (Settles & Meeder),ours_gpu,hlr,auc,-0.1355,-0.1426,-0.1284,True
+Ours (GPU port),HLR (Settles & Meeder),ours_gpu,hlr,ece,0.0574,0.0556,0.0593,True
+Ours (GPU port),LagLogit + dt (baseline),ours_gpu,laglogit,log_loss,0.0228,0.0207,0.025,True
+Ours (GPU port),LagLogit + dt (baseline),ours_gpu,laglogit,brier,0.0047,0.0042,0.0051,True
+Ours (GPU port),LagLogit + dt (baseline),ours_gpu,laglogit,auc,-0.0027,-0.0043,-0.0011,True
+Ours (GPU port),LagLogit + dt (baseline),ours_gpu,laglogit,ece,0.006,0.0053,0.0069,True
+Ours (GPU port),Ours v2 (hierarchical Bayesian FSRS-style),ours_gpu,ours_v2,log_loss,0.0209,0.0201,0.0219,True
+Ours (GPU port),Ours v2 (hierarchical Bayesian FSRS-style),ours_gpu,ours_v2,brier,0.0032,0.003,0.0034,True
+Ours (GPU port),Ours v2 (hierarchical Bayesian FSRS-style),ours_gpu,ours_v2,auc,-0.0472,-0.0507,-0.0441,True
+Ours (GPU port),Ours v2 (hierarchical Bayesian FSRS-style),ours_gpu,ours_v2,ece,0.0213,0.0203,0.0223,True
+Ours (GPU port),"Ours v3 (v2 + user-scale penalty, lag, card effect)",ours_gpu,ours_v3,log_loss,0.0148,0.0141,0.0155,True
+Ours (GPU port),"Ours v3 (v2 + user-scale penalty, lag, card effect)",ours_gpu,ours_v3,brier,0.0026,0.0024,0.0027,True
+Ours (GPU port),"Ours v3 (v2 + user-scale penalty, lag, card effect)",ours_gpu,ours_v3,auc,-0.0429,-0.0461,-0.0399,True
+Ours (GPU port),"Ours v3 (v2 + user-scale penalty, lag, card effect)",ours_gpu,ours_v3,ece,0.0176,0.0165,0.0187,True
+Ours (GPU port),GBDT (LightGBM on history features),ours_gpu,gbdt,log_loss,-0.0094,-0.0099,-0.009,True
+Ours (GPU port),GBDT (LightGBM on history features),ours_gpu,gbdt,brier,-0.0015,-0.0016,-0.0014,True
+Ours (GPU port),GBDT (LightGBM on history features),ours_gpu,gbdt,auc,0.0408,0.0386,0.043,True
+Ours (GPU port),GBDT (LightGBM on history features),ours_gpu,gbdt,ece,-0.0135,-0.0142,-0.0125,True
+"Constant (per user, smoothed)",Constant (global),const_user_smooth,const_global,log_loss,0.0069,0.0052,0.0087,True
+"Constant (per user, smoothed)",Constant (global),const_user_smooth,const_global,brier,0.0016,0.0011,0.0021,True
+"Constant (per user, smoothed)",Constant (global),const_user_smooth,const_global,auc,-0.1154,-0.1225,-0.1078,True
+"Constant (per user, smoothed)",Constant (global),const_user_smooth,const_global,ece,-0.0052,-0.0072,-0.0033,True
+"Constant (per user, smoothed)",Constant (per user),const_user_smooth,const_user,log_loss,0.1002,0.0948,0.1056,True
+"Constant (per user, smoothed)",Constant (per user),const_user_smooth,const_user,brier,0.0025,0.0022,0.0028,True
+"Constant (per user, smoothed)",Constant (per user),const_user_smooth,const_user,auc,-0.0052,-0.006,-0.0045,True
+"Constant (per user, smoothed)",Constant (per user),const_user_smooth,const_user,ece,0.0133,0.0129,0.0138,True
+"Constant (per user, smoothed)",FSRS-6 (default),const_user_smooth,fsrs_default,log_loss,0.0295,0.0285,0.0306,True
+"Constant (per user, smoothed)",FSRS-6 (default),const_user_smooth,fsrs_default,brier,0.0059,0.0057,0.0061,True
+"Constant (per user, smoothed)",FSRS-6 (default),const_user_smooth,fsrs_default,auc,-0.0491,-0.0541,-0.0444,True
+"Constant (per user, smoothed)",FSRS-6 (default),const_user_smooth,fsrs_default,ece,0.043,0.0418,0.0442,True
+"Constant (per user, smoothed)",FSRS-6 (optimised),const_user_smooth,fsrs_opt,log_loss,0.028,0.0271,0.0289,True
+"Constant (per user, smoothed)",FSRS-6 (optimised),const_user_smooth,fsrs_opt,brier,0.0057,0.0055,0.0059,True
+"Constant (per user, smoothed)",FSRS-6 (optimised),const_user_smooth,fsrs_opt,auc,-0.0458,-0.0506,-0.0415,True
+"Constant (per user, smoothed)",FSRS-6 (optimised),const_user_smooth,fsrs_opt,ece,0.0426,0.0415,0.0438,True
+"Constant (per user, smoothed)",HLR (Settles & Meeder),const_user_smooth,hlr,log_loss,0.1458,0.1403,0.1517,True
+"Constant (per user, smoothed)",HLR (Settles & Meeder),const_user_smooth,hlr,brier,0.0067,0.006,0.0074,True
+"Constant (per user, smoothed)",HLR (Settles & Meeder),const_user_smooth,hlr,auc,-0.0948,-0.1026,-0.0872,True
+"Constant (per user, smoothed)",HLR (Settles & Meeder),const_user_smooth,hlr,ece,0.0637,0.062,0.0657,True
+"Constant (per user, smoothed)",Ours (GPU port),const_user_smooth,ours_gpu,log_loss,-0.004,-0.0045,-0.0035,True
+"Constant (per user, smoothed)",Ours (GPU port),const_user_smooth,ours_gpu,brier,-0.0007,-0.0008,-0.0006,True
+"Constant (per user, smoothed)",Ours (GPU port),const_user_smooth,ours_gpu,auc,0.0407,0.0378,0.0438,True
+"Constant (per user, smoothed)",Ours (GPU port),const_user_smooth,ours_gpu,ece,0.0063,0.0054,0.0071,True
+"Constant (per user, smoothed)",LagLogit + dt (baseline),const_user_smooth,laglogit,log_loss,0.0188,0.0166,0.021,True
+"Constant (per user, smoothed)",LagLogit + dt (baseline),const_user_smooth,laglogit,brier,0.004,0.0035,0.0044,True
+"Constant (per user, smoothed)",LagLogit + dt (baseline),const_user_smooth,laglogit,auc,0.038,0.0347,0.0414,True
+"Constant (per user, smoothed)",LagLogit + dt (baseline),const_user_smooth,laglogit,ece,0.0123,0.0113,0.0134,True
+"Constant (per user, smoothed)",Ours v2 (hierarchical Bayesian FSRS-style),const_user_smooth,ours_v2,log_loss,0.0169,0.0161,0.0177,True
+"Constant (per user, smoothed)",Ours v2 (hierarchical Bayesian FSRS-style),const_user_smooth,ours_v2,brier,0.0025,0.0024,0.0026,True
+"Constant (per user, smoothed)",Ours v2 (hierarchical Bayesian FSRS-style),const_user_smooth,ours_v2,auc,-0.0065,-0.0092,-0.0038,True
+"Constant (per user, smoothed)",Ours v2 (hierarchical Bayesian FSRS-style),const_user_smooth,ours_v2,ece,0.0276,0.0266,0.0286,True
+"Constant (per user, smoothed)","Ours v3 (v2 + user-scale penalty, lag, card effect)",const_user_smooth,ours_v3,log_loss,0.0108,0.0102,0.0113,True
+"Constant (per user, smoothed)","Ours v3 (v2 + user-scale penalty, lag, card effect)",const_user_smooth,ours_v3,brier,0.0019,0.0018,0.002,True
+"Constant (per user, smoothed)","Ours v3 (v2 + user-scale penalty, lag, card effect)",const_user_smooth,ours_v3,auc,-0.0022,-0.0046,0.0004,False
+"Constant (per user, smoothed)","Ours v3 (v2 + user-scale penalty, lag, card effect)",const_user_smooth,ours_v3,ece,0.0239,0.0229,0.0249,True
+"Constant (per user, smoothed)",GBDT (LightGBM on history features),const_user_smooth,gbdt,log_loss,-0.0135,-0.014,-0.0129,True
+"Constant (per user, smoothed)",GBDT (LightGBM on history features),const_user_smooth,gbdt,brier,-0.0022,-0.0023,-0.002,True
+"Constant (per user, smoothed)",GBDT (LightGBM on history features),const_user_smooth,gbdt,auc,0.0815,0.0778,0.0852,True
+"Constant (per user, smoothed)",GBDT (LightGBM on history features),const_user_smooth,gbdt,ece,-0.0073,-0.0081,-0.0061,True

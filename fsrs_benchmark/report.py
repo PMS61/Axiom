@@ -93,7 +93,9 @@ MARKERS = _Fallback(MARKERS, "o")
 COLOURS = _Fallback(COLOURS, "#777777")
 DISPLAY = _Fallback(DISPLAY, None)  # unknown key -> shown as its own name
 SPARSE_N = 30  # bins with fewer events are drawn faded
-REFERENCES = ["fsrs_opt", "ours"]
+# Reference models for the paired CIs and user wins. Each is used only if present in the run:
+# fsrs_opt and ours (Anki v1), ours_gpu (Duolingo v1), and the smoothed constant (the floor).
+REFERENCES = ["fsrs_opt", "ours", "ours_gpu", "const_user_smooth"]
 N_BOOT = 1000
 BOOT_SEED = 0
 

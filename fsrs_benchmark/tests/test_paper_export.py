@@ -6,7 +6,8 @@ import pytest
 from fsrs_benchmark import paper_export as pe
 from fsrs_benchmark import report
 
-MODELS = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours", "gbdt"]
+MODELS = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours", "ours_v3", "gbdt"]
+REFS = ["fsrs_opt", "ours", "ours_gpu", "const_user_smooth"]
 
 
 def _metric_row(model, scope, bin_label, base):
@@ -24,7 +25,7 @@ def _make_run(folder, models=MODELS, base=None, with_gbdt=True):
         rows += [_metric_row(m, "gap", label, base[m] + 0.001) for m in models]
     pd.DataFrame(rows).to_csv(folder / "metrics.csv", index=False)
     paired = []
-    for ref in ["fsrs_opt", "ours"]:
+    for ref in [r for r in REFS if r in models]:
         for m in models:
             if m == ref:
                 continue
@@ -36,8 +37,9 @@ def _make_run(folder, models=MODELS, base=None, with_gbdt=True):
     if not with_gbdt:
         paired = [r for r in paired if r["model"] != "gbdt"]
     pd.DataFrame(paired, columns=report.PAIRED_COLUMNS).to_csv(folder / "paired.csv", index=False)
-    wins = [{"reference": "fsrs_opt", "model": m, "users": 40, "users_lower_log_loss": 25 if m == "gbdt" else 10,
-             "share": (25 if m == "gbdt" else 10) / 40} for m in models if m != "fsrs_opt"]
+    wins = [{"reference": ref, "model": m, "users": 40, "users_lower_log_loss": 25 if m == "gbdt" else 10,
+             "share": (25 if m == "gbdt" else 10) / 40}
+            for ref in [r for r in REFS if r in models] for m in models if m != ref]
     pd.DataFrame(wins, columns=report.WINS_COLUMNS).to_csv(folder / "user_wins.csv", index=False)
     return folder
 
@@ -122,7 +124,7 @@ def test_facts_source_points_at_the_run_folder(tmp_path):
 def test_second_dataset_is_added_and_rerun_replaces_not_duplicates(tmp_path):
     out_dir = tmp_path / "paper" / "data"
     anki = _make_run(tmp_path / "results" / "paper_anki")
-    duo_models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "gbdt"]
+    duo_models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "ours_v3", "gbdt"]
     duo = _make_run(tmp_path / "results" / "paper_duolingo", models=duo_models,
                     base={m: 0.25 + 0.01 * i for i, m in enumerate(duo_models)})
     pe.export(anki, "anki", out_dir)
@@ -144,10 +146,11 @@ def test_missing_headline_row_raises_instead_of_writing_partial_facts(tmp_path):
 
 
 def test_duolingo_uses_ours_gpu_as_the_v1_model(tmp_path):
-    models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "gbdt"]
+    models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "ours_v3", "gbdt"]
     run = _make_run(tmp_path / "results" / "paper_duolingo", models=models)
     text = pe.export(run, "duolingo", tmp_path / "paper" / "data").read_text()
     assert "Ours (GPU port) minus FSRS-6 (optimised), log loss" in text
+    assert "Ours (GPU port) minus Constant (per user, smoothed), log loss" in text
 
 
 def test_nan_values_are_written_as_n_a(tmp_path):
@@ -168,3 +171,28 @@ def test_main_cli_runs(tmp_path, capsys):
     assert pe.main(["--run_dir", str(run), "--name", "anki", "--out", str(out)]) == 0
     assert (out / "anki_overall.csv").exists()
     assert (tmp_path / "paper" / "FACTS.md").exists()
+
+
+def test_smoothed_constant_lines_for_v1_gbdt_fsrs_and_v3(tmp_path):
+    run = _make_run(tmp_path / "results" / "paper_anki")
+    text = pe.export(run, "anki", tmp_path / "paper" / "data").read_text()
+    section = text.split("Paired log-loss differences vs Constant (per user, smoothed)", 1)[1]
+    section = section.split("Per-user wins on log loss against Constant (per user, smoothed)", 1)[0]
+    for name in ["Ours (dynamic, learned λ)", "GBDT (LightGBM on history features)",
+                 "FSRS-6 (optimised)", "Ours v3 (v2 + user-scale penalty, lag, card effect)"]:
+        assert f"- {name} minus Constant (per user, smoothed), log loss: diff " in section, name
+    # GBDT fixture diff -0.0123456 -> -0.0123, CI [-0.02, -0.001]
+    assert "GBDT (LightGBM on history features) minus Constant (per user, smoothed), log loss: diff -0.0123, " \
+           "95% CI [-0.0200, -0.0010], CI excludes 0 (source: " in text
+    wins = text.split("Per-user wins on log loss against Constant (per user, smoothed):", 1)[1]
+    assert "- GBDT (LightGBM on history features): lower log loss for 25 of 40 users, share 0.6250" in wins
+    assert "(source: " in wins
+
+
+def test_smoothed_block_missing_row_raises(tmp_path):
+    run = _make_run(tmp_path / "results" / "paper_anki")
+    pt = pd.read_csv(run / "paired.csv")
+    pt = pt[~((pt["reference"] == "const_user_smooth") & (pt["model"] == "ours_v3"))]
+    pt.to_csv(run / "paired.csv", index=False)
+    with pytest.raises(ValueError, match="ours_v3"):
+        pe.export(run, "anki", tmp_path / "paper" / "data")

@@ -263,3 +263,22 @@ def test_report_bolds_no_constant_and_states_the_rule(tmp_path):
     assert len(const_rows) == 3
     assert all("**" not in line for line in const_rows)
     assert "**" in overall  # the non-constant best cells are still bold
+
+
+def test_new_references_are_paired_when_present(tmp_path):
+    events = _events()
+    events.to_parquet(tmp_path / "events.parquet", index=False)
+    preds = _scored_preds(events)
+    preds["ours_gpu"] = np.linspace(0.2, 0.9, len(preds))
+    preds.to_parquet(tmp_path / "predictions.parquet", index=False)
+    out = report.build_report(tmp_path)
+    pt = pd.read_csv(out / "paired.csv")
+    pairs = set(zip(pt["reference"], pt["model"]))
+    assert ("const_user_smooth", "fsrs_opt") in pairs
+    assert ("const_user_smooth", "const_global") in pairs
+    assert ("ours_gpu", "const_user_smooth") in pairs
+    assert ("ours_gpu", "fsrs_opt") in pairs
+    assert ("ours", "const_user_smooth") in pairs  # 'ours' is present in this fixture
+    uw = pd.read_csv(out / "user_wins.csv")
+    assert ("const_user_smooth", "const_user") in set(zip(uw["reference"], uw["model"]))
+    assert ("ours_gpu", "fsrs_opt") in set(zip(uw["reference"], uw["model"]))
