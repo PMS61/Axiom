@@ -1,0 +1,104 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage[hidelinks]{hyperref}
+
+\title{Recall-prediction benchmark: results}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Setup}
+\begin{itemize}
+\item \textbf{Datasets.} Anki: 100 users drawn at random from anki-revlogs-10k. Duolingo: all 115,222 users. Anki robustness: two more 100-user samples (seeds 1 and 2).
+\item \textbf{Split.} For each user, a cutoff at the 80th percentile of its review days. Reviews before it are TRAIN and later reviews are TEST. Each TEST event is predicted one step ahead from earlier reviews of its card, and parameters are frozen on TRAIN.
+\item \textbf{Scored events.} A TEST event that is not a card's first review and whose gap is at least one day. Same-day reviews enter histories but are not scored. Anki: 95,400 events. Duolingo: 1,189,355 events.
+\item \textbf{Metrics.} Log loss (main), Brier score, AUC, and expected calibration error (ECE) over ten equal-width bins.
+\item \textbf{Uncertainty.} User-clustered paired bootstrap with 1,000 resamples of users: 95\% intervals for Anki and Duolingo, 99\% intervals for the srs-benchmark comparison.
+\item \textbf{Models.}
+  \begin{itemize}
+  \item FSRS-6 (def.): py-fsrs with default weights for every user.
+  \item FSRS-6 (opt.): py-fsrs with weights fitted per user on TRAIN reviews.
+  \item HLR: half-life regression.
+  \item LagLogit (Duolingo only): lagged-outcome logistic baseline.
+  \item v1 (MCMC): Bayesian latent-state retention model, sampled by MCMC (GPU port on Duolingo).
+  \item v2 and v3 (MAP): hierarchical FSRS-style models fitted by MAP; v3 adds a user-scale penalty, a lagged-outcome term and a card effect.
+  \item GBDT: LightGBM on review-level history features.
+  \end{itemize}
+\item \textbf{Constant floors.} Three floors fitted on TRAIN rows only, with smoothing pseudo-count $m = 10$: constant (global), constant (per user), and constant (per user, smoothed).
+\end{itemize}
+
+\section{Overall results}
+On Anki and on Duolingo, GBDT has the best value on every metric among the non-constant models.
+Table~\ref{tab:overall} gives the full comparison.
+
+\input{tables/overall}
+
+\section{Paired differences}
+Negative differences favour the model.
+A difference is significant only when its interval excludes zero.
+
+\input{tables/paired}
+
+\section{Gap bins}
+Duolingo's scored gaps reach at most 11 days, so only the 1d, 2--3d and 4--14d bins are populated.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/gaps_anki}
+\caption{Log loss by gap bin on Anki, for FSRS-6 (opt.), v1 (MCMC), v3 (MAP), GBDT and the constant (per user, smoothed). Lower is better. Bins are 1d, 2-3d, 4-14d, 15-60d and 61d+ gaps; a bin is drawn only if it holds scored events.}
+\label{fig:gaps-anki}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/gaps_duolingo}
+\caption{Log loss by gap bin on Duolingo, for the same five series. Lower is better. Only the 1d, 2-3d and 4-14d bins hold scored events, so only those are drawn.}
+\label{fig:gaps-duolingo}
+\end{figure}
+
+\section{Calibration}
+Each point in the reliability diagrams is one of ten equal-width bins of predicted recall, plotted at the mean prediction (x) and the observed recall (y).
+Among the non-constant models on Anki, GBDT has the lowest ECE (0.0049).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/reliability_anki}
+\caption{Reliability diagram on Anki for FSRS-6 (opt.), v1 (MCMC), v3 (MAP), GBDT and the constant (per user, smoothed). Each point is one of ten equal-width bins of predicted recall, plotted at the mean prediction (x) and the observed recall (y). The dotted line is perfect calibration. Bins with fewer than 30 reviews are omitted.}
+\label{fig:rel-anki}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/reliability_duolingo}
+\caption{Reliability diagram on Duolingo for the same five series, with the same binning. The dotted line is perfect calibration. Bins with fewer than 30 reviews are omitted.}
+\label{fig:rel-duolingo}
+\end{figure}
+
+\section{Robustness across Anki samples}
+GBDT is better than FSRS-6 (opt.) on each of the three 100-user samples.
+Per-seed log-loss differences are $-$0.0210, $-$0.0226 and $-$0.0210, and each interval excludes zero.
+
+% The seeds table has long interval cells; it is set one size smaller to fit the text width.
+\begingroup\renewcommand{\small}{\footnotesize}\input{tables/seeds}\endgroup
+
+\section{srs-benchmark comparison}
+The pooled GBDT is trained on 450 users, with 50 more for early stopping, all disjoint from the 1,000 evaluation users (ids 1--1,000).
+Boosting reached the 2,000-round cap, so its numbers are a lower bound.
+
+\input{tables/srsb}
+
+\section{Caveats}
+\begin{itemize}
+\item \textbf{v1 (MCMC) did not converge.} Its decay parameter has split R-hat 2.44 on Anki and 2.48 on Duolingo, with effective sample sizes 3.05 and 3.00. Its results are provisional.
+\item \textbf{FSRS-6 (opt.) mostly uses default weights on Duolingo.} It falls back to default weights for 115,110 of 115,222 users.
+\item \textbf{The test set was looked at twice.} v2 was tested in one round. v3 and GBDT were tested together in a second round, after GBDT was frozen on validation.
+\item \textbf{RWKV-Instant uses extra features.} This makes it not a like-for-like comparison.
+\end{itemize}
+
+\end{document}

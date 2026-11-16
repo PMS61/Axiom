@@ -184,6 +184,11 @@ Not generated. These lines are added by hand and sit outside the generated marke
 
 - Zero-train Duolingo users with scored test events: 2004 of the 64254 users with zero TRAIN rows; 15918 scored events (source: docs/EVALUATION.md section 12.1; recomputed from results/paper_duolingo/events.parquet columns is_train and scored)
 
+- Split cutoff: per user, the 80th percentile (linear interpolation) of the day offsets of the kept reviews; TRAIN rows are before it and TEST rows at or after it (source: docs/EVALUATION.md section 4).
+- Paired bootstrap, Anki and Duolingo: 1000 resamples of users with replacement, seed 0; 95% CI from the 2.5th and 97.5th percentiles of the bootstrap differences (source: docs/EVALUATION.md section 6).
+- ECE: ten equal-width bins of predicted recall (source: docs/EVALUATION.md section 6, ECE row).
+- Test set looked at twice: v2 was tested in one round (Phase 6); v3 and GBDT were tested together in a second round (Phase 7), after GBDT was frozen on validation (source: docs/EVALUATION.md section 11.4(a)).
+
 <!-- facts:srsb:start -->
 ## srs-benchmark comparison (results/srsb_1000)
 
