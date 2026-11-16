@@ -20,3 +20,5 @@
 - Figure captions still say 'Caption TODO' (fill in 3.4); the reliability_duolingo legend touches markers; the seeds table sits alone on page 3.
 - paired.tex shows v3 Duolingo user win as 72% (0.7150, which rounds half-up); decide on one rounding rule.
 - R-hat and ESS are undefined in models.tex:47 and discussion.tex:20.
+- Audit F2: results/paper_duolingo/events.parquet lacks ts and lexeme; a GBDT rebuild from it silently uses day grouping and no lexeme group. Make it warn or fail.
+- Optionally state the 19.5% calendar-later share of lexeme source rows (300-user audit sample) in limitations (e).
