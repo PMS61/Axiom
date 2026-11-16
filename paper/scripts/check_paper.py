@@ -22,7 +22,7 @@ import argparse
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
 from pathlib import Path
 
@@ -31,9 +31,7 @@ DEFAULT_PDF = PAPER_DIR / "build" / "main.pdf"
 
 # ---- Reviewed exceptions (each entry needs a reason) -------------------------------------
 # Number exceptions: raw number text as written in the source (e.g. "2024") -> reason.
-ALLOW_NUMBERS: dict[str, str] = {
-    "2018": "name of the SLAM 2018 shared task (a workshop year in prose, not a result)",
-}
+ALLOW_NUMBERS: dict[str, str] = {}
 # Anonymity exceptions: term exactly as listed in ANON_TERMS -> reason.
 ALLOW_ANON: dict[str, str] = {}
 
@@ -42,9 +40,10 @@ ANON_TERMS = [
     "VJTI", "Veermata", "Mumbai", "FYP", "final year", "Kaggle", "amalverma", "Axiom",
     "PMS61", "BayesianScheduler", "blackbook", "Verma", "Pagnis", "Sankhe", "Khandelwal",
 ]
-# Third-party URLs and the TODO-SRSB markers are allowed; the rest of their line is still checked.
+# Third-party URLs and the TODO-SRSB markers are allowed. A URL match stops at braces and spaces,
+# so \href{allowed-url}{Axiom code} still checks the link text.
 ALLOWED_URL_RE = re.compile(
-    r"https?://(?:github\.com/open-spaced-repetition|huggingface\.co/datasets/open-spaced-repetition)\S*"
+    r"https?://(?:github\.com/open-spaced-repetition|huggingface\.co/datasets/open-spaced-repetition)[^\s{}]*"
 )
 ALLOWED_MARKER_RE = re.compile(r"TODO-SRSB")
 
@@ -76,6 +75,20 @@ class Num:
     value: Decimal
     decimals: int
     percent: bool
+    section: str = ""                  # FACTS only: the "## " heading the line sits under
+    keywords: frozenset = frozenset()  # FACTS only: keywords of the heading and the line
+
+
+# Words too generic to link a tag to a FACTS line.
+_STOP = frozenset("""the and for with from this that per are was were not all its of on in to by at as is be
+vs minus diff excludes includes log loss users user mean lower higher value values rate rates number numbers
+results source each only than against both same other first last new scored events paper""".split())
+
+
+def keywords_of(text: str) -> frozenset:
+    """Lower-case words of length 3 or more, without generic words."""
+    toks = re.findall(r"[a-z][a-z0-9_]*", text.lower())
+    return frozenset(t for t in toks if len(t) >= 3 and t not in _STOP)
 
 
 def split_comment(line: str) -> tuple[str, str | None]:
@@ -118,14 +131,21 @@ PERCENT_WORD_RE = re.compile(r"(?<![\w.])(\d+(?:\.\d+)?) percent\b")
 
 
 def parse_facts(text: str) -> list[Num]:
-    """Every number in FACTS.md, with no size filter. "20 percent" counts as a percent."""
+    """Every number in FACTS.md, with no size filter. "20 percent" counts as a percent.
+    Each number keeps its "## " section and the keywords of its section heading and line."""
     out: list[Num] = []
+    section = ""
     for line in text.splitlines():
-        out.extend(find_numbers(line, paper=False))
+        if line.startswith("## "):
+            section = line[3:].strip()
+            continue
+        kw = keywords_of(section + " " + line)
+        found = find_numbers(line, paper=False)
         for m in PERCENT_WORD_RE.finditer(line):
             digits = m.group(1)
             decimals = len(digits.split(".", 1)[1]) if "." in digits else 0
-            out.append(Num(raw=m.group(0), value=Decimal(digits), decimals=decimals, percent=True))
+            found.append(Num(raw=m.group(0), value=Decimal(digits), decimals=decimals, percent=True))
+        out.extend(replace(n, section=section, keywords=kw) for n in found)
     return out
 
 
@@ -164,17 +184,41 @@ def tag_kind(line: str) -> str | None:
     return "PROTOCOL" if m.group(1) == "PROTOCOL" else "FACTS"
 
 
-def nearest_tag(lines: list[str], i: int) -> str | None:
-    """Tag on the next two lines after line i (or on line i itself, as a trailing comment)."""
+def find_tag(lines: list[str], i: int) -> tuple[str, str] | None:
+    """(kind, gist) of the tag covering line i, or None.
+
+    FACTS: a trailing comment on line i, or a "% FACTS:" comment on the next two lines.
+    PROTOCOL: a trailing comment on line i, or a "% PROTOCOL" comment on the line directly above,
+    so it covers its own line and the line it introduces. A PROTOCOL comment placed after a
+    number line does not exempt that number.
+    """
     _, comment = split_comment(lines[i])
     if comment is not None and tag_kind(comment):
-        return tag_kind(comment)
+        return _tag_parts(comment)
+    if i > 0 and tag_kind(lines[i - 1]) == "PROTOCOL":
+        return _tag_parts(lines[i - 1])
     for j in (i + 1, i + 2):
-        if j < len(lines):
-            kind = tag_kind(lines[j])
-            if kind:
-                return kind
+        if j < len(lines) and tag_kind(lines[j]) == "FACTS":
+            return _tag_parts(lines[j])
     return None
+
+
+def _tag_parts(comment: str) -> tuple[str, str]:
+    """Kind and gist of a tag comment such as '% FACTS: Anki GBDT log loss'."""
+    m = re.match(r"%\s*(FACTS|PROTOCOL):?\s*(.*)$", comment.strip())
+    return ("PROTOCOL" if m.group(1) == "PROTOCOL" else "FACTS"), m.group(2).strip()
+
+
+def nearest_tag(lines: list[str], i: int) -> str | None:
+    """Kind of the tag covering line i ('FACTS', 'PROTOCOL' or None)."""
+    found = find_tag(lines, i)
+    return found[0] if found else None
+
+
+def facts_for_tag(facts: list[Num], gist: str) -> list[Num]:
+    """FACTS numbers whose line or section shares a keyword with the tag gist."""
+    kw = keywords_of(gist)
+    return [f for f in facts if f.keywords & kw]
 
 
 def _snip(text: str) -> str:
@@ -193,15 +237,18 @@ def check_body(name: str, lines: list[str], facts: list[Num],
         nums = find_numbers(prose(body))
         if not nums:
             continue
-        tag = nearest_tag(lines, i)
-        if tag is None:
+        found = find_tag(lines, i)
+        if found is None:
             problems.append(f"{name}:{i + 1}: untagged number line (no % FACTS: or % PROTOCOL "
                             f"within 2 lines): {_snip(body)}")
+        kind, gist = found if found else (None, "")
+        scoped = facts_for_tag(facts, gist) if kind == "FACTS" else facts
         for n in nums:
-            if tag == "PROTOCOL" or n.raw in ALLOW_NUMBERS:
+            if kind == "PROTOCOL" or n.raw in ALLOW_NUMBERS:
                 continue
-            if not matches_facts(n, facts):
-                problems.append(f"{name}:{i + 1}: number {n.raw} not in FACTS.md: {_snip(body)}")
+            if not matches_facts(n, scoped):
+                why = " (checked only against FACTS lines that share a keyword with the tag)" if kind == "FACTS" else ""
+                problems.append(f"{name}:{i + 1}: number {n.raw} not in FACTS.md{why}: {_snip(body)}")
     return problems
 
 
@@ -255,6 +302,13 @@ def references_page(pages: list[str]) -> int | None:
     return None
 
 
+def page_note(n_pages: int, ref: int) -> str:
+    """Page summary. The References heading can sit on the page where body text ends, so body text
+    runs to the heading's page."""
+    return (f"pages total {n_pages}; body text on pages 1-{ref} (the References heading is on page {ref}, "
+            f"after body text on the same page); reference pages {ref}-{n_pages}")
+
+
 def run_checks(paper_dir: Path, pdf: Path | None) -> tuple[list[str], list[str]]:
     """Return (problems, notes). pdf=None skips the PDF checks."""
     problems: list[str] = []
@@ -296,8 +350,7 @@ def run_checks(paper_dir: Path, pdf: Path | None) -> tuple[list[str], list[str]]
             problems.append("PDF: References heading not found")
             notes.append(f"pages total {len(pages)}")
         else:
-            notes.append(f"pages total {len(pages)}; body pages 1-{ref - 1}; "
-                         f"References start on page {ref}; reference pages {ref}-{len(pages)}")
+            notes.append(page_note(len(pages), ref))
     return problems, notes
 
 

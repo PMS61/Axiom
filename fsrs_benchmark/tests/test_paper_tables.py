@@ -20,7 +20,8 @@ import make_tables  # noqa: E402
 def tables(tmp_path_factory):
     out = tmp_path_factory.mktemp("tables")
     make_tables.write_all(DATA, out)
-    return {name: (out / name).read_text() for name in ("overall.tex", "paired.tex", "seeds.tex")}
+    return {name: (out / name).read_text()
+            for name in ("overall.tex", "paired.tex", "seeds.tex", "srsb.tex")}
 
 
 def _cells(text, label):
@@ -69,3 +70,13 @@ def test_seed_cell_matches_csv(tables):
     # FSRS-6 opt., seed 1 log loss.
     cells = _cells(tables["seeds.tex"], "FSRS-6 opt.")
     assert cells[2] == f"{round(_csv_value('anki_seeds.csv', 'fsrs_opt', 'log_loss_seed1'), 3):.3f}"
+
+
+def test_srsb_cells_match_csv(tables):
+    # RWKV-Instant unweighted log loss (4 dp), and the size-weighted GBDT - GRU diff with its 99% CI.
+    cells = _cells(tables["srsb.tex"], "RWKV-Instant")
+    assert cells[1] == f"{round(_csv_value('srsb.csv', 'RWKV-Instant', 'LogLoss_unweighted'), 4):.4f}"
+    cells = _cells(tables["srsb.tex"], "GRU")
+    pdiff = pd.read_csv(DATA / "srsb_paired.csv").set_index("comparison").loc["GBDT - GRU"]
+    assert float(pdiff["diff_logloss"]) < 0
+    assert cells[4] == "$-$0.0123 [$-$0.0174, $-$0.0067]"

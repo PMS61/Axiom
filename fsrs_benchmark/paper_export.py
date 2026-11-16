@@ -258,6 +258,9 @@ def robustness_facts(run_dirs, table, diffs, seeds):
         flag = "CI excludes 0" if bool(r["ci_excludes_zero"]) else "CI includes 0"
         lines.append(f"- seed {int(r['seed'])}: diff {r['diff']:.4f}, 95% CI [{r['lo']:.4f}, {r['hi']:.4f}], "
                      f"{flag} (source: {r['source']})")
+    mean_diff = round(float(diffs["diff"].mean()), DECIMALS)
+    lines.append(f"- Mean over seeds of the three per-seed differences above: diff {mean_diff:.4f}, no interval "
+                 f"(source: {', '.join(diffs['source'])})")
     return lines
 
 

@@ -21,7 +21,8 @@ GBDT has lower log loss than FSRS-6 (optimised) on both datasets, and the differ
 % FACTS: Anki, GBDT log loss 0.3584; FSRS-6 (optimised) log loss 0.3794. Duolingo, GBDT log loss 0.2588; FSRS-6 (optimised) log loss 0.3003. Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415, 95% CI [-0.0423, -0.0406]
 The Anki calibration difference is not significant, so we do not claim a calibration gain there.
 % FACTS: Anki, GBDT minus FSRS-6 (optimised), ECE: diff -0.0042, 95% CI [-0.0132, 0.0012], CI includes 0
-% TODO-SRSB: the srs-benchmark comparison of GBDT against RWKV, GRU and FSRS-6 is reported in Section 5; the GBDT numbers there are pending.
+On the srs-benchmark's own protocol with 1000 users, GBDT beats FSRS-6 and ties RWKV-Curve, but RWKV-Instant is better (Section 5).
+% FACTS: srs-benchmark (results/srsb_1000): Eval users 1000; GBDT - FSRS-6: diff -0.0235, 99% CI [-0.0286, -0.0183]; GBDT - RWKV-Curve: diff +0.0006, CI includes 0; GBDT - RWKV-Instant: diff +0.0320, 99% CI [+0.0287, +0.0358]
 
 The third result is about the Bayesian model v1.
 On Anki, v1 is worse than FSRS-6 (optimised), with a log-loss difference of 0.0427 and 95\% CI [0.0327, 0.0554].

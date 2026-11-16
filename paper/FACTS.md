@@ -134,8 +134,8 @@ GBDT minus FSRS-6 (optimised), log loss, with 95% user-cluster bootstrap CIs:
 - seed 0: diff -0.0210, 95% CI [-0.0284, -0.0144], CI excludes 0 (source: results/full_u100_c1000_final/paired.csv)
 - seed 1: diff -0.0226, 95% CI [-0.0371, -0.0137], CI excludes 0 (source: results/anki_u100_c1000_seed1/paired.csv)
 - seed 2: diff -0.0210, 95% CI [-0.0325, -0.0119], CI excludes 0 (source: results/anki_u100_c1000_seed2/paired.csv)
+- Mean over seeds of the three per-seed differences above: diff -0.0215, no interval (source: results/full_u100_c1000_final/paired.csv, results/anki_u100_c1000_seed1/paired.csv, results/anki_u100_c1000_seed2/paired.csv)
 <!-- facts:anki_seeds:end -->
-
 ## Protocol, data and disclosures (hand-written)
 
 Not generated. These lines are added by hand and sit outside the generated markers. Each line cites its source.
@@ -175,6 +175,11 @@ Not generated. These lines are added by hand and sit outside the generated marke
 - Ours v2 user wins on log loss against FSRS-6 (optimised): Anki 56 of 100 users (share 0.5600); Duolingo 29013 of 41223 users (share 0.7038) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
 - Ours v3 user wins on log loss against FSRS-6 (optimised): Anki 58 of 100 users (share 0.5800); Duolingo 29473 of 41223 users (share 0.7150) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
 - Ours v3 user wins on log loss against Constant (per user, smoothed): Anki 80 of 100 users (share 0.8000); Duolingo 20772 of 41223 users (share 0.5039) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
+
+- GBDT variants per dataset in total: 54 = 38 (first sweep) + 16 (after the fix) (source: docs/EVALUATION.md section 11.4(c))
+- anki-revlogs-10k users in the full collection: 9,999 (source: docs/SRS_BENCHMARK.md, section "Its protocol, and how it differs from ours", Data bullet)
+
+- Zero-train Duolingo users with scored test events: 2004 of the 64254 users with zero TRAIN rows; 15918 scored events (source: docs/EVALUATION.md section 12.1; recomputed from results/paper_duolingo/events.parquet columns is_train and scored)
 
 <!-- facts:srsb:start -->
 ## srs-benchmark comparison (results/srsb_1000)
