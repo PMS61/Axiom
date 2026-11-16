@@ -6,8 +6,9 @@ cd "$(dirname "$0")"
 # Make the EDM class (template_src/edm_article.cls) visible to TeX.
 export TEXINPUTS="$PWD/template_src:${TEXINPUTS:-}"
 mkdir -p build
-for doc in main main_camera; do
+for doc in main main_camera benchmarks; do
   latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=build "$doc.tex"
 done
 echo "PDF: $PWD/build/main.pdf"
 echo "PDF: $PWD/build/main_camera.pdf"
+echo "PDF: $PWD/build/benchmarks.pdf"
