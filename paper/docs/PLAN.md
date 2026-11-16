@@ -113,7 +113,7 @@ Goal: compare the GBDT directly with RWKV, LSTM, GRU and FSRS-6 on the public sr
 - **2.3 Kaggle run.** Set A is 500 users and set B is 1,000 users, all disjoint. Bring the jsonl back,
   run compare.py, and add the numbers to FACTS.md (a new srs-benchmark section).
 
-### Phase 3: Write the paper — IN PROGRESS (3.1-3.4 done; the srs-benchmark subsection waits for 2.3)
+### Phase 3: Write the paper — DONE (2026-11-17, report: reports/phase-3.md)
 EDM template, LaTeX in `paper/`. All numbers come from FACTS.md. The submission is
 anonymous, double-blind.
 - 3.1 Template, skeleton, bib and the build script.
@@ -121,7 +121,7 @@ anonymous, double-blind.
 - 3.3 Introduction, related work and methods.
 - 3.4 Results, discussion, limitations and abstract.
 
-### Phase 4: Polish — TODO
+### Phase 4: Polish — IN PROGRESS (4.1 done)
 Page limit, an anonymity check, a check that every number traces back to FACTS.md,
 a proofread, and a de-anonymised arXiv version.
 - **4.1 Automated checks.** Write `paper/scripts/check_paper.py`.
