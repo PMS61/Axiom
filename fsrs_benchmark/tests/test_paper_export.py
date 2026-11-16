@@ -8,7 +8,7 @@ import pytest
 from fsrs_benchmark import paper_export as pe
 from fsrs_benchmark import report
 
-MODELS = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours", "ours_v3", "gbdt"]
+MODELS = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours", "ours_v2", "ours_v3", "gbdt"]
 REFS = ["fsrs_opt", "ours", "ours_gpu", "const_user_smooth"]
 
 
@@ -22,9 +22,9 @@ def _make_run(folder, models=MODELS, base=None, with_gbdt=True):
     """Write metrics.csv, paired.csv and user_wins.csv as report.py does, with known numbers."""
     folder.mkdir(parents=True, exist_ok=True)
     base = base or {m: 0.30 + 0.01 * i for i, m in enumerate(models)}
-    rows = [_metric_row(m, "overall", "", base[m]) for m in models]
+    rows = [_metric_row(m, "overall", "", base.get(m, 0.30 + 0.01 * i)) for i, m in enumerate(models)]
     for label, _, _ in report.GAP_BINS:
-        rows += [_metric_row(m, "gap", label, base[m] + 0.001) for m in models]
+        rows += [_metric_row(m, "gap", label, base.get(m, 0.30 + 0.01 * i) + 0.001) for i, m in enumerate(models)]
     pd.DataFrame(rows).to_csv(folder / "metrics.csv", index=False)
     paired = []
     for ref in [r for r in REFS if r in models]:
@@ -126,7 +126,7 @@ def test_facts_source_points_at_the_run_folder(tmp_path):
 def test_second_dataset_is_added_and_rerun_replaces_not_duplicates(tmp_path):
     out_dir = tmp_path / "paper" / "data"
     anki = _make_run(tmp_path / "results" / "paper_anki")
-    duo_models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "ours_v3", "gbdt"]
+    duo_models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "ours_v2", "ours_v3", "gbdt"]
     duo = _make_run(tmp_path / "results" / "paper_duolingo", models=duo_models,
                     base={m: 0.25 + 0.01 * i for i, m in enumerate(duo_models)})
     pe.export(anki, "anki", out_dir)
@@ -148,7 +148,7 @@ def test_missing_headline_row_raises_instead_of_writing_partial_facts(tmp_path):
 
 
 def test_duolingo_uses_ours_gpu_as_the_v1_model(tmp_path):
-    models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "ours_v3", "gbdt"]
+    models = ["const_global", "const_user", "const_user_smooth", "fsrs_opt", "ours_gpu", "ours_v2", "ours_v3", "gbdt"]
     run = _make_run(tmp_path / "results" / "paper_duolingo", models=models)
     text = pe.export(run, "duolingo", tmp_path / "paper" / "data").read_text()
     assert "Ours (GPU port) minus FSRS-6 (optimised), log loss" in text

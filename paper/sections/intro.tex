@@ -11,23 +11,23 @@ Duolingo gives short practice sessions, many learners, and a high base rate of r
 The two datasets differ in size and in scoring rule, so we report each one on its own terms.
 
 The first result concerns the constant floor on Duolingo.
-A smoothed per-user constant beats FSRS-6 (optimised), HLR, LagLogit and both MAP models v2 and v3.
-Only GBDT and the Bayesian model v1 beat it (Section 5).
+A constant (per user, smoothed) beats FSRS-6 (opt.), half-life regression (HLR), LagLogit and both maximum a posteriori (MAP) models, v2 and v3.
+Only gradient-boosted decision trees (GBDT) and v1 (MCMC) beat it (Section 5).
 % FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723; FSRS-6 (optimised) log loss 0.3003; HLR (Settles & Meeder) log loss 0.4181; Ours v2 log loss 0.2892; Ours v3 log loss 0.2830
-The v1 model is the same Bayesian family on both datasets: the original implementation on Anki and its GPU port on Duolingo.
+v1 (MCMC) is the same Bayesian family on both datasets: the original implementation on Anki and its GPU port on Duolingo.
 
-The second result is a gradient-boosted decision tree model (GBDT) with features from the FSRS-6 state and from the learner's own history.
-GBDT has lower log loss than FSRS-6 (optimised) on both datasets, and the difference is significant on each.
+The second result concerns GBDT, a gradient-boosted decision tree model with features from the FSRS-6 state and from the learner's own history.
+GBDT has lower log loss than FSRS-6 (opt.) on both datasets, and the difference is significant on each.
 % FACTS: Anki, GBDT log loss 0.3584; FSRS-6 (optimised) log loss 0.3794. Duolingo, GBDT log loss 0.2588; FSRS-6 (optimised) log loss 0.3003. Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415, 95% CI [-0.0423, -0.0406]
 The Anki calibration difference is not significant, so we do not claim a calibration gain there.
 % FACTS: Anki, GBDT minus FSRS-6 (optimised), ECE: diff -0.0042, 95% CI [-0.0132, 0.0012], CI includes 0
-On the srs-benchmark's own protocol with 1000 users, GBDT beats FSRS-6 and ties RWKV-Curve, but RWKV-Instant is better (Section 5).
+On the srs-benchmark's own protocol with 1,000 users, GBDT beats FSRS-6 and ties RWKV-Curve, but RWKV-Instant is better (Section 5).
 % FACTS: srs-benchmark (results/srsb_1000): Eval users 1000; GBDT - FSRS-6: diff -0.0235, 99% CI [-0.0286, -0.0183]; GBDT - RWKV-Curve: diff +0.0006, CI includes 0; GBDT - RWKV-Instant: diff +0.0320, 99% CI [+0.0287, +0.0358]
 
-The third result is about the Bayesian model v1.
-On Anki, v1 is worse than FSRS-6 (optimised), with a log-loss difference of 0.0427 and 95\% CI [0.0327, 0.0554].
+The third result is about v1 (MCMC).
+On Anki, v1 is worse than FSRS-6 (opt.), with a log-loss difference of 0.0427 and 95\% CI [0.0327, 0.0554].
 % FACTS: Anki, Ours (dynamic, learned lambda) minus FSRS-6 (optimised), log loss: diff 0.0427, 95% CI [0.0327, 0.0554]
-Its decay parameter $\lambda$ has not converged on either dataset. In the main runs the split R-hat, a chain-agreement statistic whose value near 1 indicates convergence, is 2.44 on Anki and 2.48 on Duolingo, and the effective sample size (ESS, the number of independent draws the chain is worth) is 3.05 and 3.00.
+Its decay parameter $\lambda$ has not converged on either dataset. In the main runs the split potential scale reduction factor (R-hat), whose value near 1 indicates convergence, is 2.44 on Anki and 2.48 on Duolingo, and the effective sample sizes (ESS, the number of independent draws the chain is worth) are 3.05 and 3.00.
 % FACTS: v1 lambda, Anki: split R-hat 2.44, ESS 3.05. v1 lambda, Duolingo (GPU port): split R-hat 2.48, ESS 3.00
 The predictions change little under two checks, but $\lambda$ must not be read as an estimate, so the v1 results on both datasets are provisional.
 Section 5 treats the Bayesian model as a trade-off between interpretable, uncertainty-aware models and accurate predictors.
@@ -41,12 +41,15 @@ We give the grouping rule that removes the leak.
 In summary, we contribute:
 \begin{itemize}
 \item a comparison of recall predictors against constant floors, on two datasets, with one leakage-audited protocol and paired, user-clustered intervals;
-\item evidence that a per-user constant beats FSRS-6 and HLR on Duolingo, and that GBDT beats FSRS-6 on both datasets;
+\item evidence that a constant (per user, smoothed) beats FSRS-6 and HLR on Duolingo, and that GBDT beats FSRS-6 on both datasets;
 \item the same-session leakage pitfall in Duolingo and how to avoid it;
-\item a comparison of Bayesian (Markov chain Monte Carlo, MCMC, and MAP) and tree-based predictors, with their trade-offs.
+\item a comparison of Bayesian (v1, MCMC) and MAP models with tree-based predictors, and their trade-offs.
 \end{itemize}
+\ifcamera
+Code is available at \url{TBD}.
+\else
 Code will be released with the de-anonymised version.
-% TODO: release link after review (anonymity).
+\fi
 
 Section 2 reviews related work.
 Section 3 defines the data and the protocol.

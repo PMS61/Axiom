@@ -49,6 +49,7 @@ Paired log-loss differences vs Constant (per user, smoothed), with 95% user-clus
 - Ours (dynamic, learned λ) minus Constant (per user, smoothed), log loss: diff -0.0086, 95% CI [-0.0140, -0.0040], CI excludes 0 (source: results/paper_anki/paired.csv)
 - GBDT (LightGBM on history features) minus Constant (per user, smoothed), log loss: diff -0.0723, 95% CI [-0.0891, -0.0576], CI excludes 0 (source: results/paper_anki/paired.csv)
 - FSRS-6 (optimised) minus Constant (per user, smoothed), log loss: diff -0.0513, 95% CI [-0.0669, -0.0391], CI excludes 0 (source: results/paper_anki/paired.csv)
+- Ours v2 (hierarchical Bayesian FSRS-style) minus Constant (per user, smoothed), log loss: diff -0.0516, 95% CI [-0.0655, -0.0401], CI excludes 0 (source: results/paper_anki/paired.csv)
 - Ours v3 (v2 + user-scale penalty, lag, card effect) minus Constant (per user, smoothed), log loss: diff -0.0527, 95% CI [-0.0671, -0.0410], CI excludes 0 (source: results/paper_anki/paired.csv)
 
 Per-user wins on log loss against Constant (per user, smoothed):
@@ -56,6 +57,7 @@ Per-user wins on log loss against Constant (per user, smoothed):
 - Ours (dynamic, learned λ): lower log loss for 55 of 100 users, share 0.5500 (source: results/paper_anki/user_wins.csv)
 - GBDT (LightGBM on history features): lower log loss for 95 of 100 users, share 0.9500 (source: results/paper_anki/user_wins.csv)
 - FSRS-6 (optimised): lower log loss for 77 of 100 users, share 0.7700 (source: results/paper_anki/user_wins.csv)
+- Ours v2 (hierarchical Bayesian FSRS-style): lower log loss for 82 of 100 users, share 0.8200 (source: results/paper_anki/user_wins.csv)
 - Ours v3 (v2 + user-scale penalty, lag, card effect): lower log loss for 80 of 100 users, share 0.8000 (source: results/paper_anki/user_wins.csv)
 <!-- facts:anki:end -->
 <!-- facts:duolingo:start -->
@@ -104,6 +106,7 @@ Paired log-loss differences vs Constant (per user, smoothed), with 95% user-clus
 - Ours (GPU port) minus Constant (per user, smoothed), log loss: diff -0.0040, 95% CI [-0.0045, -0.0035], CI excludes 0 (source: results/paper_duolingo/paired.csv)
 - GBDT (LightGBM on history features) minus Constant (per user, smoothed), log loss: diff -0.0135, 95% CI [-0.0140, -0.0129], CI excludes 0 (source: results/paper_duolingo/paired.csv)
 - FSRS-6 (optimised) minus Constant (per user, smoothed), log loss: diff 0.0280, 95% CI [0.0271, 0.0289], CI excludes 0 (source: results/paper_duolingo/paired.csv)
+- Ours v2 (hierarchical Bayesian FSRS-style) minus Constant (per user, smoothed), log loss: diff 0.0169, 95% CI [0.0161, 0.0177], CI excludes 0 (source: results/paper_duolingo/paired.csv)
 - Ours v3 (v2 + user-scale penalty, lag, card effect) minus Constant (per user, smoothed), log loss: diff 0.0108, 95% CI [0.0102, 0.0113], CI excludes 0 (source: results/paper_duolingo/paired.csv)
 
 Per-user wins on log loss against Constant (per user, smoothed):
@@ -111,9 +114,9 @@ Per-user wins on log loss against Constant (per user, smoothed):
 - Ours (GPU port): lower log loss for 26119 of 41223 users, share 0.6336 (source: results/paper_duolingo/user_wins.csv)
 - GBDT (LightGBM on history features): lower log loss for 27712 of 41223 users, share 0.6722 (source: results/paper_duolingo/user_wins.csv)
 - FSRS-6 (optimised): lower log loss for 13925 of 41223 users, share 0.3378 (source: results/paper_duolingo/user_wins.csv)
+- Ours v2 (hierarchical Bayesian FSRS-style): lower log loss for 21359 of 41223 users, share 0.5181 (source: results/paper_duolingo/user_wins.csv)
 - Ours v3 (v2 + user-scale penalty, lag, card effect): lower log loss for 20772 of 41223 users, share 0.5039 (source: results/paper_duolingo/user_wins.csv)
 <!-- facts:duolingo:end -->
-
 <!-- facts:anki_seeds:start -->
 ## Anki robustness: seeds 0, 1, 2 (100 users each)
 

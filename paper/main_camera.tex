@@ -1,0 +1,98 @@
+% CAMERA-READY version (PLAN 4.3). Same sections and tables as main.tex; the real author block
+% and the acknowledgements live only here. Build with ./build.sh (writes build/main_camera.pdf).
+% Paper: "Beating the Floor: A Leakage-Audited Benchmark of Recall Prediction for Spaced Repetition"
+% Template: official EDM LaTeX template (edm_article.cls), from
+%   https://educationaldatamining.org/wp-content/uploads/2024/EDM-template2024.zip
+%   (linked from https://educationaldatamining.org/edm2026/instructions-for-authors/).
+%   Copy kept in template_src/. Build with ./build.sh (TEXINPUTS points at template_src/).
+% main.tex is the double-blind submission; this file is not submitted anonymously.
+\documentclass{edm_article}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+
+% Camera-ready switch. On here (camera-ready); main.tex sets it off (anonymous submission).
+\newif\ifcamera
+\cameratrue
+
+\title{Beating the Floor: A Leakage-Audited Benchmark of Recall Prediction for Spaced Repetition}
+
+% ORDER TBD by authors
+\numberofauthors{5}
+\author{
+\alignauthor
+Amal Verma\\
+\affaddr{Veermata Jijabai Technological Institute (VJTI)}\\
+\affaddr{Mumbai, India}\\
+\email{\texttt{TBD}}
+\alignauthor
+Vedaang Pagnis\\
+\affaddr{Veermata Jijabai Technological Institute (VJTI)}\\
+\affaddr{Mumbai, India}\\
+\email{\texttt{TBD}}
+\alignauthor
+Prathamesh Sankhe\\
+\affaddr{Veermata Jijabai Technological Institute (VJTI)}\\
+\affaddr{Mumbai, India}\\
+\email{\texttt{TBD}}
+\and
+\alignauthor
+Vaishvi Khandelwal\\
+\affaddr{Veermata Jijabai Technological Institute (VJTI)}\\
+\affaddr{Mumbai, India}\\
+\email{\texttt{TBD}}
+\alignauthor
+[Supervisor name TBD]\\
+\affaddr{Veermata Jijabai Technological Institute (VJTI)}\\
+\affaddr{Mumbai, India}\\
+\email{\texttt{TBD}}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Recall predictors for spaced repetition are usually compared with each other, rarely with a floor.
+% PROTOCOL: 100 Anki users and all Duolingo users (EVALUATION.md 2). Not a result.
+We compare them with constant-recall floors on two datasets: 100 Anki users and all Duolingo users.
+We use one-step-ahead prediction, user-clustered bootstrap intervals and a same-session leakage audit.
+On Duolingo, a constant (per user, smoothed) reaches a log loss of 0.2723.
+% FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723
+This beats FSRS-6 (opt.), at 0.3003, and half-life regression (HLR), at 0.4181.
+% FACTS: Duolingo, FSRS-6 (optimised) log loss 0.3003; HLR (Settles & Meeder) log loss 0.4181
+FSRS-6 (opt.) keeps default weights for 115,110 of 115,222 Duolingo users.
+% FACTS: Duolingo, FSRS-6 (optimised) fallback to default weights: 115110 of 115222 users
+On Duolingo, only gradient-boosted decision trees (GBDT) and Bayesian model v1 (Markov chain Monte Carlo, MCMC) beat the floor, v1 narrowly.
+GBDT uses FSRS-state features and the learner's own history.
+It beats FSRS-6 (opt.) on both datasets: on Anki the log-loss difference is $-$0.0210, with 95\% CI [$-$0.0284, $-$0.0144], and on Duolingo it is $-$0.0415.
+% FACTS: Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415
+On srs-benchmark's public Anki protocol, GBDT beats FSRS-6 but trails RWKV-Instant.
+Its Anki calibration gain over FSRS-6 is not significant.
+Duolingo records each practice session at one timestamp, and a feature built from earlier rows can see outcomes from the same session.
+Removing it changes the development-sample validation log loss of our first GBDT from 0.2473 to 0.2578.
+% FACTS: Duolingo validation, frozen GBDT, log loss with the same-session leak: 0.2473; after the fix: 0.2578
+Limits include an unconverged Bayesian decay parameter.
+\end{abstract}
+
+\keywords{spaced repetition, recall prediction, benchmark design, data leakage, gradient-boosted trees}
+
+\input{sections/intro}
+\input{sections/related}
+\input{sections/protocol}
+\input{sections/models}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+% Acknowledgements placeholder (EDM allows them in the camera-ready version only).
+\section{Acknowledgments}
+TBD: acknowledgements (funding, supervision, data access) to be written by the authors.
+
+\bibliographystyle{abbrv}
+\bibliography{references}
+
+\end{document}

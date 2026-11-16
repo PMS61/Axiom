@@ -11,33 +11,33 @@ We call a difference significant only when its interval excludes zero.
 
 \subsection{Overall results}
 On Anki, GBDT has the best value on all four metrics.
-Its log loss is 0.3584, against 0.3794 for FSRS-6 (optimised).
+Its log loss is 0.3584, against 0.3794 for FSRS-6 (opt.).
 % FACTS: Anki, GBDT log loss 0.3584; FSRS-6 (optimised) log loss 0.3794
 The log-loss difference is $-$0.0210, with 95\% CI [$-$0.0284, $-$0.0144], and the Brier and AUC differences are also significant.
 % FACTS: Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]; Brier: diff -0.0059, 95% CI [-0.0082, -0.0041]; AUC: diff 0.0285, 95% CI [0.0185, 0.0402]
-The ECE difference is not significant, so we claim no calibration gain over FSRS-6 (optimised) on Anki.
+The ECE difference is not significant, so we claim no calibration gain over FSRS-6 (opt.) on Anki.
 % FACTS: Anki, GBDT minus FSRS-6 (optimised), ECE: diff -0.0042, 95% CI [-0.0132, 0.0012], CI includes 0
-The MAP models v2 and v3 have log loss 0.3791 and 0.3780, which is level with FSRS-6 (optimised). Their intervals against it include zero (Table~\ref{tab:paired}).
+The MAP models v2 and v3 have log loss 0.3791 and 0.3780, which is level with FSRS-6 (opt.). Their intervals against it include zero (Table~\ref{tab:paired}).
 % FACTS: Anki, Ours v2 log loss 0.3791; Ours v3 log loss 0.3780; Ours v2 minus FSRS-6 (optimised) diff -0.0003, CI includes 0; Ours v3 minus FSRS-6 (optimised) diff -0.0014, CI includes 0
-The Bayesian model v1 is worse than FSRS-6 (optimised) on Anki, with log loss 0.4221.
+v1 (MCMC) is worse than FSRS-6 (opt.) on Anki, with log loss 0.4221.
 % FACTS: Anki, Ours (dynamic, learned lambda) log loss 0.4221
-The v1 numbers in this section are provisional, because its decay parameter does not converge (Section 7, item g).
+The v1 numbers in this section are provisional, because its decay parameter has not converged (Section 7, item g).
 
 On Duolingo, GBDT again has the best value on every metric.
-Its log loss is 0.2588, against 0.3003 for FSRS-6 (optimised), a significant difference of $-$0.0415 with 95\% CI [$-$0.0423, $-$0.0406].
+Its log loss is 0.2588, against 0.3003 for FSRS-6 (opt.), a significant difference of $-$0.0415 with 95\% CI [$-$0.0423, $-$0.0406].
 % FACTS: Duolingo, GBDT log loss 0.2588; FSRS-6 (optimised) log loss 0.3003. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415, 95% CI [-0.0423, -0.0406]
-Its ECE is 0.0006, against 0.0505 for FSRS-6 (optimised).
+Its ECE is 0.0006, against 0.0505 for FSRS-6 (opt.).
 % FACTS: Duolingo, GBDT ECE 0.0006; FSRS-6 (optimised) ECE 0.0505
-The next models are v1 (0.2682), v3 (0.2830), v2 (0.2892), LagLogit (0.2910) and FSRS-6 (optimised) (0.3003), with HLR last (0.4181).
+The next models are v1 (MCMC) at 0.2682, v3 at 0.2830, v2 at 0.2892, LagLogit at 0.2910 and FSRS-6 (opt.) at 0.3003, with HLR last at 0.4181. The constant (per user, smoothed), at 0.2723, lies between v1 and v3.
 % FACTS: Duolingo, Ours (GPU port) log loss 0.2682; Ours v3 log loss 0.2830; Ours v2 log loss 0.2892; LagLogit + dt log loss 0.2910; HLR log loss 0.4181
 The base rate differs between the datasets: the recall share of scored events is 0.8310 on Anki and 0.9198 on Duolingo.
 % FACTS: Recall share of scored events (base rate): Anki 0.831; Duolingo 0.9198
 
 \subsection{The constant floor}
-The constant floors are the reference point for the rest of the section.
-On Duolingo, the smoothed per-user constant has log loss 0.2723, and it beats every model except GBDT and v1.
+The constants are the reference point for the rest of the section.
+On Duolingo, the constant (per user, smoothed) has log loss 0.2723, and it beats every model except GBDT and v1 (MCMC).
 % FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723
-FSRS-6 (optimised) is worse than it by $+$0.0280, with 95\% CI [$+$0.0271, $+$0.0289].
+FSRS-6 (opt.) is worse than it by $+$0.0280, with 95\% CI [$+$0.0271, $+$0.0289].
 % FACTS: Duolingo, FSRS-6 (optimised) minus Constant (per user, smoothed), log loss: diff 0.0280, 95% CI [0.0271, 0.0289]
 The MAP model v3 is worse than the constant by $+$0.0108, with 95\% CI [$+$0.0102, $+$0.0113], and v2 and LagLogit are worse still.
 % FACTS: Duolingo, Ours v3 minus Constant (per user, smoothed), log loss: diff 0.0108, 95% CI [0.0102, 0.0113]
@@ -46,28 +46,28 @@ GBDT is better by $-$0.0135 [$-$0.0140, $-$0.0129], and v1 by $-$0.0040 [$-$0.00
 The v1 margin is small, but its interval excludes zero.
 % FACTS: Duolingo, GBDT minus Constant (per user, smoothed), log loss: diff -0.0135, 95% CI [-0.0140, -0.0129]. Duolingo, Ours (GPU port) minus Constant (per user, smoothed), log loss: diff -0.0040, 95% CI [-0.0045, -0.0035]
 Smoothing is needed for this result.
-The unsmoothed per-user constant has log loss 0.3725 on Duolingo, which is worse than the global constant (0.2792). This pattern is consistent with users who have few training rows getting extreme rates, although we did not test that cause directly.
-The smoothed floor, with pseudo-count $m = 10$ fixed before the runs, has log loss 0.2723.
+The unsmoothed constant (per user) has log loss 0.3725 on Duolingo, which is worse than constant (global) at 0.2792. This pattern is consistent with users who have few training rows getting extreme rates, although we did not test that cause directly.
+The constant (per user, smoothed), with pseudo-count $m = 10$ fixed before the runs, has log loss 0.2723.
 % FACTS: Duolingo, Constant (per user) log loss 0.3725; Constant (global) log loss 0.2792; Protocol: m = 10
 On Anki the floor is weaker, and the ranking changes.
-The smoothed per-user constant has log loss 0.4307, and FSRS-6 (optimised) beats it by $-$0.0513, with 95\% CI [$-$0.0669, $-$0.0391].
+The constant (per user, smoothed) has log loss 0.4307, and FSRS-6 (opt.) beats it by $-$0.0513, with 95\% CI [$-$0.0669, $-$0.0391].
 % FACTS: Anki, Constant (per user, smoothed) log loss 0.4307; Anki, FSRS-6 (optimised) minus Constant (per user, smoothed), log loss: diff -0.0513, 95% CI [-0.0669, -0.0391]
-The v1 model beats the constant on Anki by a smaller margin, $-$0.0086 [$-$0.0140, $-$0.0040], and HLR is worse than the constant (0.6805).
+v1 (MCMC) beats the constant (per user, smoothed) on Anki by a smaller margin, $-$0.0086 [$-$0.0140, $-$0.0040], and HLR is worse than that constant, at 0.6805.
 % FACTS: Anki, Ours (dynamic, learned lambda) minus Constant (per user, smoothed), log loss: diff -0.0086, 95% CI [-0.0140, -0.0040]; Anki, HLR log loss 0.6805
 
 \subsection{Paired differences}
-Table~\ref{tab:paired} gives the paired differences against FSRS-6 (optimised) and against the smoothed constant, with the share of users for which the model has lower log loss than FSRS-6 (optimised).
+Table~\ref{tab:paired} gives the paired differences against FSRS-6 (opt.) and against the constant (per user, smoothed), with the share of users for which the model has lower log loss than FSRS-6 (opt.).
 The user shares use the 41,223 Duolingo users that have scored test events and a finite log loss for both models being compared.
 % FACTS: Duolingo user-share denominator: 41223 users with a finite log loss for both models being compared (docs/EVALUATION.md section 10.5)
-On Anki, GBDT has lower log loss than FSRS-6 (optimised) for 82 of 100 users.
+On Anki, GBDT has lower log loss than FSRS-6 (opt.) for 82 of 100 users.
 % FACTS: Anki, GBDT lower log loss for 82 of 100 users vs FSRS-6 (optimised), share 0.8200
 On Duolingo the share is 78\% (32,151 of 41,223 users).
 % FACTS: Duolingo, GBDT lower log loss for 32151 of 41223 users, share 0.7799
-The v1 model is better than FSRS-6 (optimised) for 74\% of Duolingo users (0.7401), but only for 22 of 100 Anki users.
+The v1 model is better than FSRS-6 (opt.) for 74\% of Duolingo users (0.7401), but only for 22 of 100 Anki users.
 % FACTS: Duolingo, Ours (GPU port) lower log loss for 30511 of 41223 users, share 0.7401. Anki, Ours (dynamic, learned lambda) lower log loss for 22 of 100 users, share 0.2200
-Against the smoothed constant, GBDT is better for 95 of 100 Anki users and for 67\% of Duolingo users.
+Against the constant (per user, smoothed), GBDT is better for 95 of 100 Anki users and for 67\% of Duolingo users.
 % FACTS: Anki, GBDT lower log loss for 95 of 100 users vs Constant (per user, smoothed), share 0.9500. Duolingo, GBDT lower log loss for 27712 of 41223 users, share 0.6722
-The per-user shares for v1 and FSRS-6 (optimised) against the constant are 63\% and 34\% on Duolingo.
+The shares for v1 (MCMC) and FSRS-6 (opt.) against the constant (per user, smoothed) are 63\% and 34\% on Duolingo.
 % FACTS: Duolingo, Ours (GPU port) lower log loss for 26119 of 41223 users vs Constant (per user, smoothed), share 0.6336. FSRS-6 (optimised) lower log loss for 13925 of 41223 users, share 0.3378
 The share is not the same as the mean difference: a model can win for most users and still lose on average, and the two columns of Table~\ref{tab:paired} should be read together.
 
@@ -75,25 +75,27 @@ The share is not the same as the mean difference: a model can win for most users
 Figures~\ref{fig:gaps-anki} and~\ref{fig:gaps-duolingo} split log loss by the gap since the previous review.
 Duolingo has only three populated bins, 1d, 2-3d and 4-14d, because its scored gaps reach at most 11 days.
 % FACTS: Duolingo scored gaps: at most 11 days, so only the 1d, 2-3d and 4-14d bins are populated
-On Duolingo, GBDT has the lowest log loss in every bin, and the smoothed constant is ahead of FSRS-6 (optimised) in every bin.
+On Duolingo, GBDT has the lowest log loss in every bin, and the constant (per user, smoothed) is ahead of FSRS-6 (opt.) in every bin.
 % PROTOCOL: gap bin label 4-14 days (EVALUATION.md 10.4). Not a result.
-The gap between the constant and FSRS-6 (optimised) is widest in the 4-14 day bin.
-On Anki, the constant is behind FSRS-6 (optimised) in every bin, and GBDT has the lowest log loss in all five bins.
+The gap between the constant (per user, smoothed) and FSRS-6 (opt.) is widest in the 4-14 day bin.
+On Anki, the constant (per user, smoothed) is behind FSRS-6 (opt.) in every bin, and GBDT has the lowest log loss in all five bins.
 % PROTOCOL: gap bin label 61d+ (EVALUATION.md 10.4). Not a result.
-GBDT's lead over FSRS-6 (optimised) is largest in the 61d+ bin.
+GBDT's lead over FSRS-6 (opt.) is largest in the 61d+ bin.
 % FACTS: Duolingo scored gaps: at most 11 days, so only the 1d, 2-3d and 4-14d bins are populated
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/gaps_anki}
+\Description[]{Log loss by gap bin on Anki for FSRS-6 (opt.), v1, v3, GBDT and the constant (per user, smoothed). GBDT is lowest in all five bins.}
 % PROTOCOL: gap bin labels 1d, 2-3d, 4-14d, 15-60d, 61d+ (EVALUATION.md 10.4).
-\caption{Log loss by gap bin on Anki, for FSRS-6 (optimised), v1, v3, GBDT and the smoothed per-user constant. Lower is better. Bins are 1d, 2-3d, 4-14d, 15-60d and 61d+ gaps; a bin is drawn only if it holds scored events.}
+\caption{Log loss by gap bin on Anki, for FSRS-6 (opt.), v1 (MCMC), v3 (MAP), GBDT and the constant (per user, smoothed). Lower is better. Bins are 1d, 2-3d, 4-14d, 15-60d and 61d+ gaps; a bin is drawn only if it holds scored events.}
 \label{fig:gaps-anki}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/gaps_duolingo}
+\Description[]{Log loss by gap bin on Duolingo for the same five series, in the 1d, 2-3d and 4-14d bins. GBDT is lowest in every bin.}
 \caption{Log loss by gap bin on Duolingo, for the same five series. Lower is better. Only the 1d, 2-3d and 4-14d bins hold scored events, so only those are drawn.}
 % FACTS: Duolingo scored gaps: at most 11 days, so only the 1d, 2-3d and 4-14d bins are populated
 \label{fig:gaps-duolingo}
@@ -103,25 +105,27 @@ GBDT's lead over FSRS-6 (optimised) is largest in the 61d+ bin.
 Figures~\ref{fig:rel-anki} and~\ref{fig:rel-duolingo} are reliability diagrams.
 Each point is one of ten equal-width bins of predicted recall, and it shows the observed recall in that bin against the mean prediction.
 Points on the dotted diagonal are perfectly calibrated.
-Of the non-constant models on Anki, GBDT has the lowest ECE (0.0049), then FSRS-6 (optimised) (0.0091) and v3 (0.0103); v1 is the least calibrated of these (0.0252). The GBDT difference from FSRS-6 (optimised) is not significant.
+Of the non-constant models on Anki, GBDT has the lowest ECE (0.0049), followed by FSRS-6 (opt.) at 0.0091 and v3 at 0.0103; v1 (MCMC) is the least calibrated of these, at 0.0252. The GBDT difference from FSRS-6 (opt.) is not significant.
 % FACTS: Anki ECE: GBDT 0.0049; FSRS-6 (optimised) 0.0091; Ours v3 0.0103; Ours (dynamic, learned lambda) 0.0252
-On Duolingo, the reliability curve of FSRS-6 (optimised) lies above the diagonal in every populated bin below 0.9, so it predicts too little recall there, and below the diagonal in the top bin, where it predicts too much.
+On Duolingo, the reliability curve of FSRS-6 (opt.) lies above the diagonal in every populated bin below 0.9, so it predicts too little recall there, and below the diagonal in the top bin, where it predicts too much.
 Its ECE is 0.0505.
 % FACTS: Duolingo, FSRS-6 (optimised) ECE 0.0505
-GBDT is closest to the diagonal (ECE 0.0006), and v1 is next among the non-constant models (0.0142). The smoothed constant (0.0079) is better calibrated than v1.
+GBDT is closest to the diagonal (ECE 0.0006), and v1 is next among the non-constant models (0.0142). The constant (per user, smoothed), at 0.0079, is better calibrated than v1 (MCMC).
 % FACTS: Duolingo, Ours (GPU port) ECE 0.0142; GBDT ECE 0.0006; Duolingo, Constant (per user, smoothed) ECE 0.0079
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/reliability_anki}
+\Description[]{Reliability diagram on Anki: observed against predicted recall in ten bins for the same five series, with a dotted perfect-calibration line.}
 % PROTOCOL: ten equal-width bins; reliability bins with fewer than 30 reviews are omitted (EVALUATION.md 6).
-\caption{Reliability diagram on Anki for FSRS-6 (optimised), v1, v3, GBDT and the smoothed per-user constant. Each point is one of ten equal-width bins of predicted recall, plotted at the mean prediction (x) and the observed recall (y). The dotted line is perfect calibration. Bins with fewer than 30 reviews are omitted.}
+\caption{Reliability diagram on Anki for FSRS-6 (opt.), v1 (MCMC), v3 (MAP), GBDT and the constant (per user, smoothed). Each point is one of ten equal-width bins of predicted recall, plotted at the mean prediction (x) and the observed recall (y). The dotted line is perfect calibration. Bins with fewer than 30 reviews are omitted.}
 \label{fig:rel-anki}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/reliability_duolingo}
+\Description[]{Reliability diagram on Duolingo for the same five series, with a dotted perfect-calibration line. FSRS-6 (opt.) lies above it at low predicted recall.}
 % PROTOCOL: ten equal-width bins; reliability bins with fewer than 30 reviews are omitted (EVALUATION.md 6).
 \caption{Reliability diagram on Duolingo for the same five series, with the same binning. The dotted line is perfect calibration. Bins with fewer than 30 reviews are omitted.}
 \label{fig:rel-duolingo}
@@ -131,11 +135,11 @@ GBDT is closest to the diagonal (ECE 0.0006), and v1 is next among the non-const
 Table~\ref{tab:seeds} repeats the cheap models on two more 100-user Anki samples (seeds 1 and 2).
 % FACTS: Anki robustness: seeds 0, 1, 2 (100 users each)
 The ranking of the models is the same on all three seeds, from GBDT to HLR.
-GBDT is better than FSRS-6 (optimised) on each seed, and each of the three intervals excludes zero, with per-seed differences of $-$0.0210, $-$0.0226 and $-$0.0210.
+GBDT is better than FSRS-6 (opt.) on each seed, and each of the three intervals excludes zero, with per-seed differences of $-$0.0210, $-$0.0226 and $-$0.0210.
 % FACTS: Anki seeds: seed 0 diff -0.0210, seed 1 -0.0226, seed 2 -0.0210; each CI excludes 0
-The mean log loss over the three seeds is 0.3271 for GBDT and 0.3486 for FSRS-6 (optimised).
+The mean log loss over the three seeds is 0.3271 for GBDT and 0.3486 for FSRS-6 (opt.).
 % FACTS: Anki seeds: GBDT mean 0.3271; FSRS-6 (optimised) mean 0.3486
-FSRS-6 (optimised) fell back to default weights for 4 users on seed 1 and 6 users on seed 2 (1 user on seed 0).
+FSRS-6 (opt.) fell back to default weights for 4 users on seed 1 and 6 users on seed 2 (1 user on seed 0).
 % FACTS: FSRS-6 (optimised) fallback, Anki seed 1: 4 users; seed 2: 6 users. FSRS-6 (optimised) fallback, Anki full run: 1 of 100 users
 The v1 model was not run on the extra seeds.
 \input{tables/seeds}
@@ -149,14 +153,13 @@ The two Duolingo values come from different samples, so this difference is not a
 On Anki, a refit on the training period gives log loss 0.3467 on 341,739 training rows, against 0.3584 on 95,400 test rows.
 The test period is also later in time, and early stopping chose 975 rounds on a holdout of the training data.
 % FACTS: GBDT train vs test on Anki: train log loss 0.3467 on 341739 rows; test 0.3584 on 95400 rows; early stopping chose 975 rounds
-On the 2,004 Duolingo users with no training rows and at least one scored event, GBDT has log loss 0.2329, against 0.2748 for FSRS-6 (optimised) and 0.2604 for v3.
+On the 2,004 Duolingo users with no training rows and at least one scored event, GBDT has log loss 0.2329, against 0.2748 for FSRS-6 (opt.) and 0.2604 for v3.
 These 2,004 users are a subset of the 64,254 users with zero TRAIN rows (Section 7).
 % FACTS: GBDT on Duolingo users with NO train rows (2004 users, 15918 scored reviews): GBDT 0.2329, v3 0.2604, v1 0.2647, FSRS-6 (optimised) 0.2748. Zero-train Duolingo users with scored test events: 2004 of the 64254 zero-train users
-On users with training rows the gap is about the same: GBDT 0.2592 and FSRS-6 (optimised) 0.3006.
+On users with training rows the gap is about the same: GBDT 0.2592 and FSRS-6 (opt.) 0.3006.
 So GBDT's lead does not come only from users it saw in training.
 % FACTS: GBDT on Duolingo users with NO train rows (2004 users, 15918 scored reviews): GBDT 0.2329, v3 0.2604, v1 0.2647, FSRS-6 (optimised) 0.2748. GBDT on Duolingo users with train data: GBDT 0.2592, v1 0.2683, v3 0.2833, FSRS-6 (optimised) 0.3006
-Finally, GBDT is better than FSRS-6 (optimised) for 82 of 100 Anki users and for 78\% of Duolingo users, and on Duolingo its ECE is the lowest of all models. On Anki its calibration advantage over FSRS-6 (optimised) is not significant.
-% FACTS: Anki, GBDT lower log loss for 82 of 100 users vs FSRS-6 (optimised), share 0.8200. Duolingo, GBDT lower log loss for 32151 of 41223 users, share 0.7799
+Finally, on Duolingo its ECE is the lowest of all models, and on Anki its calibration advantage over FSRS-6 (opt.) is not significant.
 These checks do not rule out some selection optimism, because about 54 GBDT variants per dataset were compared on validation.
 % FACTS: GBDT variants per dataset in total: 54 = 38 (first sweep) + 16 (after the fix)
 The validation and test results agree closely, which suggests that the optimism is small.
@@ -164,7 +167,7 @@ The validation and test results agree closely, which suggests that the optimism 
 
 \subsection{Comparison on the srs-benchmark}
 The srs-benchmark \cite{srsbenchmark} scores each user on five time-ordered test folds and publishes per-user results for its models.
-We run the same split and metrics on the first 1000 users (ids 1--1000), so that our GBDT can be set beside those results.
+We run the same split and metrics on the first 1,000 users (ids 1--1,000), so that our GBDT can be set beside those results.
 % FACTS: srs-benchmark (results/srsb_1000): Eval users 1000 (ids 1-1000)
 The pooled GBDT is trained on 450 other users, with 50 more held out for early stopping, so no evaluation user is in its training data.
 % FACTS: srs-benchmark (results/srsb_1000): Train users 450 fit + 50 holdout
@@ -172,9 +175,9 @@ It uses the feature groups and frozen settings of our GBDT (15 leaves, learning 
 % FACTS: GBDT frozen settings: 15 leaves; learning rate 0.02
 The training set has 17,060,060 rows.
 % FACTS: srs-benchmark (results/srsb_1000): Fit rows: 17,060,060
-All 1000 users have the benchmark's test-row count, so each user is scored on the same rows as in the published results.
+All 1,000 users have the benchmark's test-row count, so each user is scored on the same rows as in the published results.
 % FACTS: srs-benchmark (results/srsb_1000): Size match vs FSRS-6-short: 1000 of 1000 users have the published test-row count
-Boosting reached the 2000-round cap before early stopping could trigger, so this GBDT is a lower bound on what the pooled model can reach.
+Boosting reached the 2,000-round cap before early stopping could trigger, so this GBDT is a lower bound on what the pooled model can reach.
 % FACTS: srs-benchmark (results/srsb_1000): best_iter 2000, equal to the 2000-round cap, so early stopping did not trigger
 
 \input{tables/srsb}
@@ -190,7 +193,7 @@ It ties RWKV-Curve: the size-weighted difference is +0.0006 with 99\% CI [$-$0.0
 % FACTS: srs-benchmark (results/srsb_1000): GBDT - RWKV-Curve: diff +0.0006, 99% CI [-0.0044, +0.0055], CI includes 0
 Unweighted, GBDT's log loss of 0.3211 is also below RWKV-Curve's 0.3302, although the size-weighted difference is not significant.
 % FACTS: srs-benchmark (results/srsb_1000): GBDT (ours) LogLoss unweighted 0.3211; RWKV-Curve LogLoss unweighted 0.3302
-It is behind RWKV-Instant, by +0.0320 with 99\% CI [+0.0287, +0.0358].
+It trails RWKV-Instant: the size-weighted difference is +0.0320 with 99\% CI [+0.0287, +0.0358].
 % FACTS: srs-benchmark (results/srsb_1000): GBDT - RWKV-Instant: diff +0.0320, 99% CI [+0.0287, +0.0358]
 RWKV-Instant has an unweighted log loss of 0.2860.
 % FACTS: srs-benchmark (results/srsb_1000): RWKV-Instant LogLoss unweighted 0.2860

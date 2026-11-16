@@ -6,10 +6,10 @@ Settings are chosen on validation data only, as described at the end of this sec
 \subsection{FSRS-6}
 We use py-fsrs, the reference FSRS-6 implementation \cite{ye2022stochastic, srsbenchmark}.
 The default variant uses its default weights for every user.
-The optimised variant fits the weights for each user on that user's TRAIN reviews.
+The optimised variant, FSRS-6 (opt.), fits the weights for each user on that user's TRAIN reviews.
 py-fsrs limits its optimiser to the first 64 reviews of each card, and it returns the default weights for users with fewer than 512 informative training reviews.
 % FACTS: Protocol, data and disclosures: py-fsrs optimiser limits: first 64 reviews per card; default weights below 512 informative train reviews
-Most Duolingo users keep the default weights, so on Duolingo the optimised variant is close to the default one.
+Most Duolingo users keep the default weights, so on Duolingo FSRS-6 (opt.) is close to FSRS-6 (def.).
 % FACTS: Protocol, data and disclosures: FSRS-6 (optimised) fallback to default weights, Duolingo: 115110 of 115222 users
 Prediction is the retrievability that py-fsrs gives before each event, and the card state is updated with the event's own rating afterwards.
 
@@ -47,9 +47,9 @@ Predictions average over a subset of the posterior draws.
 $\lambda$ has not converged on either dataset: the split R-hat is 2.44 on Anki and 2.48 on Duolingo, with effective sample sizes of 3.05 and 3.00.
 % FACTS: v1 lambda, Anki: split R-hat 2.44, ESS 3.05. v1 lambda, Duolingo (GPU port): split R-hat 2.48, ESS 3.00
 The predictions are stable under two checks, but $\lambda$ must not be read as an estimate.
-On Anki, the predictions of the v1 variant with a kappa term correlate at 0.9923 with those of v1, over 95400 scored events.
+On Anki, the predictions of the v1 variant with a kappa term correlate at 0.9923 with those of v1, over 95,400 scored events.
 % FACTS: Protocol, data and disclosures: v1 stability on Anki: correlation of ours and ours_kappa predictions 0.9923 over 95400 events
-On Duolingo, an 8000-sweep run gives test log loss 0.2679, against 0.2682 at 2000 sweeps.
+On Duolingo, an 8,000-sweep run gives test log loss 0.2679, against 0.2682 at 2,000 sweeps.
 % FACTS: Protocol, data and disclosures: v1 stability on Duolingo: 8000-sweep test log loss 0.2679 against 0.2682 at 2000 sweeps
 So the v1 scores on both datasets are provisional (Section 7).
 
@@ -57,9 +57,9 @@ So the v1 scores on both datasets are provisional (Section 7).
 v2 uses the functional forms of FSRS-6 for forgetting and for stability updates.
 Its weights are shared across users, and a set of user-level effects shifts them for each user.
 The user effects are partially pooled towards the shared weights.
-We fit v2 by maximum a posteriori (MAP) estimation with torch, so it gives point estimates and not posterior samples.
+We fit v2 by MAP estimation with torch, so it gives point estimates and not posterior samples.
 v3 adds three changes to v2.
-(1) An L2 penalty on the scale of the user effects, which controls the overfitting of the learned user-effect scale on Duolingo.
+(1) An L2 penalty on the scale of the user effects, which limits overfitting on Duolingo.
 (2) A lagged-outcome term, so the previous review's outcome also enters the prediction.
 (3) A per-card logit effect with a fixed scale.
 Validation did not support this card effect, but we kept it in the frozen model; without it, log loss changes by less than 0.0001.
@@ -86,7 +86,7 @@ In the all-groups configuration, the lexeme feature is worth about 0.001 in Duol
 GBDT is trained on all non-first rows, including same-day rows.
 Its frozen settings are 15 leaves, a learning rate of 0.02, and a smoothing pseudo-count of 3 for the user and lexeme rates.
 % FACTS: Protocol, data and disclosures: GBDT frozen settings: 15 leaves; learning rate 0.02; smoothing pseudo-count m = 3 for user and lexeme rates
-The other frozen settings are a minimum of 100 rows per leaf, a feature fraction of 0.8, an L2 penalty of 1.0, a holdout fraction of 0.15, at most 2000 rounds, and early-stopping patience of 50.
+The other frozen settings are a minimum of 100 rows per leaf, a feature fraction of 0.8, an L2 penalty of 1.0, a holdout fraction of 0.15, at most 2,000 rounds, and early-stopping patience of 50.
 % FACTS: Protocol, data and disclosures: GBDT other frozen settings (Duolingo run): min_data_in_leaf 100; feature_fraction 0.8; lambda_l2 1.0; holdout fraction 0.15; max rounds 2000; patience 50
 GBDT does not use the counts of exposures before the log window, or the Anki state column, because no other model sees them.
 
@@ -96,11 +96,11 @@ The last 20\% of TRAIN days are validation, and candidates are fitted on the fir
 % FACTS: Protocol, data and disclosures: validation split: last 20 percent of TRAIN days
 % PROTOCOL: validation split, EVALUATION.md 11.3. Not a result.
 Validation events are scored with the same rule as the test events.
-Anki validation uses all 100 users, with 74092 scored events.
+Anki validation uses all 100 users, with 74,092 scored events.
 % FACTS: Protocol, data and disclosures: validation scored events: Anki 74092
-Duolingo validation uses a development sample of 5000 users, with 26084 scored events.
+Duolingo validation uses a development sample of 5,000 users, with 26,084 scored events.
 % FACTS: Protocol, data and disclosures: Duolingo development sample for validation: 5000 users; validation scored events: Duolingo 26084
-The rule for choosing a variant was fixed before its test run: the lowest mean validation log loss over the two datasets, among variants whose validation interval does not show a loss against FSRS-6 (optimised) on either dataset.
+The rule for choosing a variant was fixed before its test run: the lowest mean validation log loss over the two datasets, among variants whose validation interval does not show a loss against FSRS-6 (opt.) on either dataset.
 No test event is read while a candidate is chosen.
 The test set was looked at more than once, which we disclose in Section 7.
 We tried 9 v2 variants, 23 v3 variants, and 38 GBDT variants per dataset in a first sweep, then 16 per dataset on the fixed code.

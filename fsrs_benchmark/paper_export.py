@@ -33,8 +33,8 @@ FACT_DIFFS = {"anki": [("gbdt", "fsrs_opt"), ("ours", "fsrs_opt")],
 FACT_CONSTANTS = ["const_global", "const_user", "const_user_smooth"]
 # Models compared with the smoothed constant (the floor), per dataset. v3 is the same key on both.
 SMOOTH_REF = "const_user_smooth"
-FACT_SMOOTH = {"anki": ["ours", "gbdt", "fsrs_opt", "ours_v3"],
-               "duolingo": ["ours_gpu", "gbdt", "fsrs_opt", "ours_v3"]}
+FACT_SMOOTH = {"anki": ["ours", "gbdt", "fsrs_opt", "ours_v2", "ours_v3"],
+               "duolingo": ["ours_gpu", "gbdt", "fsrs_opt", "ours_v2", "ours_v3"]}
 DATASET_TITLE = {"anki": "Anki", "duolingo": "Duolingo"}
 OVERALL_COLUMNS = ["model", "n", "recall", "log_loss", "brier", "auc", "ece", "rmse_bins", "mean_bias"]
 GAP_COLUMNS = ["model", "bin", "n", "recall", "log_loss", "brier", "auc", "ece", "mean_bias"]
