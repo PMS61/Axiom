@@ -246,7 +246,9 @@ def user_metrics(y: np.ndarray, p: np.ndarray, meta: pd.DataFrame) -> dict:
     p_cal = lowess(y, p, it=0, delta=0.01 * (max(p) - min(p)), return_sorted=False)
     try:
         auc = round(roc_auc_score(y_true=y, y_score=p), 6)
-    except ValueError:
+        if not np.isfinite(auc):
+            auc = None
+    except ValueError:                       # one class only: srs-benchmark writes null
         auc = None
     return {
         "RMSE": round(float(root_mean_squared_error(y_true=y, y_pred=p)), 6),

@@ -89,7 +89,7 @@ Goal: every number the paper needs exists in a results file, including the const
   mean and spread of each model's log loss. v1 is not re-run.
   Done when: the runs finish, are reported, and are added to FACTS.md.
 
-### Phase 2: srs-benchmark comparison — IN PROGRESS (2.1, 2.2 done; 2.3 running on Kaggle)
+### Phase 2: srs-benchmark comparison — DONE (2026-11-17, report: reports/phase-2.md)
 Goal: compare the GBDT directly with RWKV, LSTM, GRU and FSRS-6 on the public srs-benchmark
 (about 10k Anki users).
 - **2.1 Scoping (no heavy runs).** Clone `open-spaced-repetition/srs-benchmark` into
@@ -113,7 +113,7 @@ Goal: compare the GBDT directly with RWKV, LSTM, GRU and FSRS-6 on the public sr
 - **2.3 Kaggle run.** Set A is 500 users and set B is 1,000 users, all disjoint. Bring the jsonl back,
   run compare.py, and add the numbers to FACTS.md (a new srs-benchmark section).
 
-### Phase 3: Write the paper — IN PROGRESS (3.1, 3.2 done; 3.3 in review)
+### Phase 3: Write the paper — IN PROGRESS (3.1-3.4 done; the srs-benchmark subsection waits for 2.3)
 EDM template, LaTeX in `paper/`. All numbers come from FACTS.md. The submission is
 anonymous, double-blind.
 - 3.1 Template, skeleton, bib and the build script.
@@ -124,3 +124,20 @@ anonymous, double-blind.
 ### Phase 4: Polish — TODO
 Page limit, an anonymity check, a check that every number traces back to FACTS.md,
 a proofread, and a de-anonymised arXiv version.
+- **4.1 Automated checks.** Write `paper/scripts/check_paper.py`.
+  - It extracts every number from `sections/*.tex`, the abstract and the generated tables, and
+    checks that each one either appears in FACTS.md (after rounding) or sits on a line tagged
+    `% PROTOCOL`.
+  - It flags any number line that has no `% FACTS:` or `% PROTOCOL` comment.
+  - It greps for anonymity leaks (names from blackbook/ or memory, VJTI, Mumbai, FYP, Kaggle,
+    the amalverma username, Axiom, PMS61) in the .tex files AND in the PDF text.
+  - It reports the page count, splitting body pages from references.
+  - It exits non-zero on any problem. Add tests.
+
+  Done when it runs clean on the current paper, or every remaining hit is a reviewed exception
+  recorded in the script.
+- **4.2 Proofread pass.** Do one careful read of the rendered PDF for grammar, consistency
+  (model names, number formats, tense) and repetition. Make only wording changes; no numbers change.
+- **4.3 arXiv / camera-ready version.** Write `paper/main_camera.tex`, which reuses the sections with a
+  real author block. Leave the professor's name and the author order as placeholders until the
+  user gives them. Add an acknowledgements placeholder. Build both PDFs.

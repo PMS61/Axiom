@@ -1,0 +1,13 @@
+model,file,n_users,LogLoss_unweighted,LogLoss_weighted,RMSE_bins_unweighted,RMSE_bins_weighted,AUC_unweighted,AUC_weighted
+GBDT (ours),ours,1000,0.3211,0.3148,0.0494,0.0403,0.778,0.7666
+RWKV-Instant,RWKV-P,1000,0.286,0.2828,0.0253,0.0157,0.8319,0.8265
+RWKV-Curve,RWKV,1000,0.3302,0.3143,0.0557,0.0365,0.7665,0.7712
+GRU,GRU-short-secs-equalize_test_with_non_secs,1000,0.3441,0.3271,0.0554,0.0377,0.7298,0.7337
+LSTM,LSTM-short-secs-duration-equalize_test_with_non_secs,1000,0.3445,0.3271,0.0542,0.0374,0.7311,0.7358
+MOVING-AVG,MOVING-AVG,1000,0.3462,0.3372,0.0593,0.0543,0.7007,0.6968
+FSRS-7 recency,FSRS-7-short-secs-recency-equalize_test_with_non_secs,1000,0.3485,0.3308,0.0597,0.0428,0.7208,0.7243
+Logistic Regression,LogisticRegression-short-secs-recency-equalize_test_with_non_secs,1000,0.3502,0.3341,0.061,0.0454,0.709,0.7104
+FSRS-6,FSRS-6-short,1000,0.358,0.3383,0.0661,0.0487,0.6994,0.7061
+DASH,DASH,1000,0.3792,0.3571,0.0846,0.0656,0.6316,0.6407
+AVG,AVG,1000,0.4055,0.3802,0.1044,0.0909,0.5007,0.5053
+HLR,HLR,1000,0.4877,0.4479,0.1307,0.1134,0.6352,0.6299

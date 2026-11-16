@@ -208,3 +208,95 @@ def test_compare_pairs_on_users_with_matching_sizes(tmp_path):
     assert diff["lo"] <= diff["mean"] <= diff["hi"]
     sub = C.compare(ours, rd, users={1, 2}, ci=0.99, n_boot=50, seed=0)
     assert sub["paired_users"] == 2
+
+
+# ---- unequal user sets (task 2.3 regression): a published file missing some users must not crash --------
+
+def _all_model_files(rd, users_by_file, sizes, ll=0.3):
+    for name, (fname, _) in C.README_WITHOUT_SAME_DAY.items():
+        us = users_by_file.get(fname, sorted(sizes))
+        _write_jsonl(rd / f"{fname}.jsonl", [(u, sizes[u], ll) for u in us])
+
+
+def test_compare_handles_unequal_user_sets(tmp_path):
+    rd = tmp_path / "result"
+    rd.mkdir()
+    sizes = {1: 5, 2: 7, 3: 9, 4: 11}
+    ours = tmp_path / "ours.jsonl"
+    _write_jsonl(ours, [(u, sizes[u], 0.25) for u in sizes])
+    # FSRS-6 lacks user 4; GRU lacks user 1; AVG lacks user 3 and has user 4 with a different size
+    _all_model_files(rd, {"FSRS-6-short": [1, 2, 3], "GRU-short-secs-equalize_test_with_non_secs": [2, 3, 4],
+                          "AVG": [1, 2]}, sizes)
+    _write_jsonl(rd / "AVG.jsonl", [(1, 5, 0.4), (2, 7, 0.4), (4, 99, 0.4)])
+    res = C.compare(ours, rd, n_boot=100, seed=0)          # must not raise
+    per = res["per_model"]
+    assert per["FSRS-6"]["n_users"] == 3 and per["FSRS-6"]["n_ours_only"] == 1
+    assert per["GRU"]["n_users"] == 3 and per["GRU"]["n_ours_only"] == 1
+    assert per["AVG"]["n_users"] == 2                       # user 4 has a different size, so it is not paired
+    assert res["paired_users"] == 1                         # main table: users in ALL models = {2}
+    main = {r["model"]: r for r in res["table"]}
+    assert main["GBDT (ours)"]["n_users"] == 1 and main["FSRS-6"]["n_users"] == 1
+    assert main["GBDT (ours)"]["LogLoss_u"] == pytest.approx(0.25)
+    assert set(res["bootstrap"]) == {f"GBDT - {m}" for m in C.BOOTSTRAP_BASELINES}
+    assert res["size_match"]["compared"] == 3 and res["size_match"]["matching"] == 3   # FSRS-6 has users 1-3
+
+
+def test_compare_refuses_when_no_common_users(tmp_path):
+    rd = tmp_path / "result"
+    rd.mkdir()
+    ours = tmp_path / "ours.jsonl"
+    _write_jsonl(ours, [(1, 5, 0.25)])
+    _all_model_files(rd, {}, {1: 9})                       # sizes differ from ours everywhere
+    with pytest.raises(ValueError, match="no users are common"):
+        C.compare(ours, rd, n_boot=10, seed=0)
+
+
+def test_compare_handles_missing_auc(tmp_path):
+    """Users with one class have AUC null: they drop out of the AUC mean only, with aligned sizes."""
+    rd = tmp_path / "result"
+    rd.mkdir()
+    sizes = {1: 1, 2: 3}
+    _all_model_files(rd, {}, sizes)
+    ours = tmp_path / "ours.jsonl"
+    lines = [{"metrics": {"LogLoss": 0.25, "RMSE(bins)": 0.1, "AUC": None if u == 1 else 0.7}, "user": u,
+              "size": sizes[u]} for u in (1, 2)]
+    ours.write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+    res = C.compare(ours, rd, n_boot=50, seed=0)
+    gbdt = res["table"][0]
+    assert gbdt["AUC_n"] == 1
+    assert gbdt["AUC_w"] == pytest.approx(0.7)
+
+
+# ---- paper writer (task 2.3): srsb.csv, srsb_paired.csv and the FACTS block -------------------------
+
+def test_export_srsb_writes_tables_and_facts(tmp_path):
+    from fsrs_benchmark import paper_export as PE
+
+    rd = tmp_path / "result"
+    rd.mkdir()
+    _all_model_files(rd, {}, {1: 1, 2: 3})
+    run = tmp_path / "srsb"
+    run.mkdir()
+    _write_jsonl(run / "GBDT-short.jsonl", [(1, 1, 0.25), (2, 3, 0.25)])
+    (run / "run_info.json").write_text(json.dumps(dict(train_users=450, holdout_users=50, fit_rows=17060060,
+                                                      best_iter=2000, eval_users=2)))
+    out = tmp_path / "paper" / "data"
+    facts = PE.export_srsb(run, out, n_boot=50, ci=0.99, seed=0, result_dir=rd)
+    import pandas as pd
+    main = pd.read_csv(out / "srsb.csv")
+    assert list(main["model"])[0] == "GBDT (ours)" and len(main) == 12
+    assert {"LogLoss_unweighted", "LogLoss_weighted", "AUC_unweighted", "AUC_weighted"} <= set(main.columns)
+    paired = pd.read_csv(out / "srsb_paired.csv")
+    assert set(paired["comparison"]) == {f"GBDT - {m}" for m in C.BOOTSTRAP_BASELINES}
+    assert (paired["ci_level"] == 0.99).all()
+    text = facts.read_text()
+    block = text.split("<!-- facts:srsb:start -->")[1].split("<!-- facts:srsb:end -->")[0]
+    assert "17,060,060" in block and "best_iter: 2000" in block and "450 fit + 50 holdout" in block
+    assert "Size match vs FSRS-6-short" in block and "GBDT - FSRS-6" in block
+    # every line of the block ends with its source file
+    for line in block.splitlines():
+        if line.startswith("- "):
+            assert "source:" in line, line
+    # re-running replaces the block instead of appending
+    PE.export_srsb(run, out, n_boot=50, ci=0.99, seed=0, result_dir=rd)
+    assert facts.read_text().count("<!-- facts:srsb:start -->") == 1

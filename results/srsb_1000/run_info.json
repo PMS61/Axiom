@@ -1,0 +1,6 @@
+{"source": "Kaggle notebook amalverma27/notebook8f676349c8 Version 2 (2026-11-15), dataset axiom-paper-code-srsb (commit 6876e70)",
+ "srs_benchmark_commit": "4ddb9fd9d6d7888ea52fc721d5ab0e6dd7a5e877",
+ "protocol": "--algo FSRS-6 --short equivalent; TimeSeriesSplit(5) test folds",
+ "train_users_requested": "9001-9500", "train_users": 450, "holdout_users": 50, "fit_rows": 17060060,
+ "best_iter": 2000, "best_iter_note": "equals the max boosting rounds, so early stopping did not trigger",
+ "eval_users": 1000, "max_train_rows": 20000000}
