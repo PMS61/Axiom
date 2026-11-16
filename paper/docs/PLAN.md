@@ -121,7 +121,7 @@ anonymous, double-blind.
 - 3.3 Introduction, related work and methods.
 - 3.4 Results, discussion, limitations and abstract.
 
-### Phase 4: Polish — IN PROGRESS (4.1 done)
+### Phase 4: Polish — DONE (2026-11-17, report: reports/FINAL.md, proofread: reports/proofread.md)
 Page limit, an anonymity check, a check that every number traces back to FACTS.md,
 a proofread, and a de-anonymised arXiv version.
 - **4.1 Automated checks.** Write `paper/scripts/check_paper.py`.

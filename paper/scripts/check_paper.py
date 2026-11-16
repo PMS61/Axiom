@@ -34,6 +34,10 @@ DEFAULT_PDF = PAPER_DIR / "build" / "main.pdf"
 ALLOW_NUMBERS: dict[str, str] = {}
 # Anonymity exceptions: term exactly as listed in ANON_TERMS -> reason.
 ALLOW_ANON: dict[str, str] = {}
+# Source files skipped by the anonymity check. main_camera.tex is the camera-ready version: it carries
+# the real author block (names, VJTI, Mumbai), which the double-blind main.tex must not contain. It is
+# never submitted anonymously, so only main.tex and sections/ are checked for anonymity.
+ANON_SKIP_SOURCES = {"main_camera.tex"}
 
 # ---- Anonymity -----------------------------------------------------------------------------
 ANON_TERMS = [
@@ -335,6 +339,8 @@ def run_checks(paper_dir: Path, pdf: Path | None) -> tuple[list[str], list[str]]
     sources = set(paper_dir.glob("*.tex")) | set(paper_dir.glob("*.bib"))
     sources |= set((paper_dir / "sections").glob("*.tex")) | set((paper_dir / "tables").glob("*.tex"))
     for f in sorted(sources):
+        if f.name in ANON_SKIP_SOURCES:
+            continue
         problems += anon_hits(f.read_text(encoding="utf-8"), rel(f))
 
     if pdf is None:

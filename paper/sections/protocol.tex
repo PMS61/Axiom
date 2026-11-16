@@ -3,7 +3,7 @@
 % PROTOCOL: dataset name anki-revlogs-10k (not a result).
 The Anki data is the public anki-revlogs-10k collection \cite{ankirevlogs10k}.
 % PROTOCOL: EVALUATION.md 2 (user draw, card cap 1000). Not a result.
-We draw 100 users at random and keep at most 1000 cards per user, chosen at random.
+We draw 100 users at random and keep at most 1,000 cards per user, chosen at random.
 Each card keeps its full history.
 We repeat the cheap models on two more samples of 100 users, with seeds 1 and 2, and report the spread.
 % FACTS: Anki robustness: seeds 0, 1, 2 (100 users each)
@@ -22,7 +22,7 @@ Each Duolingo row is one practice session of one lexeme by one user.
 A card is a (user, lexeme) pair, and rows are sorted by timestamp, then by lexeme id, then by file order.
 % PROTOCOL: label threshold, EVALUATION.md 10.1. Not a result.
 The recorded recall probability $p_{\mathrm{recall}}$ is thresholded: a row is recalled ($y=1$) when $p_{\mathrm{recall}} \ge 0.5$.
-So $y$ is a threshold of a predicted probability, not an observed yes or no answer, and the metrics measure agreement with that threshold.
+So $y$ is a threshold of a recorded probability, not an observed yes or no answer, and the metrics measure agreement with that threshold.
 FSRS sees only two grades on this data, Good for a recalled row and Again otherwise.
 A card's first row starts its replay and is never scored, because its earlier history is unknown.
 The scored gaps reach at most 11 days, so only the 1d, 2-3d and 4-14d gap bins are populated.
@@ -40,7 +40,7 @@ It may not use the event itself or any later event.
 A TEST event is scored when it is not a card's first review and its gap is at least one day.
 Same-day reviews still enter the history of later predictions, but they are not scored.
 This follows the inter-day convention of srs-benchmark \cite{srsbenchmark}.
-On Anki there are 95400 scored events.
+On Anki there are 95,400 scored events.
 % FACTS: Anki, Scored events: 95400
 % PROTOCOL: scoring rule, EVALUATION.md 4. Not a result.
 
@@ -57,7 +57,7 @@ Log loss is the main metric, and every other metric is reported with it.
 \subsection{Paired differences and user-clustered bootstrap}
 For a model $m$ and reference $r$, the paired difference is $\mathrm{metric}(m) - \mathrm{metric}(r)$.
 % PROTOCOL: 1000 bootstrap resamples, seed 0 (EVALUATION.md 6). Not a result.
-We resample users with replacement, 1000 times with seed 0.
+We resample users with replacement, 1,000 times with seed 0.
 Each resample keeps all events of the drawn users, and both models use the same users.
 % PROTOCOL: EVALUATION.md 6 (1000 resamples, seed 0, 95% CI). Not a result.
 The 95\% interval is the 2.5th and 97.5th percentiles of the bootstrap differences.
@@ -66,9 +66,9 @@ Resampling events would give intervals that are too narrow.
 
 \subsection{Floors}
 We fit three constant floors on TRAIN rows only, using rows that are not a card's first review and have a gap of at least one day.
-The global floor is the mean recall rate over all such rows.
-The per-user floor is each user's own mean, and a user with no such rows gets the global rate.
-The smoothed per-user floor shrinks each user's rate towards the global rate with a fixed pseudo-count $m$:
+The constant (global) is the mean recall rate over all such rows.
+The constant (per user) is each user's own mean, and a user with no such rows gets the global rate.
+The constant (per user, smoothed) shrinks each user's rate towards the global rate with a fixed pseudo-count $m$:
 \begin{equation}
   \hat p_u = \frac{k_u + m\,\bar p}{n_u + m},
 \end{equation}

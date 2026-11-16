@@ -11,6 +11,10 @@
 \usepackage{graphicx}
 \usepackage{url}
 
+% Camera-ready switch. Off here (anonymous submission); main_camera.tex turns it on.
+\newif\ifcamera
+\camerafalse
+
 \title{Beating the Floor: A Leakage-Audited Benchmark of Recall Prediction for Spaced Repetition}
 
 % Double-blind: no names, affiliations or identifying URLs.
@@ -31,15 +35,15 @@ Recall predictors for spaced repetition are usually compared with each other, ra
 % PROTOCOL: 100 Anki users and all Duolingo users (EVALUATION.md 2). Not a result.
 We compare them with constant-recall floors on two datasets: 100 Anki users and all Duolingo users.
 We use one-step-ahead prediction, user-clustered bootstrap intervals and a same-session leakage audit.
-On Duolingo, a smoothed per-user constant reaches a log loss of 0.2723.
+On Duolingo, a constant (per user, smoothed) reaches a log loss of 0.2723.
 % FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723
-This beats FSRS-6 (optimised), at 0.3003, and half-life regression, at 0.4181.
+This beats FSRS-6 (opt.), at 0.3003, and half-life regression (HLR), at 0.4181.
 % FACTS: Duolingo, FSRS-6 (optimised) log loss 0.3003; HLR (Settles & Meeder) log loss 0.4181
-FSRS-6 (optimised) keeps default weights for 115,110 of 115,222 Duolingo users.
+FSRS-6 (opt.) keeps default weights for 115,110 of 115,222 Duolingo users.
 % FACTS: Duolingo, FSRS-6 (optimised) fallback to default weights: 115110 of 115222 users
-On Duolingo, only GBDT and a Bayesian model fitted by Markov chain Monte Carlo (MCMC) beat the floor, the latter narrowly.
+On Duolingo, only gradient-boosted decision trees (GBDT) and Bayesian model v1 (Markov chain Monte Carlo, MCMC) beat the floor, v1 narrowly.
 GBDT uses FSRS-state features and the learner's own history.
-It beats FSRS-6 (optimised) on both datasets: on Anki the log-loss difference is $-$0.0210, with 95\% CI [$-$0.0284, $-$0.0144], and on Duolingo it is $-$0.0415.
+It beats FSRS-6 (opt.) on both datasets: on Anki the log-loss difference is $-$0.0210, with 95\% CI [$-$0.0284, $-$0.0144], and on Duolingo it is $-$0.0415.
 % FACTS: Anki, GBDT minus FSRS-6 (optimised), log loss: diff -0.0210, 95% CI [-0.0284, -0.0144]. Duolingo, GBDT minus FSRS-6 (optimised), log loss: diff -0.0415
 On srs-benchmark's public Anki protocol, GBDT beats FSRS-6 but trails RWKV-Instant.
 Its Anki calibration gain over FSRS-6 is not significant.

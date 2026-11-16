@@ -28,6 +28,9 @@ sys.path.insert(0, str(REPO))
 from fsrs_benchmark import metrics, report  # noqa: E402
 from make_tables import SHORT, V1_KEY  # noqa: E402
 
+# Legend names: the prose names of the constants (table row labels keep SHORT).
+LEGEND = {**SHORT, "const_user_smooth": "Constant (per user, smoothed)"}
+
 DATASETS = ("anki", "duolingo")
 RUN_DIR = {"anki": REPO / "results" / "paper_anki", "duolingo": REPO / "results" / "paper_duolingo"}
 GAP_BINS = ["1d", "2-3d", "4-14d", "15-60d", "61d+"]
@@ -73,7 +76,7 @@ def plot_gaps(data_dir, dataset, out_path):
         sub = df[df["model"] == key].set_index("bin").reindex(bins)
         st = STYLE[style_key]
         ax.plot(x, sub["log_loss"].to_numpy(float), color=st["color"], marker=st["marker"],
-                linestyle=st["ls"], markersize=3.5, linewidth=1.1, label=SHORT[key])
+                linestyle=st["ls"], markersize=3.5, linewidth=1.1, label=LEGEND[key])
     ax.set_xticks(x)
     ax.set_xticklabels(bins)
     ax.set_xlabel("Gap since previous review")
@@ -117,7 +120,7 @@ def plot_reliability(table, dataset, out_path):
         sub = table[(table["model"] == key) & (table["n"] >= MIN_BIN_N)]
         st = STYLE[style_key]
         ax.plot(sub["mean_p"], sub["mean_y"], color=st["color"], marker=st["marker"],
-                linestyle=st["ls"], markersize=3.5, linewidth=1.0, label=SHORT[key])
+                linestyle=st["ls"], markersize=3.5, linewidth=1.0, label=LEGEND[key])
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.set_xlabel("Predicted recall (bin mean)")
