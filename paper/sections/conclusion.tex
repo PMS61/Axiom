@@ -1,6 +1,8 @@
 \section{Conclusion}
 A constant recall rate is a strong floor on Duolingo, and most of the models we tested do not beat it there.
-GBDT, a tree model with FSRS-state features and the learner's own history, beats FSRS-6 (optimised) on both datasets in log loss, and its Brier score is lower on both.
+GBDT, a tree model with FSRS-state features and the learner's own history, beats FSRS-6 (optimised) in log loss on our two datasets (Anki and Duolingo, one split each), and its Brier score is lower on both.
+On the srs-benchmark's public Anki protocol with 1000 users, GBDT beats FSRS-6 and GRU, ties RWKV-Curve, and trails RWKV-Instant, which uses extra features (Section 5).
+% FACTS: srs-benchmark (results/srsb_1000): Eval users 1000; GBDT - FSRS-6: diff -0.0235; GBDT - GRU: diff -0.0123; GBDT - RWKV-Curve: diff +0.0006, CI includes 0; GBDT - RWKV-Instant: diff +0.0320
 On Duolingo, FSRS-6 (optimised) keeps default weights for almost every user, so it is close to the default model. The Bayesian model v1 is the second best model on Duolingo, but its decay parameter has not converged, and it does not beat FSRS-6 on Anki.
 Rankings change between datasets, so a benchmark needs both datasets and a floor.
 The same-session leak in the Duolingo traces is a pitfall that any session-based benchmark should check for.

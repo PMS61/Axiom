@@ -1,24 +1,38 @@
 \section{Limitations and Disclosures}
 We list every disclosure about how the results were produced.
 \begin{itemize}
+% PROTOCOL: 80th percentile split cutoff and bootstrap seed 0 (EVALUATION.md 4, 6). Not a result.
 \item \textbf{One split and one bootstrap seed.} All headline results use one split per user (the 80th percentile cutoff) and one bootstrap seed (0). The intervals reflect user sampling only, not the choice of split or the fitting of the models. Only the cheap models were repeated on two more Anki samples, and the Duolingo results come from one run.
 \item \textbf{Anki sample size.} Anki has 100 users and 95,400 scored events, so its intervals are wide. The Anki calibration difference between GBDT and FSRS-6 (optimised) is not significant. The Anki test checks the future of the same 100 users, not new users.
+% FACTS: Anki, Scored events: 95400; Anki robustness: 100 users each (seeds 0, 1, 2)
 \item \textbf{(a) The test set was looked at twice.} v2 was tested in one round. v3 and GBDT were tested together in a second round, after GBDT was frozen on validation.
 \item \textbf{(b) The v2 selection rule was revised.} The first rule chose a variant that wins only on Duolingo. The rule was then changed, after the validation intervals had been read, to prefer variants that win on both datasets. The chosen v2 has a slightly worse Duolingo validation log loss than the variants it was compared with, and its Anki result is level with FSRS-6 (optimised), not significantly better.
 \item \textbf{(c) Number of variants.} We tried 9 v2 variants, 23 v3 variants, 38 GBDT variants per dataset in a first sweep, and 16 GBDT variants per dataset after the fix, plus 6 stacking variants. Selection optimism is possible, although the validation and test results agree closely.
+% FACTS: Protocol, data and disclosures: variant counts: v2 9; v3 23; GBDT 38 per dataset in the first sweep, then 16 per dataset; stacking 6
 \item \textbf{(d) A same-session leak was found and fixed.} The first GBDT let a row use outcomes from its own session. The first result, 0.2473 on the Duolingo development sample, was invalid; after the fix it is 0.2578. The Anki validation result changed too. The results of the first sweep are not reported.
+% FACTS: Duolingo validation, frozen GBDT, log loss with the same-session leak: 0.2473; after the fix: 0.2578
 \item \textbf{(e) The lexeme rate uses other users' training rows.} Users have different cutoff days, so a training row of one user can be later in calendar time than a scored row of another. No validation or test label enters the rate, and the feature changes log loss by about 0.001.
+% FACTS: Lexeme feature, Duolingo validation, all-groups configuration: about 0.001
 \item \textbf{(f) v2 and v3 are MAP fits.} They give point estimates, and their intervals are user-clustered bootstrap intervals, not posterior intervals.
 \item \textbf{(g) The v1 decay parameter does not converge.} The split R-hat is 2.44 on Anki and 2.48 on Duolingo, with effective sample sizes of about 3. The predictions are stable under two checks, with correlation 0.9923 to a variant with a kappa term on Anki, and log loss 0.2679 after 8000 sweeps against 0.2682 at 2000 sweeps on Duolingo. The decay parameter itself should not be read as an estimate, so the v1 results on both datasets are provisional.
+% FACTS: v1 lambda, Anki: split R-hat 2.44; v1 lambda, Duolingo (GPU port): split R-hat 2.48; v1 stability, Anki: correlation 0.9923; v1 stability, Duolingo: 8000-sweep test log loss 0.2679, against 0.2682 at 2000 sweeps
 \item \textbf{(h) FSRS-6 (optimised) falls back to default weights for most Duolingo users.} On Duolingo, 115,110 of 115,222 users keep the default weights, so the optimised variant is almost the default model there. The py-fsrs optimiser also uses only the first 64 reviews of each card, and it returns default weights below 512 informative training reviews.
+% FACTS: FSRS-6 (optimised) fallback to default weights, Duolingo: 115110 of 115222 users; py-fsrs optimiser limits: first 64 reviews per card; default weights below 512 informative train reviews
 \item \textbf{(i) GBDT inputs.} The GBDT uses the same event-table inputs as the other models, plus the Duolingo lexeme identifier. It does not use the exposure counts before the log window, or the Anki state column, because no other model sees them.
+% PROTOCOL: label threshold 0.5 (EVALUATION.md 10.1). Not a result.
 \item \textbf{Duolingo labels are thresholded.} A row counts as recalled when the recorded recall probability is at least 0.5. The Duolingo metrics therefore measure agreement with that threshold, not an observed yes or no answer, and FSRS sees only two grades.
-\item \textbf{HLR without lexeme features.} On Duolingo, the HLR we run has no per-lexeme features, which the published model uses. Our HLR is therefore weaker than the published one.
-% FACTS: Duolingo users with zero TRAIN rows: 64254 of 115222 users (docs/EVALUATION.md section 10.7(b))
-\item \textbf{Users with no training rows.} On Duolingo, 64,254 of 115,222 users have zero TRAIN rows. Their cards are predicted from population-level parameters, and this affects Ours and both FSRS variants.
-% FACTS: Duolingo validation uses a 5000-user development sample; no full-Duolingo validation run (docs/EVALUATION.md section 11.6)
+\item \textbf{HLR without lexeme features.} On both datasets our HLR has no per-lexeme features, which the official code has. On Duolingo the published model uses them, so our Duolingo HLR is weaker than the published one.
+\item \textbf{Users with no training rows.} On Duolingo, 64,254 of 115,222 users have no TRAIN rows; we call them zero-train users. Their cards are predicted from population-level parameters, and this affects Ours and both FSRS variants. Of the zero-train users, 2,004 have scored test events; they are the subset reported in Section 5.
+% FACTS: Duolingo users with zero TRAIN rows: 64254 of 115222 users (docs/EVALUATION.md section 10.7(b)); Zero-train Duolingo users with scored test events: 2004 of the 64254 zero-train users
 \item \textbf{Validation and model coverage.} We have no full-Duolingo validation run: the Duolingo choices rest on a 5,000-user development sample. The GRU sequence model and the v1 plus v2 ensemble were not tried.
+% FACTS: Duolingo development sample for validation: 5000 users
 \item \textbf{No scheduling simulation.} We score one-step-ahead predictions only. We make no claim about review load, retention or user outcomes under any scheduler.
 \item \textbf{Smoothing constant.} The smoothed floor uses $m = 10$, chosen before the runs. We did not test other values.
-\item \textbf{srs-benchmark outlier rule.} The srs-benchmark drops outlier rows using counts over all of a user's reviews, not only the scored ones. Its FSRS-6 baseline uses the same rule, so the comparison is fair, but the rule differs from our scoring rule. The comparison also uses fixed user sets of 500 and 1,000 users.
+% FACTS: Constant floor smoothing pseudo-count: m = 10
+\item \textbf{srs-benchmark outlier rule.} The srs-benchmark applies a per-user outlier filter inside its feature code. Our protocol has no such filter, so the scored rows are not identical. The pooled GBDT is trained on 450 training users (plus 50 for early stopping) and evaluated on 1,000 evaluation users.
+% FACTS: srs-benchmark (results/srsb_1000): train users 450 fit + 50 holdout; eval users 1000 (ids 1-1000)
+\item \textbf{srs-benchmark training budget.} The pooled GBDT reached the 2000-round cap, so early stopping never triggered. Its srs-benchmark numbers are therefore a lower bound.
+% FACTS: srs-benchmark (results/srsb_1000): best_iter 2000, equal to the 2000-round cap, so early stopping did not trigger
+\item \textbf{One training pool.} The srs-benchmark GBDT uses one training pool, 450 fit users and 50 holdout users, and it is evaluated on 1000 of the 9,999 users in the collection.
+% FACTS: srs-benchmark (results/srsb_1000): train users 450 fit + 50 holdout; eval users 1000; Anki collection users 9,999 (docs/SRS_BENCHMARK.md)
 \end{itemize}

@@ -23,7 +23,7 @@ Here $n_{\mathrm{right}}$ and $n_{\mathrm{wrong}}$ count the card's earlier corr
 Training minimises a squared error on $p$ plus a weighted squared error on $h$, with an L2 penalty on the weights.
 We port the training procedure of the official code, which uses stochastic gradient descent.
 Our port repeats shuffled passes until the weights settle, rather than making one pass.
-On Anki we drop the per-lexeme features of the official code, because the Anki data has no lexemes.
+On both datasets we drop the per-lexeme features of the official code: on Anki because the data has no lexemes, and on Duolingo because our port does not implement them (Section 7).
 
 LagLogit is a lagged-outcome logistic baseline, which we implement ourselves and do not attribute to a paper.
 It has no latent state.

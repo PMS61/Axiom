@@ -1,9 +1,11 @@
 \section{Discussion}
 \paragraph{Why constants are strong on Duolingo.}
-Most Duolingo scored events are recalled: the recall share is 0.9198, against 0.831 on Anki.
+Most Duolingo scored events are recalled: the recall share is 0.9198, against 0.8310 on Anki.
 A prediction near that base rate already has a low log loss, so the global constant (0.2792) is close to FSRS-6 (optimised) (0.3003).
 % FACTS: Recall share of scored events (base rate): Anki 0.831; Duolingo 0.9198. Duolingo, Constant (global) log loss 0.2792; FSRS-6 (optimised) log loss 0.3003
 Per-user smoothing adds a further gain, and the smoothed constant reaches 0.2723.
+% FACTS: Duolingo, Constant (per user, smoothed) log loss 0.2723
+% PROTOCOL: gap bin labels 1d, 2-3d, 4-14d (EVALUATION.md 10.4). Not a result.
 The gap bins suggest a second reason: FSRS-6 (optimised) is weakest at 4-14 day gaps, where the constant's advantage is largest.
 We did not test these explanations directly.
 We expected lexeme identity to matter. We did not test its effect on the floor. In the GBDT, the lexeme feature changes validation log loss by only about 0.001, so it matters little there.
@@ -11,6 +13,7 @@ We expected lexeme identity to matter. We did not test its effect on the floor. 
 
 \paragraph{The ranking flips between datasets.}
 On Anki, FSRS-6 (optimised) beats the smoothed constant by a wide margin, and v1 is worse than FSRS-6 (optimised) by 0.0427.
+% FACTS: Anki, Ours (dynamic, learned lambda) minus FSRS-6 (optimised), log loss: diff 0.0427, 95% CI [0.0327, 0.0554]. Anki, FSRS-6 (optimised) minus Constant (per user, smoothed), log loss: diff -0.0513
 On Duolingo the order reverses: the constant beats FSRS-6 (optimised), and v1 is the second best model.
 A benchmark on one dataset would therefore pick a different second place, and it could pick a model that is worse than a constant.
 GBDT is first on both datasets, so the winner is stable here, but the place of the memory models is not.
@@ -18,6 +21,7 @@ GBDT is first on both datasets, so the winner is stable here, but the place of t
 \paragraph{Bayesian versus machine learning.}
 The Bayesian model v1 has a latent memory state per card and a posterior over its parameters, and its decay parameter $\lambda$ can in principle be read as a forgetting rate.
 In our runs that reading is not yet safe: the chains did not converge on either dataset (split R-hat 2.44 and 2.48), and the effective sample sizes are about 3.
+% FACTS: v1 lambda, Anki: split R-hat 2.44, ESS 3.05. v1 lambda, Duolingo (GPU port): split R-hat 2.48, ESS 3.00
 The MCMC fits are also slow, which made repeated runs hard.
 The MAP models v2 and v3 keep the functional form of FSRS-6 and are cheaper, but they give point estimates only.
 On Anki they are level with FSRS-6 (optimised). On Duolingo they lie between GBDT and FSRS-6 (optimised), and behind the constant.
@@ -28,7 +32,7 @@ So the choice is a trade-off between interpretability and uncertainty on one sid
 \paragraph{A predictor, not a scheduler.}
 GBDT has no stability or difficulty state, so a scheduler cannot use it directly to choose review times.
 Much of its gain comes from the learner's own results on other cards: on Anki validation, dropping the user-history group from the all-groups configuration raises log loss from 0.363 to 0.377.
+% FACTS: Anki validation, GBDT without the user-history group: log loss 0.377, against 0.363 with it
 FSRS does not use that signal, so part of the gap is a difference in information, not in model form.
 A hybrid is a natural next step: feed FSRS or v1 memory-state features into the GBDT, and test whichever predictor is used inside a scheduling loop.
 We did not run a scheduling simulation, so this paper makes no claim about review load or retention under a scheduler.
-% FACTS: Anki validation, GBDT without the user-history group: log loss 0.377, against 0.363 with it

@@ -1,8 +1,9 @@
 \section{Data and Protocol}
 \subsection{Datasets}
+% PROTOCOL: dataset name anki-revlogs-10k (not a result).
 The Anki data is the public anki-revlogs-10k collection \cite{ankirevlogs10k}.
-We draw 100 users at random and keep at most 1000 cards per user, chosen at random.
 % PROTOCOL: EVALUATION.md 2 (user draw, card cap 1000). Not a result.
+We draw 100 users at random and keep at most 1000 cards per user, chosen at random.
 Each card keeps its full history.
 We repeat the cheap models on two more samples of 100 users, with seeds 1 and 2, and report the spread.
 % FACTS: Anki robustness: seeds 0, 1, 2 (100 users each)
@@ -19,8 +20,8 @@ Gaps are measured over the kept rows only, so every model sees the same gap.
 \subsection{Duolingo events}
 Each Duolingo row is one practice session of one lexeme by one user.
 A card is a (user, lexeme) pair, and rows are sorted by timestamp, then by lexeme id, then by file order.
-The recorded recall probability $p_{\mathrm{recall}}$ is thresholded: a row is recalled ($y=1$) when $p_{\mathrm{recall}} \ge 0.5$.
 % PROTOCOL: label threshold, EVALUATION.md 10.1. Not a result.
+The recorded recall probability $p_{\mathrm{recall}}$ is thresholded: a row is recalled ($y=1$) when $p_{\mathrm{recall}} \ge 0.5$.
 So $y$ is a threshold of a predicted probability, not an observed yes or no answer, and the metrics measure agreement with that threshold.
 FSRS sees only two grades on this data, Good for a recalled row and Again otherwise.
 A card's first row starts its replay and is never scored, because its earlier history is unknown.
@@ -28,9 +29,9 @@ The scored gaps reach at most 11 days, so only the 1d, 2-3d and 4-14d gap bins a
 % FACTS: Duolingo scored gaps: at most 11 days, so only the 1d, 2-3d and 4-14d bins are populated
 
 \subsection{Split and one-step-ahead prediction}
+% PROTOCOL: EVALUATION.md 4 (80th percentile cutoff). Not a result.
 For each user we take the 80th percentile of the day offsets of that user's kept reviews as a cutoff.
 Reviews before the cutoff are TRAIN, and later reviews are TEST.
-% PROTOCOL: EVALUATION.md 4 (80th percentile cutoff). Not a result.
 All parameters are fitted on TRAIN rows only, and they are frozen for the test period.
 A prediction for a TEST event may use every earlier review of the same card, including earlier TEST outcomes.
 It may not use the event itself or any later event.
@@ -45,19 +46,21 @@ On Anki there are 95400 scored events.
 
 \subsection{Metrics}
 Let $y_i \in \{0,1\}$ be the outcome and $p_i$ the predicted recall for scored event $i$, out of $N$ events.
+% PROTOCOL: metric definitions and bin counts, EVALUATION.md 6. Not a result.
 Log loss is $-\frac{1}{N}\sum_i [y_i \log p_i + (1-y_i)\log(1-p_i)]$, with $p_i$ clipped to $[10^{-6}, 1-10^{-6}]$.
 We also report the Brier score, AUC (the Mann--Whitney statistic), and the expected calibration error (ECE) over ten equal-width bins.
-% PROTOCOL: metric definitions and bin counts, EVALUATION.md 6. Not a result.
 The mean bias is the mean prediction minus the mean outcome.
+% PROTOCOL: gap bin labels 1d, 2-3d, 4-14d, 15-60d, 61d+ (EVALUATION.md 10.4). Not a result.
 Scored events are grouped by gap into 1d, 2-3d, 4-14d, 15-60d and 61d+ bins.
 Log loss is the main metric, and every other metric is reported with it.
 
 \subsection{Paired differences and user-clustered bootstrap}
 For a model $m$ and reference $r$, the paired difference is $\mathrm{metric}(m) - \mathrm{metric}(r)$.
+% PROTOCOL: 1000 bootstrap resamples, seed 0 (EVALUATION.md 6). Not a result.
 We resample users with replacement, 1000 times with seed 0.
 Each resample keeps all events of the drawn users, and both models use the same users.
-The 95\% interval is the 2.5th and 97.5th percentiles of the bootstrap differences.
 % PROTOCOL: EVALUATION.md 6 (1000 resamples, seed 0, 95% CI). Not a result.
+The 95\% interval is the 2.5th and 97.5th percentiles of the bootstrap differences.
 We resample users, not events, because reviews by one learner are correlated.
 Resampling events would give intervals that are too narrow.
 

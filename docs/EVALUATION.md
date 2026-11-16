@@ -506,7 +506,7 @@ No. Four checks, all on data the model never trained on:
 |---|---|
 | Validation vs test (the pick was frozen on validation before the test run) | Anki 0.3614 to 0.3584; Duolingo 0.2578 (dev sample) to 0.2588 (all users). The test is no worse. |
 | Train vs test log loss (Anki, frozen config refitted on TRAIN) | train 0.3467 (341,739 rows), test 0.3584 (95,400 rows). The gap is 0.012; the test period is also later in time. Early stopping chose 975 rounds on a fit-data holdout. |
-| Duolingo users with NO train rows (2,004 users, 15,918 scored reviews) | GBDT 0.2329, v3 0.2604, v1 0.2647, FSRS-opt 0.2748. GBDT's lead is largest on users it never saw. Users with train data: GBDT 0.2592, v1 0.2683, v3 0.2833, FSRS-opt 0.3006. |
+| Duolingo users with NO train rows and at least one scored test event (2,004 of the 64,254 zero-train users, 15,918 scored reviews; recomputed 2026-11-17 from results/paper_duolingo/events.parquet: is_train sum = 0 per user, then users with any scored row) | GBDT 0.2329, v3 0.2604, v1 0.2647, FSRS-opt 0.2748. GBDT's lead is largest on users it never saw. Users with train data: GBDT 0.2592, v1 0.2683, v3 0.2833, FSRS-opt 0.3006. |
 | Breadth | Better than FSRS-opt for 82/100 Anki users and 78% of Duolingo users; best calibrated (ECE 0.005 / 0.001). |
 
 Remaining caveats:
