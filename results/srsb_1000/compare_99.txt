@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/amal/fyp/Axiom/fsrs_benchmark/srsb/compare.py", line 206, in <module>
+    main()
+  File "/home/amal/fyp/Axiom/fsrs_benchmark/srsb/compare.py", line 200, in main
+    res = compare(args.ours, args.result_dir, parse_users(args.users), args.ci, args.boot, args.seed)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/amal/fyp/Axiom/fsrs_benchmark/srsb/compare.py", line 149, in compare
+    row[f"{metric}_w"] = round(weighted_mean(vals, sizes), 4)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/amal/fyp/Axiom/fsrs_benchmark/srsb/compare.py", line 62, in weighted_mean
+    return float(np.sum(v * w) / np.sum(w))
+                        ~~^~~
+ValueError: operands could not be broadcast together with shapes (994,) (1000,) 

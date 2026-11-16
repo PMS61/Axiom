@@ -175,3 +175,38 @@ Not generated. These lines are added by hand and sit outside the generated marke
 - Ours v2 user wins on log loss against FSRS-6 (optimised): Anki 56 of 100 users (share 0.5600); Duolingo 29013 of 41223 users (share 0.7038) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
 - Ours v3 user wins on log loss against FSRS-6 (optimised): Anki 58 of 100 users (share 0.5800); Duolingo 29473 of 41223 users (share 0.7150) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
 - Ours v3 user wins on log loss against Constant (per user, smoothed): Anki 80 of 100 users (share 0.8000); Duolingo 20772 of 41223 users (share 0.5039) (source: results/paper_anki/user_wins.csv and results/paper_duolingo/user_wins.csv).
+
+<!-- facts:srsb:start -->
+## srs-benchmark comparison (results/srsb_1000)
+
+Pooled GBDT (one LightGBM on other users' rows, past-only features) against the published srs-benchmark
+results, on the public Anki set. Protocol: --algo FSRS-6 --short test folds (TimeSeriesSplit 5).
+
+- Eval users: 1000 (ids 1-1000) (source: results/srsb_1000/run_info.json)
+- Train users: 450 fit + 50 holdout, requested ids 9001-9500 (source: results/srsb_1000/run_info.json)
+- Fit rows: 17,060,060 (source: results/srsb_1000/run_info.json)
+- best_iter: 2000, equal to the 2000-round cap, so early stopping did not trigger (source: results/srsb_1000/run_info.json)
+- Size match vs FSRS-6-short: 1000 of 1000 users have the published test-row count (source: results/srsb_1000/compare.txt)
+- Main table users, common to GBDT and all 11 listed models, same size: 1000 (source: results/srsb_1000/compare.txt)
+- GBDT (ours): LogLoss unweighted 0.3211, weighted 0.3148; AUC unweighted 0.7780, weighted 0.7666 (n=1000; source: results/srsb_1000/compare.txt)
+- RWKV-Instant: LogLoss unweighted 0.2860, weighted 0.2828; AUC unweighted 0.8319, weighted 0.8265 (n=1000; source: results/srsb_1000/compare.txt)
+- RWKV-Curve: LogLoss unweighted 0.3302, weighted 0.3143; AUC unweighted 0.7665, weighted 0.7712 (n=1000; source: results/srsb_1000/compare.txt)
+- GRU: LogLoss unweighted 0.3441, weighted 0.3271; AUC unweighted 0.7298, weighted 0.7337 (n=1000; source: results/srsb_1000/compare.txt)
+- LSTM: LogLoss unweighted 0.3445, weighted 0.3271; AUC unweighted 0.7311, weighted 0.7358 (n=1000; source: results/srsb_1000/compare.txt)
+- MOVING-AVG: LogLoss unweighted 0.3462, weighted 0.3372; AUC unweighted 0.7007, weighted 0.6968 (n=1000; source: results/srsb_1000/compare.txt)
+- FSRS-7 recency: LogLoss unweighted 0.3485, weighted 0.3308; AUC unweighted 0.7208, weighted 0.7243 (n=1000; source: results/srsb_1000/compare.txt)
+- Logistic Regression: LogLoss unweighted 0.3502, weighted 0.3341; AUC unweighted 0.7090, weighted 0.7104 (n=1000; source: results/srsb_1000/compare.txt)
+- FSRS-6: LogLoss unweighted 0.3580, weighted 0.3383; AUC unweighted 0.6994, weighted 0.7061 (n=1000; source: results/srsb_1000/compare.txt)
+- DASH: LogLoss unweighted 0.3792, weighted 0.3571; AUC unweighted 0.6316, weighted 0.6407 (n=1000; source: results/srsb_1000/compare.txt)
+- AVG: LogLoss unweighted 0.4055, weighted 0.3802; AUC unweighted 0.5007, weighted 0.5053 (n=1000; source: results/srsb_1000/compare.txt)
+- HLR: LogLoss unweighted 0.4877, weighted 0.4479; AUC unweighted 0.6352, weighted 0.6299 (n=1000; source: results/srsb_1000/compare.txt)
+
+GBDT minus each baseline, log loss, size-weighted, 99% user-cluster bootstrap CIs (1000 resamples, same users):
+
+- GBDT - FSRS-6: diff -0.0235, 99% CI [-0.0286, -0.0183], CI excludes 0 (source: results/srsb_1000/compare.txt)
+- GBDT - RWKV-Instant: diff +0.0320, 99% CI [+0.0287, +0.0358], CI excludes 0 (source: results/srsb_1000/compare.txt)
+- GBDT - RWKV-Curve: diff +0.0006, 99% CI [-0.0044, +0.0055], CI includes 0 (source: results/srsb_1000/compare.txt)
+- GBDT - GRU: diff -0.0123, 99% CI [-0.0174, -0.0067], CI excludes 0 (source: results/srsb_1000/compare.txt)
+- GBDT - AVG: diff -0.0654, 99% CI [-0.0730, -0.0587], CI excludes 0 (source: results/srsb_1000/compare.txt)
+- GBDT - MOVING-AVG: diff -0.0224, 99% CI [-0.0255, -0.0196], CI excludes 0 (source: results/srsb_1000/compare.txt)
+<!-- facts:srsb:end -->

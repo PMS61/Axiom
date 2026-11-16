@@ -59,6 +59,12 @@ def test_paired_cell_matches_csv(tables):
     assert cells[1].startswith(f"$-$" + f"{abs(diff):.3f} [")
 
 
+def test_duolingo_paired_cells_use_4_decimals(tables):
+    # v1 vs smoothed constant on Duolingo: CI is [-0.0045, -0.0035], not a degenerate [-0.004, -0.004].
+    cells = _cells(tables["paired.tex"], "v1 (MCMC)")
+    assert cells[5] == "$-$0.0040 [$-$0.0045, $-$0.0035]"
+
+
 def test_seed_cell_matches_csv(tables):
     # FSRS-6 opt., seed 1 log loss.
     cells = _cells(tables["seeds.tex"], "FSRS-6 opt.")

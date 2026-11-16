@@ -13,6 +13,7 @@ Numbers are rounded to 4 decimals. FACTS.md sections are replaced in place, so r
 dataset does not touch the other.
 
 Usage: .venv/bin/python -m fsrs_benchmark.paper_export --run_dir results/paper_anki --name anki --out paper/data
+       .venv/bin/python -m fsrs_benchmark.paper_export --srsb results/srsb_1000 --out paper/data
 """
 import argparse
 import json
@@ -272,15 +273,99 @@ def export_robustness(run_dirs, name, out_dir):
     return facts_path
 
 
+# ---- srs-benchmark comparison (task 2.3): paper/data/srsb.csv, srsb_paired.csv and the srsb FACTS block ----
+
+SRSB_MAIN_HEADERS = {"LogLoss_u": "LogLoss_unweighted", "LogLoss_w": "LogLoss_weighted",
+                     "RMSE(bins)_u": "RMSE_bins_unweighted", "RMSE(bins)_w": "RMSE_bins_weighted",
+                     "AUC_u": "AUC_unweighted", "AUC_w": "AUC_weighted"}
+
+
+def srsb_tables(srsb_dir, n_boot=1000, ci=0.99, seed=0, result_dir=None):
+    """Main table and paired diffs from results/srsb_1000 (our jsonl + compare()), as DataFrames plus the result."""
+    from fsrs_benchmark.srsb import compare as C
+
+    srsb_dir = Path(srsb_dir)
+    res = C.compare(srsb_dir / "GBDT-short.jsonl", result_dir or C.DEFAULT_RESULT_DIR, None, ci, n_boot, seed)
+    main = pd.DataFrame([{"model": r["model"], "file": r["file"], "n_users": r["n_users"],
+                          **{SRSB_MAIN_HEADERS[k]: r[k] for k in SRSB_MAIN_HEADERS}} for r in res["table"]])
+    paired = pd.DataFrame([{"comparison": label, "n_users": b["n_users"], "diff_logloss": round(b["mean"], DECIMALS),
+                            "lo": round(b["lo"], DECIMALS), "hi": round(b["hi"], DECIMALS), "ci_level": ci,
+                            "ci_excludes_zero": bool(b["lo"] > 0 or b["hi"] < 0)}
+                           for label, b in res["bootstrap"].items()])
+    return main, paired, res
+
+
+def srsb_facts_section(srsb_dir, res):
+    srsb_dir = Path(srsb_dir)
+    info = json.loads((srsb_dir / "run_info.json").read_text())
+    src = (srsb_dir / "compare.txt").as_posix()
+    run_src = (srsb_dir / "run_info.json").as_posix()
+    jsonl_src = (srsb_dir / "GBDT-short.jsonl").as_posix()
+    ci_pct = int(round(res["ci"] * 100))
+    sm = res["size_match"]
+    lines = [
+        "## srs-benchmark comparison (results/srsb_1000)",
+        "",
+        "Pooled GBDT (one LightGBM on other users' rows, past-only features) against the published srs-benchmark",
+        "results, on the public Anki set. Protocol: --algo FSRS-6 --short test folds (TimeSeriesSplit 5).",
+        "",
+        f"- Eval users: {info['eval_users']} (ids 1-1000) (source: {run_src})",
+        f"- Train users: {info['train_users']} fit + {info['holdout_users']} holdout, requested ids 9001-9500 "
+        f"(source: {run_src})",
+        f"- Fit rows: {info['fit_rows']:,} (source: {run_src})",
+        f"- best_iter: {info['best_iter']}, equal to the 2000-round cap, so early stopping did not trigger "
+        f"(source: {run_src})",
+        f"- Size match vs FSRS-6-short: {sm['matching']} of {sm['compared']} users have the published test-row count "
+        f"(source: {src})",
+        f"- Main table users, common to GBDT and all {len(res['table']) - 1} listed models, same size: "
+        f"{res['paired_users']} (source: {src})",
+    ]
+    def f4(x):
+        return "NA" if x is None else f"{x:.4f}"
+
+    for r in res["table"]:
+        lines.append(f"- {r['model']}: LogLoss unweighted {f4(r['LogLoss_u'])}, weighted {f4(r['LogLoss_w'])}; "
+                     f"AUC unweighted {f4(r['AUC_u'])}, weighted {f4(r['AUC_w'])} "
+                     f"(n={r['n_users']}; source: {src})")
+    lines.append("")
+    lines.append(f"GBDT minus each baseline, log loss, size-weighted, {ci_pct}% user-cluster bootstrap CIs "
+                 f"({res['n_boot']} resamples, same users):")
+    lines.append("")
+    for label, b in res["bootstrap"].items():
+        excl = "CI excludes 0" if (b["lo"] > 0 or b["hi"] < 0) else "CI includes 0"
+        lines.append(f"- {label}: diff {b['mean']:+.4f}, {ci_pct}% CI [{b['lo']:+.4f}, {b['hi']:+.4f}], {excl} "
+                     f"(source: {src})")
+    return lines
+
+
+def export_srsb(srsb_dir, out_dir, n_boot=1000, ci=0.99, seed=0, result_dir=None):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    main, paired, res = srsb_tables(srsb_dir, n_boot, ci, seed, result_dir)
+    main.to_csv(out_dir / "srsb.csv", index=False)
+    paired.to_csv(out_dir / "srsb_paired.csv", index=False)
+    facts = out_dir.parent / "FACTS.md"
+    update_facts(facts, "srsb", srsb_facts_section(srsb_dir, res))
+    return facts
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Export report tables and FACTS.md for the paper.")
     parser.add_argument("--run_dir", default=None, help="a folder written by fsrs_benchmark.report")
     parser.add_argument("--robustness", nargs="+", default=None,
                         help="run folders for a seed-robustness table (use with --name, e.g. anki_seeds)")
-    parser.add_argument("--name", required=True,
+    parser.add_argument("--name", default=None,
                         help=f"dataset name ({', '.join(NAMES)}), or a robustness name such as anki_seeds")
     parser.add_argument("--out", default="paper/data", help="output folder; FACTS.md goes in its parent")
+    parser.add_argument("--srsb", default=None,
+                        help="srs-benchmark comparison folder (e.g. results/srsb_1000); writes srsb.csv, srsb_paired.csv")
     args = parser.parse_args(argv)
+    if args.srsb:
+        facts = export_srsb(args.srsb, args.out)
+        print(f"wrote srsb tables to {args.out} and updated {facts}", flush=True)
+        return 0
+    if args.name is None and not args.srsb:
+        parser.error("--name is required unless --srsb is given")
     if args.robustness:
         facts = export_robustness(args.robustness, args.name, args.out)
         print(f"wrote {args.name} robustness tables to {args.out} and updated {facts}", flush=True)
