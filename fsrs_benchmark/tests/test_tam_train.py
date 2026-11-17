@@ -16,10 +16,18 @@ needs_data = pytest.mark.skipif(not (DATA / "revlogs").exists(), reason="local a
 
 
 def _smallest_local(n: int) -> list[int]:
+    """The n local users above 1000 with the fewest revlog rows (empty users skipped)."""
+    import pyarrow.dataset as pds
     rev = DATA / "revlogs"
-    uids = [int(p.name.split("=")[1]) for p in rev.iterdir() if p.name.startswith("user_id=")]
-    uids = sorted((u for u in uids if u > 1000), key=lambda u: (rev / f"user_id={u}").stat().st_size)
-    return uids[:n]
+    sized = []
+    for p in rev.iterdir():
+        if not p.name.startswith("user_id="):
+            continue
+        u = int(p.name.split("=")[1])
+        rows = pds.dataset(p).count_rows() if u > 1000 else 0
+        if rows > 0:
+            sized.append((rows, u))
+    return [u for _, u in sorted(sized)[:n]]
 
 
 # ---- guards ---------------------------------------------------------------------------------------
