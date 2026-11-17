@@ -25,7 +25,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from huggingface_hub import HfApi, get_token, hf_hub_download
-from huggingface_hub.errors import HfHubHTTPError
+from huggingface_hub.errors import EntryNotFoundError, HfHubHTTPError
 
 REPO_ID = "open-spaced-repetition/anki-revlogs-10k"
 REVLOG_FILE_RE = re.compile(r"^revlogs/user_id=(\d+)/data\.parquet$")
@@ -111,10 +111,16 @@ def download_side_tables(user_ids, out_dir):
 
     Mirrors download_users: one file per user at <kind>/user_id=<N>/data.parquet, written under out_dir
     (so cards go to <out_dir>/cards and decks to <out_dir>/decks), existing files are skipped.
-    Pass the user ids explicitly; nothing is sampled here. Returns {kind: [local Path, ...]}.
+    Pass the user ids explicitly; nothing is sampled here.
+
+    A file that does not exist on the Hub (some users have no cards or decks file) is recorded as missing
+    and the download goes on. Auth or access errors still raise RuntimeError.
+    Returns {"cards": [Path, ...], "decks": [Path, ...], "missing": [(user_id, kind), ...]}, where the
+    lists of paths hold the files that are present locally.
     """
     out_dir = Path(out_dir)
     result = {kind: [] for kind in SIDE_TABLES}
+    result["missing"] = []
     for uid in sorted(int(u) for u in user_ids):
         for kind in SIDE_TABLES:
             filename = f"{kind}/user_id={uid}/data.parquet"
@@ -125,9 +131,15 @@ def download_side_tables(user_ids, out_dir):
                         repo_id=REPO_ID, filename=filename, repo_type="dataset",
                         local_dir=str(out_dir),
                     )
+                except EntryNotFoundError:
+                    result["missing"].append((uid, kind))
+                    continue
                 except HfHubHTTPError as err:
                     raise RuntimeError(_access_message(err)) from err
             result[kind].append(local)
+    if result["missing"]:
+        print(f"download_side_tables: {len(result['missing'])} file(s) not on the Hub: "
+              f"{result['missing']}")
     return result
 
 

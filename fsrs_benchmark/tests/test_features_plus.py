@@ -243,3 +243,52 @@ def test_real_local_user_runs_without_all_nan_columns():
     first = ~stream["card_id"].duplicated().to_numpy()
     assert out.loc[first, "rows_since_card"].isna().all()
     assert out.loc[first, "el_frac"].isna().all()
+
+
+# ---- download helper and index order ------------------------------------------------------------
+
+def test_side_table_download_skips_missing_files_and_goes_on(monkeypatch, tmp_path):
+    from huggingface_hub.errors import EntryNotFoundError
+
+    from fsrs_benchmark import data as D
+
+    calls = []
+
+    def fake_download(repo_id, filename, repo_type, local_dir):
+        calls.append(filename)
+        if filename == "cards/user_id=92/data.parquet":
+            raise EntryNotFoundError(f"no {filename}")
+        dest = Path(local_dir) / filename
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(b"x")
+        return str(dest)
+
+    monkeypatch.setattr(D, "hf_hub_download", fake_download)
+    res = D.download_side_tables([91, 92, 93], tmp_path)
+    assert ("cards/user_id=93/data.parquet") in calls          # later users are still fetched
+    assert res["missing"] == [(92, "cards")]
+    assert [p.name for p in res["cards"]] == ["data.parquet", "data.parquet"]
+    assert len(res["decks"]) == 3
+    assert not (tmp_path / "cards" / "user_id=92").exists() or not any((tmp_path / "cards" / "user_id=92").iterdir())
+
+
+def test_side_table_download_auth_error_still_raises(monkeypatch, tmp_path):
+    from huggingface_hub.errors import HfHubHTTPError
+
+    from fsrs_benchmark import data as D
+
+    from unittest import mock
+
+    def fake_download(**kwargs):
+        raise HfHubHTTPError("401 unauthorized", response=mock.MagicMock(status_code=401, headers={}))
+
+    monkeypatch.setattr(D, "hf_hub_download", fake_download)
+    with pytest.raises(RuntimeError, match="Hugging Face"):
+        D.download_side_tables([5], tmp_path)
+
+
+def test_unsorted_stream_fails_loudly():
+    stream = _toy_stream()
+    shuffled = stream.iloc[::-1]
+    with pytest.raises(ValueError, match="strictly increasing"):
+        P.plus_features(shuffled, *_toy_refs())

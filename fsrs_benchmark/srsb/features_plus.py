@@ -120,6 +120,8 @@ def plus_features(stream, cards=None, decks=None):
     missing = [c for c in REQUIRED if c not in stream.columns]
     if missing:
         raise KeyError(f"plus_features: stream is missing columns {missing}")
+    if not stream.index.is_monotonic_increasing or not stream.index.is_unique:
+        raise ValueError("plus_features: stream index must be strictly increasing (review_th order)")
     n = len(stream)
     idx = stream.index
     pos = np.arange(n, dtype=np.int64)
