@@ -31,6 +31,10 @@ PLUS_GROUPS = {
     "state": ["state"],
     "sib": ["sib_n", "sib_last_y", "sib_days_since", "sib_rate"],
     "deck": ["deck_n", "deck_rate", "preset_n", "preset_rate", "parent_n", "parent_rate"],
+    "umem": ["ewm10", "ewm50", "ewm200", "ewm1000", "resid_mean", "resid_ewm100", "resid_gap_mean",
+             "gap_bkt_rate", "gap_bkt_n", "cnt_bkt_rate", "cnt_bkt_n", "g1_rate", "g1_n",
+             "state_rate", "state_n", "card_ewm3", "card_mean_loggap", "card_r4", "card_r5",
+             "card_gap4", "card_gap5"],
 }
 PLUS_COLS = [c for g in PLUS_GROUPS for c in PLUS_GROUPS[g]]
 
@@ -73,6 +77,20 @@ def _sib_last_kernel(newgrp, card, yv, day):
     return out_y, out_d
 
 
+def _gap_bucket(el):
+    """Gap buckets of el_frac (days): 0 <1, 1 [1,2), 2 [2,4), 3 [4,8), 4 [8,16), 5 [16,32), 6 [32,64),
+    7 [64,128), 8 >=128. -1 where el_frac is NaN."""
+    el = np.asarray(el, dtype=float)
+    b = np.where(el < 1, 0, np.minimum(8, 1 + np.floor(np.log2(np.maximum(el, 1.0)))))
+    return np.where(np.isnan(el), -1, b).astype(np.int64)
+
+
+def _count_bucket(k):
+    """Buckets of the card's review number k (1-based): 1, 2, 3, 4-5, 6-10, >10 -> 0..5."""
+    k = np.asarray(k)
+    return np.select([k == 1, k == 2, k == 3, k <= 5, k <= 10], [0, 1, 2, 3, 4], 5).astype(np.int64)
+
+
 def _keys(x):
     """Integer group keys; a missing key becomes -1 (its statistics are set to NaN)."""
     return pd.Series(x).fillna(-1).astype(np.int64).to_numpy()
@@ -102,8 +120,8 @@ def _ratio(num, den, missing):
 
 
 def _lookup(table, key_col, val_col, keys):
-    """Map card-level keys to a table column, NaN where unknown."""
-    if table is None:
+    """Map card-level keys to a table column, NaN where unknown (also when the table has no such column)."""
+    if table is None or key_col not in table.columns or val_col not in table.columns:
         return np.full(len(keys), np.nan)
     m = table.drop_duplicates(key_col).set_index(key_col)[val_col]
     return m.reindex(keys).to_numpy(float)
@@ -150,7 +168,9 @@ def plus_features(stream, cards=None, decks=None):
         "rating": rating, "y": y, "is_first": first, "elapsed_days": gap_days,
         "dt_days": pd.Series(day).diff().fillna(0).clip(lower=0).to_numpy(float),
     }, index=pos)
-    f_S = G.base_features(ev, span=20, user_group="row")["f_S"].to_numpy(float)
+    base = G.base_features(ev, span=20, user_group="row")
+    f_S = base["f_S"].to_numpy(float)
+    f_R_day = base["f_R"].to_numpy(float)       # FSRS-6 default R at the whole-day gap, before the row
     out["f_R_secs"] = (1.0 + FACTOR * np.maximum(el_frac, 0.0) / f_S) ** (-DECAY)
 
     # today: earlier rows of the same day (day_offset), and the user's recent history
@@ -183,6 +203,38 @@ def plus_features(stream, cards=None, decks=None):
 
     # state: the current row's review type (known before the answer)
     out["state"] = state.astype(float)
+
+    # umem: the user's and the card's memory. Every statistic is over earlier rows only (exclusive), and a
+    # row's own keys (gap bucket, review count, state, the card's last rating) are known before the answer.
+    gb = _gap_bucket(el_frac)                          # current gap bucket, -1 if no gap (first review)
+    cb = _count_bucket(pd.Series(card).groupby(card).cumcount().to_numpy() + 1)
+    g1 = _keys(pd.Series(rating.astype(float)).groupby(card).shift(1).to_numpy())
+    stk = _keys(state.astype(float))
+    yn = np.where(nf, yf, np.nan)
+    for sp in (10, 50, 200, 1000):
+        out[f"ewm{sp}"] = pd.Series(yn).ewm(span=sp, ignore_na=True).mean().shift(1).to_numpy()
+    rv_ok = nf & np.isfinite(f_R_day)
+    rv = np.where(rv_ok, yf - f_R_day, np.nan)               # y - f_R of each earlier non-first review
+    rv0 = np.nan_to_num(rv)
+    out["resid_mean"] = _ratio(_excl_sum(rv0, zeros), _excl_count(rv_ok, zeros), zeros.astype(bool))
+    out["resid_ewm100"] = pd.Series(rv).ewm(span=100, ignore_na=True).mean().shift(1).to_numpy()
+    out["resid_gap_mean"] = _ratio(_excl_sum(rv0, gb), _excl_count(rv_ok, gb), gb < 0)
+    for name, key in (("gap_bkt", gb), ("cnt_bkt", cb), ("g1", g1), ("state", stk)):
+        out[f"{name}_rate"] = _ratio(_excl_sum(yf * nf, key), _excl_count(nf, key), key < 0)
+        out[f"{name}_n"] = np.where(key < 0, np.nan, _excl_count(nf, key))
+    cser = pd.Series(yn)
+    e3 = cser.groupby(card).ewm(span=3, ignore_na=True).mean().reset_index(level=0, drop=True).sort_index()
+    out["card_ewm3"] = e3.groupby(card).shift(1).to_numpy()
+    lg = np.where(nf, out["log_el_frac"], np.nan)
+    lg_ok = np.isfinite(lg)
+    out["card_mean_loggap"] = _ratio(_excl_sum(np.nan_to_num(lg), card), _excl_count(lg_ok, card),
+                                     zeros.astype(bool))
+    rating_f = pd.Series(rating.astype(float))
+    out["card_r4"] = rating_f.groupby(card).shift(4).to_numpy()
+    out["card_r5"] = rating_f.groupby(card).shift(5).to_numpy()
+    gap_s = pd.Series(el_frac)
+    out["card_gap4"] = gap_s.groupby(card).shift(4).to_numpy()
+    out["card_gap5"] = gap_s.groupby(card).shift(5).to_numpy()
 
     # sib and deck need the cards (and decks) tables
     note = _lookup(cards, "card_id", "note_id", card)

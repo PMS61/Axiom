@@ -292,3 +292,95 @@ def test_unsorted_stream_fails_loudly():
     shuffled = stream.iloc[::-1]
     with pytest.raises(ValueError, match="strictly increasing"):
         P.plus_features(shuffled, *_toy_refs())
+
+
+# ---- umem (user and card memory) against a brute-force reference ----------------------------------
+
+def _brute_umem(stream, base):
+    """Direct, loop-based definitions of the umem features for the stream rows (test reference only)."""
+    import math
+    card = stream["card_id"].to_numpy()
+    rating = stream["rating"].to_numpy()
+    state = stream["state"].to_numpy()
+    secs = stream["elapsed_seconds"].to_numpy(float)
+    fR = base["f_R"].to_numpy(float)
+    n = len(stream)
+    seen = {}
+    first = np.zeros(n, bool)
+    j_in_card = np.zeros(n, int)
+    for t in range(n):
+        c = card[t]
+        j_in_card[t] = seen.get(c, 0)
+        first[t] = c not in seen
+        seen[c] = seen.get(c, 0) + 1
+    nf = ~first
+    y = (rating > 1).astype(float)
+    el = np.array([secs[t] / 86400.0 if nf[t] and secs[t] >= 0 else np.nan for t in range(n)])
+
+    def gbk(e):
+        if np.isnan(e):
+            return None
+        return 0 if e < 1 else min(8, 1 + int(math.floor(math.log2(e))))
+
+    def cbk(k):
+        return 0 if k == 1 else 1 if k == 2 else 2 if k == 3 else 3 if k <= 5 else 4 if k <= 10 else 5
+
+    gb = [gbk(e) for e in el]
+    cb = [cbk(j + 1) for j in j_in_card]
+    g1 = [None] * n
+    last = {}
+    for t in range(n):
+        g1[t] = last.get(card[t])
+        last[card[t]] = rating[t]
+    rv = [y[t] - fR[t] if nf[t] and np.isfinite(fR[t]) else None for t in range(n)]
+
+    def ewm(seq, span):                       # weights over valid observations, newest weight 1
+        obs = [v for v in seq if v is not None and not np.isnan(v)]
+        if not obs:
+            return np.nan
+        a = 2.0 / (span + 1.0)
+        w = [(1 - a) ** (len(obs) - 1 - i) for i in range(len(obs))]
+        return sum(wi * v for wi, v in zip(w, obs)) / sum(w)
+
+    out = {k: np.full(n, np.nan) for k in ("ewm10", "resid_mean", "resid_gap_mean", "gap_bkt_rate",
+                                          "cnt_bkt_rate", "g1_rate", "state_rate", "card_ewm3",
+                                          "card_mean_loggap", "card_r4", "card_gap5", "resid_ewm100")}
+    for t in range(n):
+        before = range(t)
+        yv = [y[s] if nf[s] else None for s in before]
+        out["ewm10"][t] = ewm(yv, 10)
+        out["resid_ewm100"][t] = ewm([rv[s] for s in before], 100)
+        valid = [rv[s] for s in before if rv[s] is not None]
+        out["resid_mean"][t] = np.mean(valid) if valid else np.nan
+        if gb[t] is not None:
+            vg = [rv[s] for s in before if rv[s] is not None and gb[s] == gb[t]]
+            out["resid_gap_mean"][t] = np.mean(vg) if vg else np.nan
+        for name, keys in (("gap_bkt_rate", gb), ("cnt_bkt_rate", cb), ("g1_rate", g1),
+                           ("state_rate", list(state))):
+            if keys[t] is None:
+                continue
+            ys = [y[s] for s in before if nf[s] and keys[s] == keys[t]]
+            out[name][t] = np.mean(ys) if ys else np.nan
+        same = [s for s in before if card[s] == card[t]]
+        out["card_ewm3"][t] = ewm([y[s] if nf[s] else None for s in same], 3)
+        lgs = [math.log1p(el[s]) for s in same if nf[s] and not np.isnan(el[s])]
+        out["card_mean_loggap"][t] = np.mean(lgs) if lgs else np.nan
+        j = j_in_card[t]
+        cardrows = [s for s in range(n) if card[s] == card[t]]
+        out["card_r4"][t] = rating[cardrows[j - 4]] if j >= 4 else np.nan
+        out["card_gap5"][t] = el[cardrows[j - 5]] if j >= 5 else np.nan
+    return out
+
+
+def test_umem_matches_brute_force_reference():
+    stream = R.review_stream(_synthetic_raw(seed=3), max_card_reviews=100)
+    cards, decks = _synthetic_refs()
+    out = P.plus_features(stream, cards, decks)
+    ev = stream.assign(is_first=~stream["card_id"].duplicated().to_numpy(),
+                       y=(stream["rating"] > 1).astype(np.int64), user_id=0)
+    base = G.base_features(ev, span=20, user_group="row")
+    ref = _brute_umem(stream, base)
+    for name, exp in ref.items():
+        got = out[name].to_numpy(float)
+        assert np.allclose(got, exp, rtol=1e-9, atol=1e-12, equal_nan=True), name
+        assert np.isfinite(got).sum() > 20, f"{name} is almost always NaN; the check proves little"

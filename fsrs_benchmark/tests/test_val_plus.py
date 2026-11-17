@@ -140,3 +140,10 @@ def test_saved_model_refused_when_settings_differ(tmp_path):
     V.run(train, ev, DATA, out, groups=["gap"], max_rounds=15, result_dir=tmp_path, stop_after=1)
     with pytest.raises(RuntimeError, match="max_rounds"):
         V.run(train, ev, DATA, out, groups=["gap"], max_rounds=16, result_dir=tmp_path)
+
+
+def test_missing_or_empty_side_table_gives_none(tmp_path):
+    """User 8064 has an empty cards directory on disk (no cards file on the Hub): cards must be None."""
+    (tmp_path / "cards" / "user_id=8064").mkdir(parents=True)
+    assert V._read_opt(tmp_path / "cards" / "user_id=8064" / "data.parquet") is None
+    assert V._read_opt(tmp_path / "cards" / "user_id=9" / "data.parquet") is None

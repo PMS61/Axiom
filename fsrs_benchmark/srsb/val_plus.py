@@ -83,7 +83,11 @@ def check_users(train_uids, eval_uids, final=False):
 
 
 def _read_opt(path: Path):
-    return pd.read_parquet(path) if path.exists() else None
+    """The side table of one user, or None when the file is absent or empty (no cards on the Hub)."""
+    if not path.is_file():
+        return None
+    df = pd.read_parquet(path)
+    return df if len(df) else None
 
 
 def user_table(uid, loader, cfg, data_dir: Path, cols):
