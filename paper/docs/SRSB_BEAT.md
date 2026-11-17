@@ -49,3 +49,7 @@ only).
 - 6.4 If GBDT+ still trails RWKV-Instant on validation: a sequence model (GRU/transformer over the user stream with
   the same features), same harness.
 - 6.5 Final: one run on users 1-1000 with the frozen choice; compare.py; FACTS.md; paper text.
+
+## Decisions
+- 2026-11-17 (user): cards/decks for eval users 1-1000 may be downloaded. They are downloaded only as part of the
+  final 6.5 run (inside the Kaggle notebook), never used for selection.
