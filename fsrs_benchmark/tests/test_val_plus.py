@@ -168,3 +168,23 @@ def test_feature_cache_hit_equals_fresh_build(tmp_path):
         assert np.array_equal(t["y"], fresh["y"]) and np.array_equal(t["test"], fresh["test"])
         assert t["side"] == fresh["side"]
         pd.testing.assert_frame_equal(t["meta"], fresh["meta"])
+
+
+def test_side_tables_are_read_from_user_directories(tmp_path):
+    """cards/ and decks/ hold one directory per user with data.parquet inside: a real user must get them."""
+    if not (DATA / "cards" / "user_id=1236").exists():
+        pytest.skip("local cards for user 1236 not present")
+    cards = V._read_opt(DATA / "cards" / "user_id=1236")
+    decks = V._read_opt(DATA / "decks" / "user_id=1236")
+    assert cards is not None and decks is not None and len(cards) > 0 and len(decks) > 0
+    assert {"card_id", "note_id", "deck_id"} <= set(cards.columns)
+
+
+def test_real_user_gets_non_nan_sib_and_deck_features():
+    if not (DATA / "revlogs" / "user_id=1236").exists():
+        pytest.skip("local data for user 1236 not present")
+    S = R._srs_modules()
+    cfg = S["Config"](S["create_parser"]().parse_args(["--algo", "FSRS-6", "--short", "--data", str(DATA)]))
+    t = V.user_table(1236, S["UserDataLoader"](cfg), cfg, DATA, V.group_columns(["sib", "deck"]))
+    assert t["side"] is True
+    assert np.isfinite(t["X"]).any(axis=0).all(), "a sib or deck column is NaN for every row"

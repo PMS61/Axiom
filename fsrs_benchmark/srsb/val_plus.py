@@ -85,16 +85,21 @@ def check_users(train_uids, eval_uids, final=False):
 
 
 def _read_opt(path: Path):
-    """The side table of one user, or None when the file is absent or empty (no cards on the Hub)."""
-    if not path.is_file():
+    """The side table of one user, or None when it is absent or empty (no cards on the Hub). `path` is the
+    user's directory (cards/user_id=N, which holds data.parquet) or the parquet file itself."""
+    p = Path(path)
+    if p.is_dir():
+        p = p / "data.parquet"
+    if not p.is_file():
         return None
-    df = pd.read_parquet(path)
+    df = pd.read_parquet(p)
     return df if len(df) else None
 
 
 ALL_COLS = R.FEATURE_COLS + PLUS_COLS
 CODE_FILES = ("srsb/features_plus.py", "models/gbdt.py", "srsb/run_gbdt.py")   # relative to fsrs_benchmark/
 _CODE_HASH = None
+CACHE_VERSION = 2        # bump when the cached tables change meaning (v1 tables had no cards/decks: NaN sib/deck)
 
 
 def code_hash():
@@ -104,7 +109,7 @@ def code_hash():
         import hashlib
         root = Path(__file__).resolve().parents[1]
         h = hashlib.sha256()
-        h.update(json.dumps(ALL_COLS).encode())
+        h.update(json.dumps([ALL_COLS, CACHE_VERSION]).encode())
         for f in CODE_FILES:
             h.update((root / f).read_bytes())
         _CODE_HASH = h.hexdigest()[:16]
