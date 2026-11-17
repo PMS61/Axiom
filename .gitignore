@@ -30,3 +30,4 @@ results/timing_*/
 results/**/*.parquet
 !paper/data/
 external/
+.secrets/
