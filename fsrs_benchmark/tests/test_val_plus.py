@@ -97,3 +97,46 @@ def test_end_to_end_tiny_run_writes_valid_jsonl(tmp_path):
     saved = json.loads(Path(str(out) + ".run_info.json").read_text(encoding="utf-8"))
     assert saved["features"] == info["features"] and saved["best_iter"] >= 1
     assert saved["comparison"] is None
+
+
+# ---- review fixes: validation-user guard, quota planning, reuse fingerprint -------------------------
+
+def test_train_users_in_validation_range_refused_unless_final():
+    with pytest.raises(ValueError, match="validation"):
+        V.check_users([8001, 2001], [2002])
+    V.check_users([8001, 2001], [2002], final=True)
+    V.check_users([2001], [8001])                         # eval on validation users is the point
+
+
+def test_plan_quotas_caps_total_and_per_user():
+    counts = {1001: 100, 2001: 300, 2002: 600}
+    assert V.plan_quotas(counts) == counts
+    assert V.plan_quotas(counts, rows_per_user=150) == {1001: 100, 2001: 150, 2002: 150}
+    q = V.plan_quotas(counts, max_train_rows=500)
+    assert sum(q.values()) <= 500 and all(0 < q[u] <= counts[u] for u in q)
+    assert q[2002] > q[2001] > q[1001]                    # proportional to rows
+
+
+def test_presized_pool_routes_and_never_exceeds_plan():
+    import numpy as np
+    pool = V.PresizedPool(hold={2002}, cap={"fit": 4, "val": 2}, n_feat=3)
+    pool.add(2001, np.ones((4, 3), np.float32), np.ones(4, np.int64))
+    pool.add(2002, np.zeros((2, 3), np.float32), np.zeros(2, np.int64))
+    assert pool.uids == {"fit": [2001], "val": [2002]}
+    X, y = pool.finalize("fit")
+    assert X.shape == (4, 3)
+    with pytest.raises(RuntimeError):
+        pool.add(2003, np.ones((1, 3), np.float32), np.ones(1, np.int64))
+
+
+def test_saved_model_refused_when_settings_differ(tmp_path):
+    if not (DATA / "revlogs").exists():
+        pytest.skip("no local revlogs")
+    users = _local_users_above_1000(6)
+    if len(users) < 6:
+        pytest.skip("need six local users above 1000")
+    train, ev = users[:4], users[4:]
+    out = tmp_path / "fp.jsonl"
+    V.run(train, ev, DATA, out, groups=["gap"], max_rounds=15, result_dir=tmp_path, stop_after=1)
+    with pytest.raises(RuntimeError, match="max_rounds"):
+        V.run(train, ev, DATA, out, groups=["gap"], max_rounds=16, result_dir=tmp_path)

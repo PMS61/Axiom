@@ -112,6 +112,9 @@ def arrays_from_raw(raw: pd.DataFrame, cfg, cards: pd.DataFrame | None = None,
     y = (rating >= 2).astype(np.int8)
     scored = np.zeros(n, bool)
     test = np.zeros(n, bool)
+    meta_gap = np.zeros(n, np.float64)
+    meta_i = np.zeros(n, np.float64)
+    meta_rmse = np.zeros(n, np.float64)
     if ds is not None:
         keys = ds["review_th"].to_numpy(np.int64)
         review_th = st.index.to_numpy(np.int64)
@@ -122,9 +125,13 @@ def arrays_from_raw(raw: pd.DataFrame, cfg, cards: pd.DataFrame | None = None,
             raise RuntimeError("labels differ between the review stream and srs-benchmark")
         scored[pos] = True
         test[pos[R.test_row_mask(len(ds), cfg.n_splits)]] = True
+        meta_gap[pos] = ds["elapsed_days"].to_numpy(np.float64)
+        meta_i[pos] = ds["i"].to_numpy(np.float64)
+        meta_rmse[pos] = ds["rmse_bins_lapse"].to_numpy(np.float64)
 
     return dict(review_th=st.index.to_numpy(np.int64), day=day, card=card, note=note, deck=deck,
-                preset=preset, tok=tok, xq=xq, fr=fr, y=y, scored=scored, test=test)
+                preset=preset, tok=tok, xq=xq, fr=fr, y=y, scored=scored, test=test,
+                meta_gap=meta_gap, meta_i=meta_i, meta_rmse=meta_rmse)
 
 
 def build_user_tensors(uid: int, data_dir, cache_dir=None) -> dict:
@@ -210,12 +217,18 @@ class Pool:
 
 
 def build_pool(users: list[dict], scaler: QueryScaler, rows: str = "scored") -> Pool:
-    """Pool over the users' scored rows (rows="scored") or all their stream rows (rows="all")."""
+    """Pool over the users' scored rows (rows="scored"), their test rows (rows="test") or all their stream
+    rows (rows="all")."""
     toks, ids, days, qs, frs, ctxs, tgts, ys = [], [], [], [], [], [], [], []
     off = 0
     for u in users:
         n = len(u["day"])
-        sel = np.flatnonzero(u["scored"]) if rows == "scored" else np.arange(n)
+        if rows == "scored":
+            sel = np.flatnonzero(u["scored"])
+        elif rows == "test":
+            sel = np.flatnonzero(u["test"])
+        else:
+            sel = np.arange(n)
         ctx = context_index(u["card"])[sel]
         ctxs.append(np.where(ctx >= 0, ctx + off, -1))
         tgts.append(sel + off)
@@ -243,6 +256,39 @@ def build_pool(users: list[dict], scaler: QueryScaler, rows: str = "scored") -> 
     )
 
 
+class TorchPool:
+    """A Pool with its arrays on one device (tokens, query features and context indices stay resident, so a
+    batch is only index gathers). Built once per run from a numpy Pool."""
+
+    def __init__(self, pool: Pool, device):
+        self.device = device
+        self.tok = torch.as_tensor(pool.tok, device=device)
+        self.ids = torch.as_tensor(pool.ids, device=device)
+        self.day = torch.as_tensor(pool.day, device=device)
+        self.q = torch.as_tensor(pool.q, device=device)
+        self.fr = torch.as_tensor(pool.fr, device=device)
+        self.ctx = torch.as_tensor(pool.ctx, device=device)          # int32, converted per batch
+        self.tgt = torch.as_tensor(pool.tgt, device=device)
+        self.y = torch.as_tensor(pool.y, device=device)
+        self.y_np = pool.y
+        self.n = pool.n
+
+    def __len__(self):
+        return len(self.tgt)
+
+
+def make_batch_t(tp: TorchPool, rows: torch.Tensor) -> dict:
+    """Device version of make_batch: rows is a long tensor of pool rows."""
+    g = tp.tgt[rows]
+    idx = torch.cat([tp.ctx[rows].long(), g[:, None]], dim=1)
+    return dict(tok=tp.tok[idx], ids=tp.ids[idx], day=tp.day[idx], valid=idx != tp.n,
+                q=tp.q[g], fr=tp.fr[g], y=tp.y[rows])
+
+
+def _as_torch(pool, device) -> TorchPool:
+    return pool if isinstance(pool, TorchPool) else TorchPool(pool, device)
+
+
 def make_batch(pool: Pool, rows: np.ndarray) -> dict:
     """Tensors for the targets at pool rows `rows`. The last token of each sequence is the query."""
     g = pool.tgt[rows]
@@ -261,9 +307,9 @@ def make_batch(pool: Pool, rows: np.ndarray) -> dict:
 def relation(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """Relation code (see module doc) between id tuples a and b (last dim 4: card, note, deck, preset)."""
     same = [(a[..., k] == b[..., k]) & (a[..., k] >= 0) for k in range(4)]
-    code = torch.full(same[0].shape, REL_OTHER, dtype=torch.long)
+    code = torch.full(same[0].shape, REL_OTHER, dtype=torch.long, device=a.device)
     for k in (3, 2, 1, 0):                  # the finest match wins: card (0) is applied last
-        code = torch.where(same[k], torch.tensor(k), code)
+        code = torch.where(same[k], torch.full_like(code, k), code)
     return code
 
 
@@ -317,7 +363,7 @@ class TAM(nn.Module):
         dt = torch.log1p((day.unsqueeze(2) - day.unsqueeze(1)).abs())          # [B, L, L]
         allow = valid[:, None, None, :].expand(B, 1, L, L).clone()
         allow[:, :, :-1, -1] = False                  # context rows cannot see the query token
-        add_mask = torch.zeros(B, 1, L, L, dtype=x.dtype).masked_fill(~allow, -1e9)
+        add_mask = torch.zeros(B, 1, L, L, dtype=x.dtype, device=x.device).masked_fill(~allow, -1e4)
         for l, blk in enumerate(self.blocks):
             rel_term = torch.einsum("blmk,hk->bhlm", rel_oh, self.rel_bias[l])  # [B, H, L, L]
             bias = self.decay[l].view(1, -1, 1, 1) * dt.unsqueeze(1) + rel_term + add_mask
@@ -331,30 +377,38 @@ def bce(logits: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 
 
 @torch.no_grad()
-def predict(model: TAM, pool: Pool, rows: np.ndarray | None = None, batch_size: int = 128) -> np.ndarray:
-    """Probabilities for the pool rows (all rows by default), in eval mode."""
+def predict(model: TAM, pool, rows=None, batch_size: int = 128) -> np.ndarray:
+    """Probabilities for the pool rows (all rows by default), in eval mode. pool: Pool or TorchPool."""
     model.eval()
-    rows = np.arange(len(pool)) if rows is None else np.asarray(rows)
-    out = [torch.sigmoid(model(make_batch(pool, rows[s:s + batch_size]))).numpy()
-           for s in range(0, len(rows), batch_size)]
+    device = next(model.parameters()).device
+    tp = _as_torch(pool, device)
+    if rows is None:
+        rows_t = torch.arange(len(tp), device=device)
+    else:
+        rows_t = torch.as_tensor(np.asarray(rows, dtype=np.int64), device=device)
+    out = [torch.sigmoid(model(make_batch_t(tp, rows_t[s:s + batch_size]))).float().cpu().numpy()
+           for s in range(0, len(rows_t), batch_size)]
     return np.concatenate(out) if out else np.zeros(0, np.float32)
 
 
-def mean_log_loss(model: TAM, pool: Pool, rows: np.ndarray, batch_size: int = 128) -> float:
-    p = np.clip(predict(model, pool, rows, batch_size), P_CLIP, 1 - P_CLIP)
-    y = pool.y[rows]
+def mean_log_loss(model: TAM, pool, rows: np.ndarray, batch_size: int = 128) -> float:
+    p = np.clip(predict(model, pool, rows, batch_size).astype(np.float64), P_CLIP, 1 - P_CLIP)
+    y = (pool.y_np if isinstance(pool, TorchPool) else pool.y)[np.asarray(rows)].astype(np.float64)
     return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))
 
 
-def train(model: TAM, pool: Pool, steps: int, batch_size: int = 32, lr: float = 1e-3, seed: int = 0) -> list:
+def train(model: TAM, pool, steps: int, batch_size: int = 32, lr: float = 1e-3, seed: int = 0) -> list:
     """AdamW on uniformly sampled scored targets of the pool. Returns the per-step training losses."""
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
+    device = next(model.parameters()).device
+    tp = _as_torch(pool, device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
     model.train()
     losses = []
     for _ in range(steps):
-        b = make_batch(pool, rng.integers(0, len(pool), batch_size))
+        rows = torch.as_tensor(rng.integers(0, len(tp), batch_size), device=device)
+        b = make_batch_t(tp, rows)
         loss = bce(model(b), b["y"])
         opt.zero_grad()
         loss.backward()
