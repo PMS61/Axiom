@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from fsrs_benchmark.models import gbdt as G
@@ -147,3 +149,22 @@ def test_missing_or_empty_side_table_gives_none(tmp_path):
     (tmp_path / "cards" / "user_id=8064").mkdir(parents=True)
     assert V._read_opt(tmp_path / "cards" / "user_id=8064" / "data.parquet") is None
     assert V._read_opt(tmp_path / "cards" / "user_id=9" / "data.parquet") is None
+
+
+def test_feature_cache_hit_equals_fresh_build(tmp_path):
+    """A cache hit gives the same table as a fresh build (and the uncached path)."""
+    if not (DATA / "revlogs" / "user_id=1236").exists():
+        pytest.skip("local data for user 1236 not present")
+    S = R._srs_modules()
+    cfg = S["Config"](S["create_parser"]().parse_args(["--algo", "FSRS-6", "--short", "--data", str(DATA)]))
+    loader = S["UserDataLoader"](cfg)
+    cols = V.group_columns(["gap", "card", "sib", "umem"])
+    fresh = V.user_table(1236, loader, cfg, DATA, cols, cache_dir=None)
+    miss = V.user_table(1236, loader, cfg, DATA, cols, cache_dir=tmp_path)
+    assert (tmp_path / "u1236.npz").is_file()
+    hit = V.user_table(1236, loader, cfg, DATA, cols, cache_dir=tmp_path)
+    for t in (miss, hit):
+        assert np.array_equal(t["X"], fresh["X"], equal_nan=True)
+        assert np.array_equal(t["y"], fresh["y"]) and np.array_equal(t["test"], fresh["test"])
+        assert t["side"] == fresh["side"]
+        pd.testing.assert_frame_equal(t["meta"], fresh["meta"])

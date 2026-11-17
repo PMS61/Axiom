@@ -20,7 +20,9 @@ Usage (repo root):
 import argparse
 import json
 import multiprocessing as mp
+import os
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -30,7 +32,7 @@ from fsrs_benchmark import data as D
 from fsrs_benchmark.models import gbdt as G
 from fsrs_benchmark.srsb import compare as C
 from fsrs_benchmark.srsb import run_gbdt as R
-from fsrs_benchmark.srsb.features_plus import PLUS_GROUPS, plus_features
+from fsrs_benchmark.srsb.features_plus import PLUS_COLS, PLUS_GROUPS, plus_features
 
 TEST_LO, TEST_HI = 1, 1000             # the test set: never used here unless final=True
 VAL_LO, VAL_HI = 8001, 8300            # validation users: never train users (SRS-Beat), unless final=True
@@ -90,8 +92,37 @@ def _read_opt(path: Path):
     return df if len(df) else None
 
 
-def user_table(uid, loader, cfg, data_dir: Path, cols):
-    """Features (cols, float32) and labels of one user's scored rows, plus the test mask and meta."""
+ALL_COLS = R.FEATURE_COLS + PLUS_COLS
+CODE_FILES = ("srsb/features_plus.py", "models/gbdt.py", "srsb/run_gbdt.py")   # relative to fsrs_benchmark/
+_CODE_HASH = None
+
+
+def code_hash():
+    """sha256 of the feature code (features_plus, gbdt, run_gbdt): a cache entry is valid only for this code."""
+    global _CODE_HASH
+    if _CODE_HASH is None:
+        import hashlib
+        root = Path(__file__).resolve().parents[1]
+        h = hashlib.sha256()
+        h.update(json.dumps(ALL_COLS).encode())
+        for f in CODE_FILES:
+            h.update((root / f).read_bytes())
+        _CODE_HASH = h.hexdigest()[:16]
+    return _CODE_HASH
+
+
+def cache_dir_for(data_dir) -> Path:
+    return Path(data_dir) / "feat_cache" / code_hash()
+
+
+def _full_table(uid, loader, cfg, data_dir: Path, cache_dir=None):
+    """All ALL_COLS features of one user's scored rows (float32), labels, test mask, side flag and meta.
+    With cache_dir, a saved table for this user and feature code is loaded instead of rebuilt."""
+    path = None if cache_dir is None else Path(cache_dir) / f"u{uid}.npz"
+    if path is not None and path.is_file():
+        with np.load(path) as z:
+            return dict(X=z["X"], y=z["y"], test=z["test"], side=bool(z["side"]),
+                        meta=pd.DataFrame({k: z["meta_" + k] for k in META_COLS}))
     ds = loader.load_user_data(uid)
     raw = pd.read_parquet(data_dir / "revlogs" / f"user_id={uid}")
     st = R.review_stream(raw, cfg.max_seq_len * 2)
@@ -102,9 +133,8 @@ def user_table(uid, loader, cfg, data_dir: Path, cols):
     keys = ds["review_th"].to_numpy()
     if np.setdiff1d(keys, feats.index.to_numpy()).size:
         raise RuntimeError(f"user {uid}: scored rows missing from the feature stream")
-    X = feats.reindex(keys)[list(cols)].to_numpy(np.float32)
-    return dict(
-        X=X,
+    out = dict(
+        X=feats.reindex(keys)[ALL_COLS].to_numpy(np.float32),
         y=ds["y"].to_numpy(np.int64),
         test=R.test_row_mask(len(ds), cfg.n_splits),
         side=cards is not None and decks is not None,
@@ -113,15 +143,34 @@ def user_table(uid, loader, cfg, data_dir: Path, cols):
                            "i": ds["i"].to_numpy(np.float64),
                            "rmse_bins_lapse": ds["rmse_bins_lapse"].to_numpy(np.float64)}),
     )
+    if path is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        with open(tmp, "wb") as f:
+            np.savez(f, X=out["X"], y=out["y"], test=out["test"], side=np.array(out["side"]),
+                     **{"meta_" + k: out["meta"][k].to_numpy() for k in META_COLS})
+        os.replace(tmp, path)
+    return out
 
 
-def _init(data_dir: str, cols) -> None:
+META_COLS = ("y", "elapsed_days", "i", "rmse_bins_lapse")
+
+
+def user_table(uid, loader, cfg, data_dir: Path, cols, cache_dir=None):
+    """Features (cols, float32) and labels of one user's scored rows, plus the test mask and meta."""
+    full = _full_table(uid, loader, cfg, data_dir, cache_dir)
+    idx = [ALL_COLS.index(c) for c in cols]
+    return dict(X=full["X"][:, idx], y=full["y"], test=full["test"], side=full["side"], meta=full["meta"])
+
+
+def _init(data_dir: str, cols, cache_dir=None) -> None:
     S = R._srs_modules()
     cfg = S["Config"](S["create_parser"]().parse_args(["--algo", "FSRS-6", "--short", "--data", data_dir]))
     if cfg.get_evaluation_file_name() != "FSRS-6-short":
         raise RuntimeError(f"unexpected srs-benchmark setting {cfg.get_evaluation_file_name()}")
     _W.clear()
-    _W.update(cfg=cfg, loader=S["UserDataLoader"](cfg), data_dir=Path(data_dir), cols=list(cols))
+    _W.update(cfg=cfg, loader=S["UserDataLoader"](cfg), data_dir=Path(data_dir), cols=list(cols),
+              cache_dir=None if cache_dir is None else str(cache_dir))
 
 
 def _task_count(uid):
@@ -136,7 +185,7 @@ def _task_train(item):
     """item = (uid, quota): the user's features and labels, subsampled to `quota` rows (seeded per user)."""
     uid, quota = item
     try:
-        t = user_table(uid, _W["loader"], _W["cfg"], _W["data_dir"], _W["cols"])
+        t = user_table(uid, _W["loader"], _W["cfg"], _W["data_dir"], _W["cols"], _W["cache_dir"])
         X, y = t["X"], t["y"]
         if quota < len(y):
             rng = np.random.default_rng([SUBSAMPLE_SEED, int(uid)])
@@ -149,7 +198,7 @@ def _task_train(item):
 
 def _task_eval(uid):
     try:
-        t = user_table(uid, _W["loader"], _W["cfg"], _W["data_dir"], _W["cols"])
+        t = user_table(uid, _W["loader"], _W["cfg"], _W["data_dir"], _W["cols"], _W["cache_dir"])
         m = t["test"]
         if not m.any():
             return dict(uid=uid, error="no test rows")
@@ -159,16 +208,16 @@ def _task_eval(uid):
         return dict(uid=uid, error=f"{type(e).__name__}: {str(e)[:100]}")
 
 
-def _map(task, items, data_dir: Path, cols, workers: int):
+def _map(task, items, data_dir: Path, cols, workers: int, cache_dir=None):
     """Yield task(item) in order; workers > 1 uses a fork pool (featurization in parallel)."""
     items = list(items)
     if workers <= 1 or len(items) < 2:
-        _init(str(data_dir), cols)
+        _init(str(data_dir), cols, cache_dir)
         for it in items:
             yield task(it)
         return
     ctx = mp.get_context("fork")
-    with ctx.Pool(workers, initializer=_init, initargs=(str(data_dir), list(cols))) as pool:
+    with ctx.Pool(workers, initializer=_init, initargs=(str(data_dir), list(cols), cache_dir)) as pool:
         yield from pool.imap(task, items, chunksize=1)
 
 
@@ -280,15 +329,21 @@ def _fingerprint(cols, params, groups, train_uids, max_rounds, patience, max_tra
 
 def run(train_uids, eval_uids, data_dir, out, groups=None, num_leaves=DEFAULT_LEAVES,
         learning_rate=DEFAULT_LR, max_rounds=DEFAULT_MAX_ROUNDS, patience=R.PATIENCE, max_train_rows=None,
-        rows_per_user=None, workers=1, final=False, stop_after=None, result_dir=C.DEFAULT_RESULT_DIR):
+        rows_per_user=None, workers=1, final=False, stop_after=None, result_dir=C.DEFAULT_RESULT_DIR,
+        min_data_in_leaf=R.LGB_PARAMS["min_data_in_leaf"], feature_fraction=R.LGB_PARAMS["feature_fraction"],
+        lambda_l2=R.LGB_PARAMS["lambda_l2"], cache=True):
     """Train on train_uids (or reuse <out>.model.txt when the fingerprint matches), score eval_uids
-    (resumable), write run_info and the comparison. Returns the run_info dict."""
+    (resumable), write run_info and the comparison. Returns the run_info dict.
+    cache=True keeps per-user feature tables under <data>/feat_cache/<code hash>/ (skips featurization)."""
     check_users(train_uids, eval_uids, final)
     import lightgbm as lgb
 
+    t0 = time.time()
+    cache_dir = cache_dir_for(data_dir) if cache else None
     cols = group_columns(groups)
     group_names = [g for g in ALL_GROUPS if g in (ALL_GROUPS if groups is None else tuple(groups))]
-    params = dict(R.LGB_PARAMS, num_leaves=num_leaves, learning_rate=learning_rate)
+    params = dict(R.LGB_PARAMS, num_leaves=num_leaves, learning_rate=learning_rate,
+                  min_data_in_leaf=min_data_in_leaf, feature_fraction=feature_fraction, lambda_l2=lambda_l2)
     data_dir, out = Path(data_dir), Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     model_txt = Path(str(out) + ".model.txt")
@@ -311,7 +366,7 @@ def run(train_uids, eval_uids, data_dir, out, groups=None, num_leaves=DEFAULT_LE
         trained_now = False
     else:
         counts = {}
-        for r in _map(_task_count, train_uids, data_dir, cols, workers):
+        for r in _map(_task_count, train_uids, data_dir, cols, workers, cache_dir):
             if "error" in r:
                 skipped.append((r["uid"], r["error"]))
             else:
@@ -326,7 +381,7 @@ def run(train_uids, eval_uids, data_dir, out, groups=None, num_leaves=DEFAULT_LE
                     train_users_planned=len(planned), rows_planned=int(n_rows_plan),
                     n_feat=len(cols), peak_ram_estimate_bytes=peak_ram_estimate(n_rows_plan, len(cols)))
         pool = PresizedPool(hold, cap, len(cols))
-        for r in _map(_task_train, [(u, quotas[u]) for u in planned], data_dir, cols, workers):
+        for r in _map(_task_train, [(u, quotas[u]) for u in planned], data_dir, cols, workers, cache_dir):
             if "error" in r:
                 skipped.append((r["uid"], r["error"]))
                 continue
@@ -343,7 +398,7 @@ def run(train_uids, eval_uids, data_dir, out, groups=None, num_leaves=DEFAULT_LE
     done = R._load_done(out)
     pending = list(dict.fromkeys(u for u in eval_uids if u not in done))
     written, stopped = 0, False
-    gen = _map(_task_eval, pending, data_dir, cols, workers)
+    gen = _map(_task_eval, pending, data_dir, cols, workers, cache_dir)
     try:
         with open(out, "a", encoding="utf-8") as f:
             for r in gen:
@@ -371,7 +426,8 @@ def run(train_uids, eval_uids, data_dir, out, groups=None, num_leaves=DEFAULT_LE
     run_info = dict(
         fingerprint=fp, plan=plan, info=info, best_iter=int(best_iter), trained_now=trained_now,
         features=cols, groups=group_names, params=params, max_rounds=max_rounds, patience=patience,
-        max_train_rows=max_train_rows, rows_per_user=rows_per_user,
+        max_train_rows=max_train_rows, rows_per_user=rows_per_user, cache=cache,
+        elapsed_min=round((time.time() - t0) / 60, 2),
         final=final, train_users=sorted(int(u) for u in train_uids), eval_users=sorted(int(u) for u in eval_uids),
         eval_lines=n_lines, new_lines=written, stopped=stopped, skipped=skipped,
         train_users_without_side_tables=no_side["train"], eval_users_without_side_tables=no_side["eval"],
@@ -395,6 +451,10 @@ def main(argv=None):
     ap.add_argument("--max_rounds", type=int, default=DEFAULT_MAX_ROUNDS)
     ap.add_argument("--num_leaves", type=int, default=DEFAULT_LEAVES)
     ap.add_argument("--lr", type=float, default=DEFAULT_LR, help="learning rate")
+    ap.add_argument("--min_data_in_leaf", type=int, default=R.LGB_PARAMS["min_data_in_leaf"])
+    ap.add_argument("--feature_fraction", type=float, default=R.LGB_PARAMS["feature_fraction"])
+    ap.add_argument("--lambda_l2", type=float, default=R.LGB_PARAMS["lambda_l2"])
+    ap.add_argument("--no_cache", action="store_true", help="do not read or write the feature cache")
     ap.add_argument("--max_train_rows", type=int, default=None,
                     help="cap total training rows; each user keeps a share proportional to its rows")
     ap.add_argument("--rows_per_user", type=int, default=None, help="keep at most N rows per train user (seeded)")
@@ -416,7 +476,9 @@ def main(argv=None):
         print(f"download: revlogs missing {missing_rev}; side-table files missing {len(side['missing'])}")
     return run(train_uids, eval_uids, args.data, args.out, groups=groups, num_leaves=args.num_leaves,
                learning_rate=args.lr, max_rounds=args.max_rounds, max_train_rows=args.max_train_rows,
-               rows_per_user=args.rows_per_user, workers=args.workers, final=args.final)
+               rows_per_user=args.rows_per_user, workers=args.workers, final=args.final,
+               min_data_in_leaf=args.min_data_in_leaf, feature_fraction=args.feature_fraction,
+               lambda_l2=args.lambda_l2, cache=not args.no_cache)
 
 
 if __name__ == "__main__":
