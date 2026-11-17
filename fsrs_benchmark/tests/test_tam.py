@@ -54,9 +54,10 @@ def test_context_index_is_past_only_and_deduplicated():
         assert (card[card_part] == card[p]).all()
         assert not np.isin(card_part, user_part).any()
         assert len(card_part) <= M
-        # every same-card review before the user window is in the card part, up to M of them
-        older = np.flatnonzero(card[:max(0, p - K)] == card[p])
-        assert len(card_part) == min(M, len(older))
+        # the card's M most recent earlier reviews, minus those already inside the user window
+        same_before = np.flatnonzero(card[:p] == card[p])[-M:]
+        expected = same_before[same_before < p - K]
+        assert np.array_equal(np.sort(card_part), np.sort(expected))
 
 
 @needs_data
