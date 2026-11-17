@@ -103,6 +103,34 @@ def download_users(n_users, seed, out_dir):
     return paths
 
 
+SIDE_TABLES = ("cards", "decks")
+
+
+def download_side_tables(user_ids, out_dir):
+    """Download cards/ and decks/ parquet files for the given users (Phase 6, SRS-Beat features).
+
+    Mirrors download_users: one file per user at <kind>/user_id=<N>/data.parquet, written under out_dir
+    (so cards go to <out_dir>/cards and decks to <out_dir>/decks), existing files are skipped.
+    Pass the user ids explicitly; nothing is sampled here. Returns {kind: [local Path, ...]}.
+    """
+    out_dir = Path(out_dir)
+    result = {kind: [] for kind in SIDE_TABLES}
+    for uid in sorted(int(u) for u in user_ids):
+        for kind in SIDE_TABLES:
+            filename = f"{kind}/user_id={uid}/data.parquet"
+            local = out_dir / filename
+            if not local.exists():
+                try:
+                    hf_hub_download(
+                        repo_id=REPO_ID, filename=filename, repo_type="dataset",
+                        local_dir=str(out_dir),
+                    )
+                except HfHubHTTPError as err:
+                    raise RuntimeError(_access_message(err)) from err
+            result[kind].append(local)
+    return result
+
+
 def _user_id_from_path(path):
     m = USER_ID_RE.search(Path(path).as_posix())
     if m is None:

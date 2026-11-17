@@ -90,6 +90,9 @@ def review_stream(raw: pd.DataFrame, max_card_reviews: int) -> pd.DataFrame:
         "rating": raw["rating"].to_numpy(np.int64),
         "elapsed_days": raw["elapsed_days"].to_numpy(np.int64),
         "day_offset": raw["day_offset"].to_numpy(np.int64),
+        "state": raw["state"].to_numpy(np.int64),
+        "duration": raw["duration"].to_numpy(np.int64),
+        "elapsed_seconds": raw["elapsed_seconds"].to_numpy(np.int64),
     })
     ev = ev[ev["rating"].isin([1, 2, 3, 4])]
     ev = ev.sort_values(["card_id", "event_id"], kind="stable")
