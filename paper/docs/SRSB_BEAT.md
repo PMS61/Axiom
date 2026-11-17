@@ -61,3 +61,7 @@ only).
 - Running: TAM on Colab (150 train / 100 val); GBDT+umem 1500 train users on Kaggle notebook52e4915672 v3 (CPU);
   task 6.5a online per-user adaptation layer (local, small).
 - Runbook lessons are in memory note colab-kaggle-runbook (Drive uploads, pinned packages, local dry run first).
+- 2026-11-18 02:45 (user, going to sleep): run overnight. Small runs only (no big benchmark, no final 1-1000 test) until
+  something beats RWKV-Instant on validation; final 1-1000 test waits for the user's OK. If nothing beats it, freely
+  improvise (tune, fix the side-table bug, new features, blends, other small architectures). In the morning: print the
+  final results table; write it to paper/docs/reports/SRSB-BEAT-RESULTS.md.

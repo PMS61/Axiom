@@ -22,3 +22,5 @@
 - R-hat and ESS are undefined in models.tex:47 and discussion.tex:20.
 - Audit F2: results/paper_duolingo/events.parquet lacks ts and lexeme; a GBDT rebuild from it silently uses day grouping and no lexeme group. Make it warn or fail.
 - Optionally state the 19.5% calendar-later share of lexeme source rows (300-user audit sample) in limitations (e).
+- (6.1) features_plus sib_days_since is a whole day_offset difference, not fractional (no absolute time in the stream).
+- (6.1) data.download_side_tables: hf_hub_download with local_dir leaves a .cache folder in out_dir.
