@@ -143,6 +143,30 @@ def download_side_tables(user_ids, out_dir):
     return result
 
 
+def download_revlogs(user_ids, out_dir):
+    """Download revlog parquet for the given users (no sampling), skipping files already present.
+
+    Same layout and access errors as download_users. Returns (paths, missing): the local Paths that exist,
+    and the user ids whose revlog is not on the Hub.
+    """
+    out_dir = Path(out_dir)
+    paths, missing = [], []
+    for uid in sorted(int(u) for u in user_ids):
+        filename = f"revlogs/user_id={uid}/data.parquet"
+        local = out_dir / filename
+        if not local.exists():
+            try:
+                hf_hub_download(repo_id=REPO_ID, filename=filename, repo_type="dataset",
+                                local_dir=str(out_dir))
+            except EntryNotFoundError:
+                missing.append(uid)
+                continue
+            except HfHubHTTPError as err:
+                raise RuntimeError(_access_message(err)) from err
+        paths.append(local)
+    return paths, missing
+
+
 def _user_id_from_path(path):
     m = USER_ID_RE.search(Path(path).as_posix())
     if m is None:

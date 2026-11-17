@@ -158,9 +158,10 @@ class TrainPool:
     early-stopping holdout. finalize() gathers the rows into one preallocated (m, F) float32 array. If
     max_rows is set and there are more rows, m = max_rows rows are drawn uniformly at random (seeded)."""
 
-    def __init__(self, hold=(), max_rows=None):
+    def __init__(self, hold=(), max_rows=None, n_feat=None):
         self.hold = set(hold)
         self.max_rows = max_rows
+        self.n_feat = len(FEATURE_COLS) if n_feat is None else n_feat
         self.parts = {"fit": [], "val": []}
         self.uids = {"fit": [], "val": []}
 
@@ -176,7 +177,7 @@ class TrainPool:
         parts = self.parts[kind]
         self.parts[kind] = []
         n = sum(len(y) for _, y in parts)
-        F = len(FEATURE_COLS)
+        F = self.n_feat
         keep = None
         m = n
         if max_rows is not None and n > max_rows:
@@ -205,24 +206,29 @@ class TrainPool:
         return X_out, y_out
 
 
-def fit_from_pool(pool: TrainPool, max_rounds: int = MAX_ROUNDS, patience: int = PATIENCE, max_train_rows=None):
-    """Train one LightGBM on the pool's fit rows, with early stopping on the holdout rows."""
+def fit_from_pool(pool: TrainPool, max_rounds: int = MAX_ROUNDS, patience: int = PATIENCE, max_train_rows=None,
+                  names=None, params=None):
+    """Train one LightGBM on the pool's fit rows, with early stopping on the holdout rows.
+    names / params default to FEATURE_COLS / LGB_PARAMS (val_plus passes its own)."""
     import lightgbm as lgb
+
+    names = FEATURE_COLS if names is None else list(names)
+    params = LGB_PARAMS if params is None else params
 
     val_cap = None if max_train_rows is None else max(1, max_train_rows // 5)
     n_fit_users = len(pool.uids["fit"])
     n_val_users = len(pool.uids["val"])
     X_fit, y_fit = pool.finalize("fit", max_train_rows)
-    dtr = lgb.Dataset(X_fit, y_fit, feature_name=FEATURE_COLS, free_raw_data=False)
+    dtr = lgb.Dataset(X_fit, y_fit, feature_name=names, free_raw_data=False)
     if n_val_users:
         X_val, y_val = pool.finalize("val", val_cap)
         dva = lgb.Dataset(X_val, y_val, reference=dtr)
-        booster = lgb.train(LGB_PARAMS, dtr, max_rounds, valid_sets=[dva],
+        booster = lgb.train(params, dtr, max_rounds, valid_sets=[dva],
                             callbacks=[lgb.early_stopping(patience, verbose=False)])
         best_iter = booster.best_iteration or booster.current_iteration()
         del X_val, y_val, dva
     else:
-        booster = lgb.train(LGB_PARAMS, dtr, min(max_rounds, FALLBACK_ROUNDS))
+        booster = lgb.train(params, dtr, min(max_rounds, FALLBACK_ROUNDS))
         best_iter = booster.current_iteration()
     info = dict(train_users=n_fit_users, holdout_users=n_val_users, fit_rows=int(len(y_fit)),
                 best_iter=int(best_iter))
