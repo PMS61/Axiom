@@ -169,8 +169,13 @@ class QueryScaler:
         self.std = std.astype(np.float32)
 
     @classmethod
-    def fit(cls, users: list[dict]) -> "QueryScaler":
-        X = np.concatenate([u["xq"][u["scored"]] for u in users])
+    def fit(cls, users: list[dict], max_rows_per_user: int = 2000) -> "QueryScaler":
+        parts = []
+        for u in users:
+            idx = np.flatnonzero(u["scored"])
+            idx = idx[:: max(1, len(idx) // max_rows_per_user)]
+            parts.append(np.asarray(u["xq"][idx], np.float32))
+        X = np.concatenate(parts)
         with np.errstate(all="ignore"):
             mean = np.nanmean(X, axis=0)
             std = np.nanstd(X, axis=0)
@@ -185,23 +190,33 @@ class QueryScaler:
         return np.concatenate([z, miss.astype(np.float32)], axis=1).astype(np.float32)
 
 
-def context_index(card: np.ndarray, K: int = K_USER, M: int = M_CARD) -> np.ndarray:
-    """(n, K+M) int64 local positions of each row's context, -1 for padding. Columns 0..K-1: the user's
-    window, positions p-K .. p-1. Columns K..K+M-1: the card's previous reviews before p, most recent first,
-    skipping any that lie inside the user window (deduplicated)."""
+def dense_ids(a: np.ndarray) -> np.ndarray:
+    """Per-user dense int32 ids (relations only compare ids within one user). Unknown (<0) stays -1."""
+    a = np.asarray(a, np.int64)
+    out = np.full(len(a), -1, np.int32)
+    m = a >= 0
+    if m.any():
+        out[m] = np.unique(a[m], return_inverse=True)[1].astype(np.int32)
+    return out
+
+
+def context_index(card: np.ndarray, K: int = K_USER, M: int = M_CARD, rows: np.ndarray | None = None) -> np.ndarray:
+    """(len(rows), K+M) int32 local positions of each target row's context, -1 for padding (all rows by
+    default). Columns 0..K-1: the user's window, positions p-K .. p-1. Columns K..K+M-1: the card's previous
+    reviews before p, most recent first, skipping any that lie inside the user window (deduplicated)."""
     n = len(card)
-    p = np.arange(n)
-    out = np.full((n, K + M), -1, np.int64)
+    p = np.arange(n, dtype=np.int64) if rows is None else np.asarray(rows, np.int64)
+    out = np.full((len(p), K + M), -1, np.int64)
     j = p[:, None] - K + np.arange(K)[None, :]
     out[:, :K] = np.where(j >= 0, j, -1)
-    prev = pd.Series(p).groupby(card).shift(1).to_numpy(float)
+    prev = pd.Series(np.arange(n)).groupby(card).shift(1).to_numpy(float)
     prev = np.where(np.isnan(prev), -1, prev).astype(np.int64)
-    cur = prev
+    cur = prev[p]
     for m in range(M):
         ok = cur >= 0
         out[:, K + m] = np.where(ok & (cur < p - K), cur, -1)
         cur = np.where(ok, prev[np.maximum(cur, 0)], -1)
-    return out
+    return out.astype(np.int32)
 
 
 class Pool:
@@ -218,7 +233,8 @@ class Pool:
 
 def build_pool(users: list[dict], scaler: QueryScaler, rows: str = "scored") -> Pool:
     """Pool over the users' scored rows (rows="scored"), their test rows (rows="test") or all their stream
-    rows (rows="all")."""
+    rows (rows="all"). Tokens are kept for every row of each user (context); query features and FSRS priors
+    are kept for the target rows only. Host storage: tokens and queries float16, ids int32."""
     toks, ids, days, qs, frs, ctxs, tgts, ys = [], [], [], [], [], [], [], []
     off = 0
     for u in users:
@@ -229,25 +245,26 @@ def build_pool(users: list[dict], scaler: QueryScaler, rows: str = "scored") -> 
             sel = np.flatnonzero(u["test"])
         else:
             sel = np.arange(n)
-        ctx = context_index(u["card"])[sel]
-        ctxs.append(np.where(ctx >= 0, ctx + off, -1))
+        ctx = context_index(u["card"], rows=sel).astype(np.int64)
+        ctxs.append(np.where(ctx >= 0, ctx + off, -1).astype(np.int32))
         tgts.append(sel + off)
         ys.append(u["y"][sel])
-        toks.append(u["tok"])
-        ids.append(np.stack([u["card"], u["note"], u["deck"], u["preset"]], axis=1))
-        days.append(u["day"])
-        qs.append(scaler.transform(u["xq"]))
-        frs.append(u["fr"])
+        toks.append(np.asarray(u["tok"], np.float16))
+        ids.append(np.stack([dense_ids(u["card"]), dense_ids(u["note"]), dense_ids(u["deck"]),
+                             dense_ids(u["preset"])], axis=1))
+        days.append(np.asarray(u["day"], np.float32))
+        qs.append(scaler.transform(np.asarray(u["xq"][sel], np.float32)).astype(np.float16))
+        frs.append(np.asarray(u["fr"][sel], np.float32))
         off += n
     N = off
-    width = qs[0].shape[1]
-    fr = np.clip(np.concatenate(frs + [np.full(1, 0.5, np.float32)]), P_CLIP, 1 - P_CLIP)
-    ctx = np.concatenate(ctxs) if ctxs else np.zeros((0, K_USER + M_CARD), np.int64)
+    width = scaler.mean.shape[0] * 2
+    fr = np.clip(np.concatenate(frs) if frs else np.zeros(0, np.float32), P_CLIP, 1 - P_CLIP)
+    ctx = np.concatenate(ctxs) if ctxs else np.zeros((0, K_USER + M_CARD), np.int32)
     return Pool(
-        tok=np.concatenate(toks + [np.zeros((1, TOK_DIM), np.float32)]),
-        ids=np.concatenate(ids + [np.full((1, 4), -1, np.int64)]),
-        day=np.concatenate([d.astype(np.float32) for d in days] + [np.zeros(1, np.float32)]),
-        q=np.concatenate(qs + [np.zeros((1, width), np.float32)]),
+        tok=np.concatenate(toks + [np.zeros((1, TOK_DIM), np.float16)]),
+        ids=np.concatenate(ids + [np.full((1, 4), -1, np.int32)]),
+        day=np.concatenate(days + [np.zeros(1, np.float32)]),
+        q=np.concatenate(qs) if qs else np.zeros((0, width), np.float16),
         fr_logit=np.log(fr / (1 - fr)).astype(np.float32),
         ctx=np.where(ctx < 0, N, ctx).astype(np.int32),
         tgt=np.concatenate(tgts).astype(np.int64) if tgts else np.zeros(0, np.int64),
@@ -262,10 +279,10 @@ class TorchPool:
 
     def __init__(self, pool: Pool, device):
         self.device = device
-        self.tok = torch.as_tensor(pool.tok, device=device)
-        self.ids = torch.as_tensor(pool.ids, device=device)
+        self.tok = torch.as_tensor(pool.tok, device=device).float()     # fp16 on host, fp32 on device
+        self.ids = torch.as_tensor(pool.ids, device=device).long()
         self.day = torch.as_tensor(pool.day, device=device)
-        self.q = torch.as_tensor(pool.q, device=device)
+        self.q = torch.as_tensor(pool.q, device=device).float()
         self.fr = torch.as_tensor(pool.fr, device=device)
         self.ctx = torch.as_tensor(pool.ctx, device=device)          # int32, converted per batch
         self.tgt = torch.as_tensor(pool.tgt, device=device)
@@ -282,7 +299,7 @@ def make_batch_t(tp: TorchPool, rows: torch.Tensor) -> dict:
     g = tp.tgt[rows]
     idx = torch.cat([tp.ctx[rows].long(), g[:, None]], dim=1)
     return dict(tok=tp.tok[idx], ids=tp.ids[idx], day=tp.day[idx], valid=idx != tp.n,
-                q=tp.q[g], fr=tp.fr[g], y=tp.y[rows])
+                q=tp.q[rows], fr=tp.fr[rows], y=tp.y[rows])
 
 
 def _as_torch(pool, device) -> TorchPool:
@@ -294,12 +311,12 @@ def make_batch(pool: Pool, rows: np.ndarray) -> dict:
     g = pool.tgt[rows]
     idx = np.concatenate([pool.ctx[rows].astype(np.int64), g[:, None]], axis=1)
     return dict(
-        tok=torch.from_numpy(pool.tok[idx]),
-        ids=torch.from_numpy(pool.ids[idx]),
+        tok=torch.from_numpy(pool.tok[idx].astype(np.float32)),
+        ids=torch.from_numpy(pool.ids[idx].astype(np.int64)),
         day=torch.from_numpy(pool.day[idx]),
         valid=torch.from_numpy(idx != pool.n),
-        q=torch.from_numpy(pool.q[g]),
-        fr=torch.from_numpy(pool.fr[g]),
+        q=torch.from_numpy(pool.q[rows].astype(np.float32)),
+        fr=torch.from_numpy(pool.fr[rows]),
         y=torch.from_numpy(pool.y[rows]),
     )
 

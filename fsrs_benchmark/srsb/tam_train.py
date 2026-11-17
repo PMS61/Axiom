@@ -22,8 +22,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import gc
 import math
 import multiprocessing as mp
+import resource
 import sys
 import time
 from pathlib import Path
@@ -45,6 +47,13 @@ DEFAULT_BATCH = 256
 DEFAULT_LR = 1e-3
 DEFAULT_PATIENCE = 3
 WEIGHT_DECAY = 0.01
+TRAIN_KEEP_ROWS = 60000       # train/holdout users keep only their last N stream rows (context is 256+32 back)
+N_PRINT_ERRORS = 5
+
+
+def peak_rss_mb() -> float:
+    """Peak resident set size of this process in MB (Linux reports KB)."""
+    return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0, 1)
 
 
 def check_users(train_uids, eval_uids, final: bool = False) -> None:
@@ -63,16 +72,34 @@ def pick_device(spec: str) -> torch.device:
     return torch.device(spec)
 
 
-def _build_one(uid: int, data_dir: str, cache_dir: str | None):
+def slim_train(u: dict, keep: int = TRAIN_KEEP_ROWS) -> dict:
+    """Keep only the last `keep` stream rows of a training user, in compact dtypes: tokens and queries
+    float16, ids dense int32, day int32. Context only looks back K_USER + M_CARD rows, so the kept rows
+    give every kept target its full context; the dropped early rows are never needed for them."""
+    n = len(u["day"])
+    sl = slice(max(0, n - keep), n)
+    return dict(
+        review_th=u["review_th"][sl], day=u["day"][sl].astype(np.int32),
+        card=T.dense_ids(u["card"][sl]), note=T.dense_ids(u["note"][sl]),
+        deck=T.dense_ids(u["deck"][sl]), preset=T.dense_ids(u["preset"][sl]),
+        tok=u["tok"][sl].astype(np.float16),
+        xq=np.clip(u["xq"][sl], -6e4, 6e4).astype(np.float16),   # float16 saturates beyond 65504
+        fr=u["fr"][sl], y=u["y"][sl], scored=u["scored"][sl], test=u["test"][sl],
+    )
+
+
+def _build_one(uid: int, data_dir: str, cache_dir, keep):
     try:
-        return uid, T.build_user_tensors(uid, data_dir, cache_dir), None
+        arrs = T.build_user_tensors(uid, data_dir, cache_dir)
+        return uid, (arrs if keep is None else slim_train(arrs, keep)), None
     except Exception as e:                 # srs-benchmark skips such users too
         return uid, None, f"{type(e).__name__}: {str(e)[:100]}"
 
 
-def build_users(uids, data_dir: Path, cache_dir: Path | None, workers: int):
-    """Per-user arrays for uids (fork pool when workers > 1). Returns (dict uid -> arrays, skipped list)."""
-    args = [(int(u), str(data_dir), None if cache_dir is None else str(cache_dir)) for u in uids]
+def build_users(uids, data_dir: Path, cache_dir: Path | None, workers: int, keep=None):
+    """Per-user arrays (slimmed when keep is set) for uids; fork pool when workers > 1.
+    Returns (dict uid -> arrays, skipped list of (uid, error))."""
+    args = [(int(u), str(data_dir), None if cache_dir is None else str(cache_dir), keep) for u in uids]
     if workers > 1 and len(args) > 1:
         with mp.get_context("fork").Pool(workers) as pool:
             results = pool.starmap(_build_one, args, chunksize=1)
@@ -85,6 +112,12 @@ def build_users(uids, data_dir: Path, cache_dir: Path | None, workers: int):
         else:
             skipped.append((uid, err))
     return users, skipped
+
+
+def report_skipped(label: str, skipped) -> None:
+    print(f"{label}: {len(skipped)} skipped", flush=True)
+    for uid, err in skipped[:N_PRINT_ERRORS]:
+        print(f"  skipped user {uid}: {err}", flush=True)
 
 
 def subsample_targets(u: dict, k: int | None, rng: np.random.Generator) -> dict:
@@ -155,7 +188,7 @@ def train_model(train_arrs: list[dict], hold_arrs: list[dict], args, device, ckp
         hold_ll = _loss_on(model, hp, args.batch) if hp is not None else None
         rec = dict(epoch=ep, train_log_loss=round(train_ll, 6),
                    holdout_log_loss=None if hold_ll is None else round(hold_ll, 6),
-                   seconds=round(time.time() - t0, 1))
+                   seconds=round(time.time() - t0, 1), peak_rss_mb=peak_rss_mb())
         history.append(rec)
         print(json.dumps(rec), flush=True)
         score = hold_ll if hold_ll is not None else train_ll
@@ -176,25 +209,30 @@ def train_model(train_arrs: list[dict], hold_arrs: list[dict], args, device, ckp
     return model, scaler, info
 
 
-def eval_users(model, scaler, arrs: dict, out: Path, device, batch: int) -> dict:
-    """Score each eval user's test rows, appending one jsonl line per user (resumable). Per-row predictions
-    go to <out>.preds/<uid>.parquet. Returns the user ids skipped (no test rows)."""
+def eval_users(model, scaler, uids, data_dir: Path, cache_dir, out: Path, device, batch: int) -> dict:
+    """Score each eval user's test rows, one user at a time (built, scored, freed), appending one jsonl line
+    per user (resumable). Per-row predictions go to <out>.preds/<uid>.parquet and are combined at the end.
+    Returns the users that could not be built and those with no test rows."""
     parts = Path(str(out) + ".preds")
     parts.mkdir(parents=True, exist_ok=True)
     done = R._load_done(out)
-    skipped = []
+    skipped, no_test = [], []
     with open(out, "a", encoding="utf-8") as f:
-        for uid in sorted(arrs):
+        for uid in sorted(uids):
             if uid in done:
                 continue
-            u = arrs[uid]
+            try:
+                u = T.build_user_tensors(uid, str(data_dir), cache_dir)
+            except Exception as e:
+                skipped.append((uid, f"{type(e).__name__}: {str(e)[:100]}"))
+                continue
             test_pos = np.flatnonzero(u["test"])
             if len(test_pos) == 0:
-                skipped.append(uid)
+                no_test.append(uid)
+                del u
                 continue
             pool = T.build_pool([u], scaler, rows="test")
-            p = T.predict(model, pool, None, batch).astype(np.float64)
-            p = np.clip(p, T.P_CLIP, 1 - T.P_CLIP)
+            p = np.clip(T.predict(model, pool, None, batch).astype(np.float64), T.P_CLIP, 1 - T.P_CLIP)
             y = u["y"][test_pos].astype(np.float64)
             meta = pd.DataFrame({"y": y, "elapsed_days": u["meta_gap"][test_pos],
                                  "i": u["meta_i"][test_pos], "rmse_bins_lapse": u["meta_rmse"][test_pos]})
@@ -203,6 +241,8 @@ def eval_users(model, scaler, arrs: dict, out: Path, device, batch: int) -> dict
             f.flush()
             pd.DataFrame({"uid": np.full(len(y), uid, np.int64), "review_th": u["review_th"][test_pos],
                           "p": p}).to_parquet(parts / f"{uid}.parquet", index=False)
+            del u, pool, p, y, meta
+            gc.collect()
         f.flush()
     R._sort_file(out)
     finished = sorted(R._load_done(out))
@@ -210,7 +250,7 @@ def eval_users(model, scaler, arrs: dict, out: Path, device, batch: int) -> dict
     if parts_found:
         pd.concat([pd.read_parquet(x) for x in parts_found], ignore_index=True).to_parquet(
             Path(str(out) + ".preds.parquet"), index=False)
-    return dict(eval_skipped_no_test=skipped)
+    return dict(eval_skipped=skipped, eval_skipped_no_test=no_test)
 
 
 def run(args) -> dict:
@@ -230,11 +270,16 @@ def run(args) -> dict:
     print(f"device {device}, amp {bool(args.amp and device.type == 'cuda')}", flush=True)
 
     hold_uids = R.holdout_users(train_uids)
-    fit_uids = [u for u in train_uids if u not in set(hold_uids)]
-    users, skipped = build_users(sorted(set(train_uids) | set(eval_uids)), data_dir, cache, args.workers)
-    skipped_ids = {u for u, _ in skipped}
+    hold_set = set(hold_uids)
+    fit_uids = [u for u in train_uids if u not in hold_set]
+    users, skipped = build_users(sorted(set(train_uids)), data_dir, cache, args.workers, keep=TRAIN_KEEP_ROWS)
+    report_skipped("train users", skipped)
     fit_arrs = [users[u] for u in fit_uids if u in users]
     hold_arrs = [users[u] for u in hold_uids if u in users]
+    if not fit_arrs:
+        raise SystemExit(f"no train users loaded ({len(skipped)} skipped); see the errors above")
+    print(f"loaded {len(fit_arrs)} train + {len(hold_arrs)} holdout users, peak RSS {peak_rss_mb()} MB",
+          flush=True)
 
     ckpt = Path(str(out) + ".ckpt.pt")
     info_path = Path(str(out) + ".run_info.json")
@@ -248,16 +293,20 @@ def run(args) -> dict:
         print("resumed: trained model loaded from", ckpt, flush=True)
     else:
         model, scaler, info = train_model(fit_arrs, hold_arrs, args, device, ckpt)
+    del users, fit_arrs, hold_arrs
+    gc.collect()
 
-    ev = eval_users(model, scaler, {u: users[u] for u in eval_uids if u in users}, out, device, args.batch)
+    ev = eval_users(model, scaler, eval_uids, data_dir, cache, out, device, args.batch)
+    report_skipped("eval users", ev["eval_skipped"])
     cmp = V.compare_published(out)
     V._print_comparison(cmp)
     run_info = dict(args=vars(args), train=info, train_users=fit_uids, holdout_users=hold_uids,
                     skipped_users=[dict(user=u, error=e) for u, e in skipped],
-                    eval_missing=sorted(u for u in eval_uids if u in skipped_ids or u not in users),
+                    eval_skipped=[dict(user=u, error=e) for u, e in ev["eval_skipped"]],
                     eval_skipped_no_test=ev["eval_skipped_no_test"],
-                    comparison=cmp, out=str(out))
+                    peak_rss_mb=peak_rss_mb(), comparison=cmp, out=str(out))
     info_path.write_text(json.dumps(run_info, indent=1, default=str), encoding="utf-8")
+    print(f"peak RSS {peak_rss_mb()} MB", flush=True)
     return run_info
 
 
