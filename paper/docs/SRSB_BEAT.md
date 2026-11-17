@@ -53,3 +53,11 @@ only).
 ## Decisions
 - 2026-11-17 (user): cards/decks for eval users 1-1000 may be downloaded. They are downloaded only as part of the
   final 6.5 run (inside the Kaggle notebook), never used for selection.
+- 2026-11-18 (user): only SMALL runs (about 150-300 train users, 100 validation users 8001-8100) until some
+  model beats RWKV-Instant on validation; scale up only after that.
+
+## Status 2026-11-18 (gap = ours minus RWKV-Instant, size-weighted log loss, about 100 val users)
+- GBDT+ new features, 76 train users: +0.029. 300 users: +0.022. +umem features: +0.018. 63 leaves: +0.017.
+- Running: TAM on Colab (150 train / 100 val); GBDT+umem 1500 train users on Kaggle notebook52e4915672 v3 (CPU);
+  task 6.5a online per-user adaptation layer (local, small).
+- Runbook lessons are in memory note colab-kaggle-runbook (Drive uploads, pinned packages, local dry run first).
