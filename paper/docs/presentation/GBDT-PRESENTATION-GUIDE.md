@@ -16,7 +16,7 @@ Every topic has three layers.
 - **Detailed picture.** What you say when someone asks "how?".
 - **Very detailed picture.** Formulas, numbers and worked examples, for hard questions.
 
-Read the big pictures first (about 10 minutes), then go deeper where you feel unsure. Section 15 is a list of likely questions with short answers. Numbers marked *pending* come from runs still in progress when this was written.
+Read the big pictures first (about 10 minutes), then go deeper where you feel unsure. Section 15 is a list of likely questions with short answers. The final test of the full model (GBDT + online layer) is complete; its numbers are in sections 0d and 10.
 
 # 0. The whole story on one page
 
@@ -45,8 +45,8 @@ Read the big pictures first (about 10 minutes), then go deeper where you feel un
 | Claim | Evidence |
 |---|---|
 | "2nd of all published models" | final test on 1,000 unseen users, model frozen beforehand; significant wins over every model except RWKV-Instant |
-| "Clearly beats FSRS" | −0.033 log loss [−0.039, −0.028], 99% interval |
-| "Near the top" | +0.02 log loss, −0.03 AUC behind RWKV-Instant. Say *"close"*, never *"equal"* |
+| "Clearly beats FSRS" | −0.038 log loss [−0.044, −0.033], 99% interval (final model, test) |
+| "Near the top" | +0.017 log loss, −0.03 AUC behind RWKV-Instant (test). Say *"close"*, never *"equal"* |
 | "About 14 times smaller" | about 196k stored numbers vs 2.76M parameters |
 | "CPU-only, 1/18 of the data" | 47 min on 4 CPU cores, 270 training users vs RWKV's 5,000 |
 | "About 1,000 times faster" | measured on Kaggle: 0.09 ms vs about 96 ms per live prediction |
@@ -101,7 +101,7 @@ Our model uses things that happen *after* the card's previous review: today's se
 | Ours | 0.3098 | 0.2843 | 0.766 | 0.795 |
 | Difference | **+0.0132** | +0.0160 | **−0.030** | −0.031 |
 
-**Test (users 1–1,000), GBDT alone:** log loss +0.0224 [+0.0198, +0.0253]; AUC 0.790 vs 0.827 (−0.037). The final model with the online layer is *pending*; expect about +0.018.
+**Test (users 1–1,000), final model (GBDT + online):** log loss 0.2999 vs 0.2828, a gap of **+0.0171** [+0.0154, +0.0191]; AUC 0.795 vs 0.826 (−0.032). The GBDT alone was +0.0224.
 
 **Statistically significant?** Yes. The 99% paired interval for log loss is +0.0129 [+0.0106, +0.0165], entirely above zero. The AUC gap (0.03–0.04) is about 10 times the leaderboard's uncertainty for AUC (about ±0.002).
 
@@ -114,12 +114,12 @@ Our model uses things that happen *after* the card's previous review: today's se
 
 | Comparison | Gap |
 |---|---|
-| ours vs RWKV-Instant | +0.022 (we lose) |
-| ours vs RWKV-Curve | −0.009 (we win; cross-category) |
-| ours vs FSRS-6 | **−0.033** (we win) |
+| ours vs RWKV-Instant | +0.017 (we lose) |
+| ours vs RWKV-Curve | −0.014 (we win; cross-category) |
+| ours vs FSRS-6 | **−0.038** (we win) |
 | FSRS-6 vs Anki's default scheduler | −0.18 |
 
-**Your line:** *"RWKV-Instant is significantly better than us, by about 0.02 log loss and 0.03 AUC. But that is a smaller gap than our lead over FSRS, the algorithm Anki actually ships."*
+**Your line:** *"RWKV-Instant is significantly better than us, by about 0.017 log loss and 0.03 AUC. But that is less than half our lead over FSRS (0.038), the algorithm Anki actually ships."*
 
 # 1. The problem: spaced repetition
 
@@ -473,7 +473,20 @@ srs-benchmark is the open leaderboard of memory models, run by the FSRS authors,
 - vs RWKV-Curve: **−0.0091** [−0.0141, −0.0045]: we win;
 - vs FSRS-6: **−0.0332** [−0.0387, −0.0285]: we win clearly.
 
-**Stage 2: GBDT + online layer** (the full final model): *pending; running*. On validation the online layer cut log loss by about 0.004, so expect about **0.301 weighted**, about 0.018 behind RWKV-Instant. Only the real number counts.
+**Stage 2: GBDT + online layer, the full final model** (done, scored once):
+
+| Model | Log loss (weighted) | Log loss (unweighted) | AUC (weighted) | AUC (unweighted) |
+|---|---|---|---|---|
+| RWKV-Instant | **0.2828** | **0.2860** | **0.826** | **0.832** |
+| **Ours: GBDT + online (final)** | **0.2999** | **0.3049** | **0.795** | **0.801** |
+| Our GBDT alone | 0.3051 | 0.3088 | 0.790 | 0.800 |
+
+**Paired differences, final model minus the other model** (weighted, 99% interval):
+
+- vs our GBDT alone: **−0.0052** [−0.0067, −0.0042]: the online layer helps on test too;
+- vs RWKV-Instant: **+0.0171** [+0.0154, +0.0191]: we lose;
+- vs RWKV-Curve: **−0.0143** [−0.0195, −0.0101]: we win;
+- vs FSRS-6: **−0.0384** [−0.0442, −0.0333]: we win clearly.
 
 ## Very detailed picture: how we got here (validation, gap to RWKV-Instant)
 
