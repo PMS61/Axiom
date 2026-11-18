@@ -24,3 +24,5 @@
 - Optionally state the 19.5% calendar-later share of lexeme source rows (300-user audit sample) in limitations (e).
 - (6.1) features_plus sib_days_since is a whole day_offset difference, not fractional (no absolute time in the stream).
 - (6.1) data.download_side_tables: hf_hub_download with local_dir leaves a .cache folder in out_dir.
+- (LOW, Phase 8) curve.py since_first_j = since_first(i) - el(i): exact only while elapsed_days equals the day difference (held on users 2001, 8002); use row j's since_first instead.
+- (LOW, Phase 8) curve.py: `state` classed FROM_J (conservative); document the choice.
