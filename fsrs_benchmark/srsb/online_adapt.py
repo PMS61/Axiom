@@ -14,12 +14,16 @@ Selection honesty: variant and lr are chosen on users 8001-8050 only, then repor
 """
 import argparse
 import json
+import multiprocessing as mp
+import resource
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow.dataset as pads
 from numba import njit
 
 from fsrs_benchmark.models import gbdt as G
@@ -210,7 +214,7 @@ def _wmean(grid_users, users):
     return C.weighted_mean([grid_users[u][0] for u in us], [grid_users[u][1] for u in us])
 
 
-def main(argv=None):
+def main_validation(argv=None):
     ap = argparse.ArgumentParser(description="Per-user online logistic layer on the saved GBDT (6.5a).")
     ap.add_argument("--model", default="results/srsb_beat/sweep_a_l63.jsonl.model.txt")
     ap.add_argument("--run_info", default="results/srsb_beat/sweep_a_l63.jsonl.run_info.json")
@@ -222,6 +226,208 @@ def main(argv=None):
     report, _ = run(args.model, args.run_info, args.data, args.gbdt_jsonl, args.out, dump_preds=args.dump_preds)
     print(json.dumps(report, indent=1, default=str))
     return report
+
+
+# ---- FROZEN FINAL RUN (paper/docs/SRSB_BEAT.md "FROZEN FINAL MODEL"): one fixed setting, no selection ----------
+
+FINAL_LO, FINAL_HI = 1, 1000                    # the test set
+FINAL_VARIANT, FINAL_LR = "B", 0.003            # pre-registered (chosen on 8001-8050 only)
+FINAL_GBDT = "results/srsb_beat/final/gbdt_test1000.jsonl"
+FINAL_OUT = "results/srsb_beat/final/online_test1000.jsonl"
+BIG_ROWS = 150_000                              # users above this many raw revlog rows run one at a time (RAM)
+
+
+def check_users(uids, final):
+    """Users 1-1000 are the test set: they may be used only by the frozen final run (final=True)."""
+    bad = sorted(int(u) for u in uids if FINAL_LO <= int(u) <= FINAL_HI)
+    if bad and not final:
+        raise ValueError(f"users {FINAL_LO}-{FINAL_HI} are the test set; only the frozen final run "
+                         f"(--final) may use them, got {bad[:10]}")
+
+
+def final_settings(variant=FINAL_VARIANT, lr=FINAL_LR):
+    """The ONE fixed setting of the final run. Nothing is selected: the list always has exactly one entry."""
+    if variant not in VARIANTS:
+        raise ValueError(f"unknown variant {variant}")
+    if not lr > 0:
+        raise ValueError(f"learning rate must be positive, got {lr}")
+    return [(variant, float(lr))]
+
+
+def featurized_arrays(uid, booster, names, best_iter, loader, cfg, data_dir):
+    arr = user_arrays(uid, booster, names, best_iter, loader, cfg, data_dir)
+    arr["ds"] = loader.load_user_data(uid)
+    return arr
+
+
+_FW: dict = {}
+
+
+def _init_final_worker(model_path, names, best_iter, data_dir, setting):
+    import lightgbm as lgb
+    V._init(str(data_dir), names)
+    _FW.update(booster=lgb.Booster(model_file=str(model_path)), names=list(names), best_iter=int(best_iter),
+               data_dir=Path(data_dir), setting=setting)
+
+
+def final_user(uid, booster, names, best_iter, loader, cfg, data_dir, setting):
+    """One user of the final run: the single fixed setting, the srs-benchmark metrics on the test rows, and the
+    GBDT LogLoss of the same rows (for the stage-1 check)."""
+    from sklearn.metrics import log_loss
+    t0 = time.time()
+    # Always the full stream: the feature cache holds only the scored rows, and the online recursion needs
+    # every labelled stream row (tested in tests/test_online_final.py).
+    arr = featurized_arrays(uid, booster, names, best_iter, loader, cfg, data_dir)
+    variant, lr = setting
+    t = arr["test"]
+    y_eval = arr["ds"]["y"].to_numpy(np.float64)[t]
+    meta = pd.DataFrame({c: arr["ds"][c].to_numpy(np.float64)[t] for c in V.META_COLS})
+    Xd = design(arr["margin"], arr["extra"], variant)
+    p_full = online_kernel(Xd, arr["y"], arr["labelled"], w0_for(variant), lr, LAMBDA)
+    p = np.clip(p_full[arr["pos"]][t], P_CLIP, 1 - P_CLIP)
+    p_gb = np.clip(1.0 / (1.0 + np.exp(-arr["margin"][arr["pos"]][t])), P_CLIP, 1 - P_CLIP)
+    metrics = R.user_metrics(y_eval, p, meta)
+    return dict(user=int(uid), size=int(t.sum()), metrics=metrics, gbdt_ll=float(log_loss(y_eval, p_gb, labels=[0, 1])),
+                stream_rows=int(len(arr["y"])), seconds=round(time.time() - t0, 1))
+
+
+def _final_task(uid):
+    try:
+        w = _FW
+        return final_user(uid, w["booster"], w["names"], w["best_iter"], V._W["loader"], V._W["cfg"],
+                          w["data_dir"], w["setting"])
+    except Exception:
+        raise RuntimeError(f"user {uid} failed:\n{traceback.format_exc()}")
+
+
+def _progress(r, i, n, t0, big=False):
+    tag = "big " if big else ""
+    where = "" if i is None else f" ({i}/{n})"
+    print(f"{tag}user {r['user']}{where} rows {r['stream_rows']} seconds {r['seconds']} "
+          f"total_elapsed {time.time() - t0:.0f}s", flush=True)
+
+
+def run_final(model_path, run_info_path, data_dir, out, users, variant=FINAL_VARIANT, lr=FINAL_LR, workers=4,
+              gbdt_jsonl=FINAL_GBDT, result_dir=C.DEFAULT_RESULT_DIR, final=False, big_rows=BIG_ROWS):
+    """Frozen final run of the online layer: one setting, users in `users`, srs-benchmark jsonl at `out`, and
+    the comparison (paired 99% bootstrap, size-weighted) against the GBDT stage and all published models."""
+    check_users(users, final)
+    settings = final_settings(variant, lr)
+    assert len(settings) == 1, "final mode runs exactly one setting"
+    setting = settings[0]
+    data_dir = Path(data_dir)
+    info = json.loads(Path(run_info_path).read_text(encoding="utf-8"))
+    names, best_iter = info["features"], info["best_iter"]
+    users = [int(u) for u in users]
+    t0 = time.time()
+    args = (str(model_path), names, best_iter, str(data_dir), setting)
+    results = {}
+    big = [u for u in users if raw_rows(data_dir, u) > big_rows] if workers > 1 else []
+    small = [u for u in users if u not in set(big)]
+    if workers <= 1 or len(small) < 2:
+        _init_final_worker(*args)
+        for i, u in enumerate(small, 1):
+            results[u] = _final_task(u)
+            _progress(results[u], i, len(small), t0)
+    else:
+        ctx = mp.get_context("fork")
+        with ctx.Pool(workers, initializer=_init_final_worker, initargs=args) as pool:
+            for i, r in enumerate(pool.imap(_final_task, small, chunksize=1), 1):
+                results[r["user"]] = r
+                _progress(r, i, len(small), t0)
+    if big:
+        _init_final_worker(*args)
+        for u in big:
+            results[u] = _final_task(u)
+            _progress(results[u], None, None, t0, big=True)
+    # stage-1 check: the GBDT reproduces the saved GBDT file on every user that file has
+    gb = C.load_rows(gbdt_jsonl) if Path(gbdt_jsonl).exists() else {}
+    checked = 0
+    for u in users:
+        if u in gb:
+            checked += 1
+            if abs(results[u]["gbdt_ll"] - gb[u]["metrics"]["LogLoss"]) > 1e-4:
+                raise RuntimeError(f"user {u}: GBDT check failed ({results[u]['gbdt_ll']} vs "
+                                   f"{gb[u]['metrics']['LogLoss']})")
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with open(out, "w", encoding="utf-8") as f:
+        for u in sorted(users):
+            r = results[u]
+            f.write(json.dumps(dict(user=u, size=r["size"], metrics=r["metrics"], setting=list(setting)),
+                               ensure_ascii=False) + "\n")
+    comparison = final_compare(out, gbdt_jsonl, result_dir)
+    comparison.update(setting=list(setting), gbdt_checked_users=checked, elapsed_min=round((time.time() - t0) / 60, 2),
+                      peak_rss_gb_parent=round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6, 2))
+    Path(str(out) + ".comparison.json").write_text(json.dumps(comparison, indent=1, default=str), encoding="utf-8")
+    return comparison
+
+
+def raw_rows(data_dir, uid):
+    return int(pads.dataset(str(Path(data_dir) / "revlogs" / f"user_id={uid}"), format="parquet").count_rows())
+
+
+def final_compare(ours_path, gbdt_path, result_dir=C.DEFAULT_RESULT_DIR, ci=0.99, n_boot=1000, seed=0):
+    """Ours against the GBDT stage and every published model, on the users present in all of them with the same
+    size: unweighted and size-weighted LogLoss and AUC, and paired size-weighted differences with a 99% CI."""
+    ours = C.load_rows(ours_path)
+    refs = {"GBDT (stage 1)": C.load_rows(gbdt_path)} if Path(gbdt_path).exists() else {}
+    for name, f in V.PUBLISHED.items():
+        refs[name] = C.load_rows(Path(result_dir) / f"{f}.jsonl")
+    users = sorted(u for u in ours if all(u in r and r[u]["size"] == ours[u]["size"] for r in refs.values()))
+    if not users:
+        return dict(n_users=0)
+    sizes = [ours[u]["size"] for u in users]
+
+    def stats(rows, key):
+        ll = [rows[u]["metrics"]["LogLoss"] for u in users]
+        aucs = [(rows[u]["metrics"].get("AUC"), rows[u]["size"]) for u in users]
+        aucs = [(a, s) for a, s in aucs if a is not None]
+        return dict(unweighted=round(float(np.mean(ll)), 5), weighted=round(C.weighted_mean(ll, sizes), 5),
+                    auc_unweighted=round(float(np.mean([a for a, _ in aucs])), 5) if aucs else None,
+                    auc_weighted=round(C.weighted_mean([a for a, _ in aucs], [s for _, s in aucs]), 5)
+                    if aucs else None)
+
+    table = {"Online layer (ours, final)": stats(ours, "ours")}
+    for name, rows in refs.items():
+        table[name] = stats(rows, name)
+    ll_ours = np.asarray([ours[u]["metrics"]["LogLoss"] for u in users])
+    boots = {}
+    for name, rows in refs.items():
+        diff = ll_ours - np.asarray([rows[u]["metrics"]["LogLoss"] for u in users])
+        boots[f"online - {name}"] = C.paired_bootstrap(diff, sizes, n_boot=n_boot, ci=ci, seed=seed)
+    return dict(n_users=len(users), n_rows=int(sum(sizes)), users=users, table=table, bootstrap=boots, ci=ci)
+
+
+def main_final(argv):
+    ap = argparse.ArgumentParser(description="Frozen final run of the online layer (SRS-Beat, users 1-1000).")
+    ap.add_argument("--final", action="store_true", required=True, help="required: allows users 1-1000")
+    ap.add_argument("--model", default="results/srsb_beat/sweep_a_l63_side.jsonl.model.txt")
+    ap.add_argument("--run_info", default="results/srsb_beat/sweep_a_l63_side.jsonl.run_info.json")
+    ap.add_argument("--data", default="data/anki10k")
+    ap.add_argument("--users", required=True, help="file of ids (one per line or JSON list) or comma list")
+    ap.add_argument("--variant", default=FINAL_VARIANT, choices=list(VARIANTS))
+    ap.add_argument("--lr", type=float, default=FINAL_LR)
+    ap.add_argument("--workers", type=int, default=4, help="parallel users (big users run last, one at a time)")
+    ap.add_argument("--gbdt_jsonl", default=FINAL_GBDT)
+    ap.add_argument("--out", default=FINAL_OUT)
+    args = ap.parse_args(argv)
+    users = R.load_ids(args.users)
+    res = run_final(args.model, args.run_info, args.data, args.out, users, variant=args.variant, lr=args.lr,
+                    workers=args.workers, gbdt_jsonl=args.gbdt_jsonl, final=True)
+    print(json.dumps(res, indent=1, default=str))
+    return res
+
+
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if "--final" in argv:
+        return main_final(argv)
+    if "--users" in argv:
+        # the validation run uses users 8001-8100 only; a users list without --final is refused when it has 1-1000
+        check_users(R.load_ids(argv[argv.index("--users") + 1]), final=False)
+        raise ValueError("--users is for the frozen final run (--final)")
+    return main_validation(argv)
 
 
 if __name__ == "__main__":
