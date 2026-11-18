@@ -1,0 +1,40 @@
+fit rows 4018392, hold rows 462119; Elo on train rows: mean 2.626 sd 1.290
+3 buckets: edges [2.003 2.932]
+  scratch/hard: iters [557, 388, 128]
+  scratch/soft: iters [674, 938, 231]
+  warm/hard: iters [238, 37, 4]
+  warm/soft: iters [306, 56, 2]
+5 buckets: edges [1.619 2.171 2.713 3.562]
+  scratch/hard: iters [477, 283, 196, 189, 116]
+  scratch/soft: iters [786, 676, 367, 363, 134]
+  warm/hard: iters [86, 10, 12, 2, 1]
+  warm/soft: iters [111, 2, 60, 1, 1]
+rwkv               LL_w 0.29660  LL_u 0.26831
+global             LL_w 0.31360  LL_u 0.28757
+global+online      LL_w 0.30945  LL_u 0.28373
+elo3_scratch_hard  LL_w 0.31401  LL_u 0.28814
+elo3_scratch_hard+online LL_w 0.31023  LL_u 0.28458
+elo3_scratch_soft  LL_w 0.31340  LL_u 0.28732
+elo3_scratch_soft+online LL_w 0.30940  LL_u 0.28370
+elo3_warm_hard     LL_w 0.31364  LL_u 0.28758
+elo3_warm_hard+online LL_w 0.30946  LL_u 0.28368
+elo3_warm_soft     LL_w 0.31363  LL_u 0.28755
+elo3_warm_soft+online LL_w 0.30943  LL_u 0.28368
+elo5_scratch_hard  LL_w 0.31437  LL_u 0.28894
+elo5_scratch_hard+online LL_w 0.31073  LL_u 0.28545
+elo5_scratch_soft  LL_w 0.31372  LL_u 0.28790
+elo5_scratch_soft+online LL_w 0.30980  LL_u 0.28417
+elo5_warm_hard     LL_w 0.31357  LL_u 0.28751
+elo5_warm_hard+online LL_w 0.30943  LL_u 0.28368
+elo5_warm_soft     LL_w 0.31358  LL_u 0.28752
+elo5_warm_soft+online LL_w 0.30941  LL_u 0.28367
+elo3_scratch_hard minus global: +0.00041 [-0.00003, +0.00081] | +online minus global+online: +0.00078 [+0.00049, +0.00113]
+elo3_scratch_soft minus global: -0.00020 [-0.00050, +0.00014] | +online minus global+online: -0.00005 [-0.00021, +0.00010]
+elo3_warm_hard minus global: +0.00004 [-0.00006, +0.00017] | +online minus global+online: +0.00001 [-0.00003, +0.00005]
+elo3_warm_soft minus global: +0.00003 [-0.00005, +0.00013] | +online minus global+online: -0.00002 [-0.00005, +0.00001]
+elo5_scratch_hard minus global: +0.00077 [+0.00014, +0.00133] | +online minus global+online: +0.00128 [+0.00082, +0.00177]
+elo5_scratch_soft minus global: +0.00011 [-0.00017, +0.00039] | +online minus global+online: +0.00035 [+0.00010, +0.00066]
+elo5_warm_hard minus global: -0.00003 [-0.00009, +0.00004] | +online minus global+online: -0.00002 [-0.00004, +0.00000]
+elo5_warm_soft minus global: -0.00003 [-0.00007, +0.00002] | +online minus global+online: -0.00004 [-0.00006, -0.00001]
+global+online minus RWKV-Instant: +0.01285 [+0.01058, +0.01651]
+EXIT 0
