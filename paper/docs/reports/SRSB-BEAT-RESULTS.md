@@ -18,6 +18,8 @@ Gap = ours minus RWKV-Instant, size-weighted log loss, paired user bootstrap 99%
 | 7 | **#5 + online per-user layer** | 300 | **+0.0133 [+0.011, +0.017]**; held-out 8051-8100: +0.0118 [+0.009, +0.016] | best measured |
 | 8 | #4 at scale | **1500** | +0.0151 [+0.012, +0.019] | scale helps ~0.002; no side features, no online layer |
 
+| 9 | #5 + residual GRU (GRU trained on users 2301-2500, 3 epochs, CPU) | 300 + 200 | +0.0161 [+0.013, +0.020] (100 users); 8001-8050 +0.0164, 8051-8100 +0.0158 | GRU vs GBDT about -0.0014; weaker than the online layer |
+
 Online layer vs plain GBDT: -0.0042 [-0.0063, -0.0027]. Expected (not yet measured): #8 + online layer ~ +0.011.
 Also: #8 beats FSRS-6 by -0.0253 [-0.0355, -0.0177] and ties/edges RWKV-Curve (-0.0036 [-0.0116, +0.0013]).
 
@@ -26,9 +28,8 @@ Also: #8 beats FSRS-6 by -0.0253 [-0.0355, -0.0177] and ties/edges RWKV-Curve (-
   disconnected during validation scoring, so there is NO validation result. Eval is now crash-safe (commit 2764d3b);
   a Kaggle GPU rerun (300 train users) is prepared (code dataset axiom-srsb-beat-code-v4) but not launched: the
   Playwright browser kept hanging on Kaggle pages after midnight.
-- Residual GRU on top of the GBDT: built and tested (commit 3aaa82f), Kaggle attempt failed (the HF_TOKEN secret
-  added to notebook3f6f101d42 is rejected with 401; probably the pasted value). Local run queued until the other
-  session (CPAD lab project) finishes using the PC.
+- Residual GRU: DONE locally (184 min; row 9). Small real gain (-0.0014), weaker than the online layer; probably
+  undertrained (train loss still falling 0.2910 -> 0.2894 -> 0.2885).
 
 ## What it means
 - The GBDT line is close to its ceiling: features, memory, tree size and 5x data each give 0.002-0.006. Closing
