@@ -68,3 +68,14 @@ only).
 - 2026-11-18 ~14:30 (user travelling ~1 h): paused. Running: TAM eval-only on Kaggle notebook3f6f101d42 v7 (GPU,
   ~19/100 users at 14:20, running LogLoss 0.2704 vs GBDT 0.2627 / RWKV-Instant 0.2464 on 8001-8019). Builder
   writing fsrs_benchmark/srsb/moe.py (mixture of experts, user-half cross-fit); heavy runs wait for go.
+
+## FROZEN FINAL MODEL (pre-registered 2026-11-18 ~19:00 IST, before any look at users 1-1000; user approved)
+- Stage 1, GBDT: exactly results/srsb_beat/sweep_a_l63_side.jsonl.model.txt (LightGBM; all feature groups incl. umem,
+  side tables fixed; num_leaves 63, lr 0.05, min_data_in_leaf 200; trained on users 2001-2300, early stopping on
+  their holdout users; max_train_rows 12M). No retraining.
+- Stage 2, online per-user layer: online_adapt variant B, lr 0.003 (both chosen on validation users 8001-8050
+  only). No re-selection on test users.
+- Final test: srs-benchmark users 1-1000, `--algo FSRS-6 --short` test folds, scored ONCE. Report both stages,
+  vs all published models (paired, size-weighted, 99% user bootstrap), unweighted + weighted LogLoss and AUC.
+- Validation result of this exact model: +0.0133 [+0.011, +0.017] vs RWKV-Instant (100 users), +0.0118 on the
+  held-out half. Expected outcome: second place behind RWKV-Instant.
