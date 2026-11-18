@@ -1027,8 +1027,8 @@ values are 0.2843 and 0.795 against 0.2683 and 0.826.
 \subsection{Final test on the benchmark's users}
 \label{sec:results-exp6-test}
 
-Table~\ref{tab:exp6-test} adds the extended GBDT, scored once on test users 1 to 1000 (32,668,830 test reviews), to the
-models of Table~\ref{tab:exp5-srsb}. Table~\ref{tab:exp6-paired} gives the paired differences.
+Table~\ref{tab:exp6-test} adds the final model and its GBDT component, scored once on test users 1 to 1000 (32,668,830 test reviews), to the
+models of Table~\ref{tab:exp5-srsb}. The GBDT was scored first and the frozen online layer was then applied to its predictions. Table~\ref{tab:exp6-paired} gives the paired differences.
 
 \begin{table}[htbp]
   \centering
@@ -1042,7 +1042,8 @@ models of Table~\ref{tab:exp5-srsb}. Table~\ref{tab:exp6-paired} gives the paire
     Model & Unweighted & Weighted & Unweighted & Weighted \\
     \midrule
     RWKV-Instant & \textbf{0.2860} & \textbf{0.2828} & \textbf{0.8319} & \textbf{0.8265} \\
-    \textbf{GBDT, extended (Experiment 6)} & 0.3088 & 0.3051 & 0.7996 & 0.7900 \\
+    \textbf{GBDT + online layer (final, Experiment 6)} & 0.3049 & 0.2999 & 0.8013 & 0.7946 \\
+    GBDT, extended, without the online layer & 0.3088 & 0.3051 & 0.7996 & 0.7900 \\
     GBDT, pooled (Experiment 5) & 0.3211 & 0.3148 & 0.7780 & 0.7666 \\
     RWKV-Curve & 0.3302 & 0.3143 & 0.7665 & 0.7712 \\
     GRU & 0.3441 & 0.3271 & 0.7298 & 0.7337 \\
@@ -1056,30 +1057,32 @@ models of Table~\ref{tab:exp5-srsb}. Table~\ref{tab:exp6-paired} gives the paire
 
 \begin{table}[htbp]
   \centering
-  \caption[Experiment 6: paired differences]{Experiment 6: extended GBDT minus each model, size-weighted log loss, 99\% user-clustered
+  \caption[Experiment 6: paired differences]{Experiment 6: final model (GBDT + online layer) minus each model, size-weighted log loss, 99\% user-clustered
     bootstrap intervals on the same 1000 users. Negative favours the GBDT. An asterisk marks an interval that excludes zero.}
   \label{tab:exp6-paired}
   \begin{tabular}{@{}lcc@{}}
     \toprule
     Model & Difference & 99\% interval \\
     \midrule
-    RWKV-Instant & $+0.0224$ & $[+0.0198, +0.0253]^{*}$ \\
-    RWKV-Curve & $-0.0091$ & $[-0.0141, -0.0045]^{*}$ \\
-    FSRS-6 & $-0.0332$ & $[-0.0387, -0.0285]^{*}$ \\
+    GBDT without the online layer & $-0.0052$ & $[-0.0067, -0.0042]^{*}$ \\
+    RWKV-Instant & $+0.0171$ & $[+0.0154, +0.0191]^{*}$ \\
+    RWKV-Curve & $-0.0143$ & $[-0.0195, -0.0101]^{*}$ \\
+    FSRS-6 & $-0.0384$ & $[-0.0442, -0.0333]^{*}$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-The extended GBDT is second of all models in Table~\ref{tab:exp6-test} on both log-loss measures and both AUC measures. It
-improves on the Experiment~5 GBDT by about 0.01 in log loss, and it is better than RWKV-Curve, the LSTM, the GRU and every
-FSRS version, with intervals that exclude zero. It remains behind RWKV-Instant, by 0.022 in weighted log loss and 0.037 in
-weighted AUC. The gap is mainly in ranking (AUC): the GBDT's predictions are well calibrated, within $\pm 0.006$ of the
+The final model is second of all models in Table~\ref{tab:exp6-test} on both log-loss measures and both AUC measures. Its
+weighted log loss, 0.2999, is 0.015 lower than that of the Experiment~5 GBDT, and the online layer alone lowers it by 0.0052
+on the test users, a little more than on validation. The final model is better than RWKV-Curve, the LSTM, the GRU and every
+FSRS version, with intervals that exclude zero, and its lead over FSRS-6 is 0.038. It remains behind RWKV-Instant, by 0.017 in
+weighted log loss and 0.032 in weighted AUC. The gap is mainly in ranking (AUC): the GBDT's predictions are well calibrated, within $\pm 0.006$ of the
 observed recall in every bucket of gap, card age, card state and predicted probability on the validation users.
 
 Two points matter for reading these numbers. First, the GBDT is an Instant model (Section~\ref{sec:design-srsb}): it uses
 information from after the card's previous review, such as today's session. Its wins over RWKV-Curve, the LSTM, the GRU and
 FSRS are therefore comparisons across the two categories, and the like-for-like rival is RWKV-Instant. Second, the online
-layer was selected and measured on the validation users, where it lowered log loss by 0.0042.
+layer was selected on the validation users, where it lowered log loss by 0.0042; on the test users it lowered it by 0.0052.
 
 \subsection{Where the gain comes from}
 \label{sec:results-exp6-where}
@@ -1458,8 +1461,8 @@ The main findings of this chapter are as follows.
   \item On Duolingo, the smoothed per-user constant floor, which has no memory model, has log loss 0.2723. It beats FSRS-6 (optimised) at 0.3003, the MAP variants, LagLogit+$\Delta t$ and HLR. Only the GBDT (0.2588) and the proposed model (v1, 0.2682) beat it. The margin of v1 is $-0.0040$, with interval $[-0.0045, -0.0035]$. HLR is worse than the global constant on both datasets (Section~\ref{sec:results-exp5-floors}).
   \item On two more Anki samples of 100 users (seeds 1 and 2), the models that were re-run keep the same order. The GBDT has the lowest log loss on each one, and its log loss minus that of FSRS-6 (optimised) is $-0.0210$, $-0.0226$ and $-0.0210$, and each interval excludes zero. The proposed model (v1) was not re-run on these samples (Section~\ref{sec:results-exp5-seeds}).
   \item On the srs-benchmark protocol, with the pooled GBDT trained on other users and evaluated on 1000 users with the benchmark's own folds, the GBDT has unweighted log loss 0.3211, against 0.3580 for FSRS-6 and 0.2860 for RWKV-Instant. Weighted, it is level with RWKV-Curve (0.3143) and behind RWKV-Instant (0.2828). Its boosting reached the 2000-round cap, so this is a lower bound (Section~\ref{sec:results-exp5-srsb}).
-  \item In Experiment~6 the extended GBDT, frozen before the test and scored once on the srs-benchmark's 1000 test users, has weighted log loss 0.3051 and AUC 0.790. It is second of all published models, better than RWKV-Curve ($-0.0091$), the LSTM, the GRU and FSRS-6 ($-0.0332$), with intervals that exclude zero, and behind RWKV-Instant ($+0.0224$, AUC $-0.037$). It is an Instant model, so its like-for-like rival is RWKV-Instant (Section~\ref{sec:results-exp6}).
-  \item The per-learner online layer lowered validation log loss by 0.0042, and the remaining gap to RWKV-Instant is in ranking, not calibration. It is concentrated on low-retention learners and learners with many same-day reviews.
+  \item In Experiment~6 the final model (extended GBDT + online layer), frozen before the test and scored once on the srs-benchmark's 1000 test users, has weighted log loss 0.2999 and AUC 0.795. It is second of all published models, better than RWKV-Curve ($-0.0143$), the LSTM, the GRU and FSRS-6 ($-0.0384$), with intervals that exclude zero, and behind RWKV-Instant ($+0.0171$, AUC $-0.032$). It is an Instant model, so its like-for-like rival is RWKV-Instant (Section~\ref{sec:results-exp6}).
+  \item The per-learner online layer lowered log loss by 0.0042 on validation and 0.0052 on the test users, and the remaining gap to RWKV-Instant is in ranking, not calibration. It is concentrated on low-retention learners and learners with many same-day reviews.
   \item Learner-type experts, mixture-of-experts gates, Elo-band experts, per-user boosting, a Kalman filter, an attention model and a residual GRU did not improve the final model.
   \item The final model stores about 196,000 numbers plus six per learner, against 2.76 million parameters for RWKV-Instant, trains in about 47 minutes on four CPU cores, and predicts a review in about 0.09 ms against about 96 ms for RWKV-Instant run one review at a time.
 \end{enumerate}

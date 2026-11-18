@@ -74,13 +74,13 @@ Experiment~5 (Section~\ref{sec:results-exp5}) adds three reference points. On Du
 \subsection*{What Experiment 6 adds}
 
 Experiment~6 (Section~\ref{sec:results-exp6}) asks how close a tree model can get to the best published model on the
-srs-benchmark. With richer past-only features, the extended GBDT, frozen before the test and scored once on the benchmark's
-1000 test users, is second of all published models. It is ahead of FSRS-6 by 0.033 in weighted log loss and ahead of RWKV-Curve,
-the LSTM and the GRU, and it is behind RWKV-Instant by 0.022 in log loss and 0.037 in AUC. Its lead over FSRS, the scheduler
+srs-benchmark. With richer past-only features and a per-learner online layer, the final model, frozen before the test and scored once on the benchmark's
+1000 test users, is second of all published models. It is ahead of FSRS-6 by 0.038 in weighted log loss and ahead of RWKV-Curve,
+the LSTM and the GRU, and it is behind RWKV-Instant by 0.017 in log loss and 0.032 in AUC. Its lead over FSRS, the scheduler
 Anki ships, is larger than its gap to the best neural network. It reaches that position with about 196,000 stored numbers
 against 2.76 million, trained on 270 users rather than 5,000 and on CPU only, and it predicts a review roughly a thousand
 times faster than RWKV-Instant run one review at a time. A per-learner online layer, an Elo-style update of six weights,
-added a further 0.004 on the validation users. Many other ideas, from learner-type experts and gates to a Kalman filter and an
+lowered log loss by a further 0.005 on the test users. Many other ideas, from learner-type experts and gates to a Kalman filter and an
 attention model, did not help, and the remaining gap is in ranking rather than calibration, concentrated on learners with low
 retention.
 
@@ -145,8 +145,7 @@ The srs-benchmark comparison uses 1,000 of the 9,999 users of the collection. It
 
 \paragraph{Limits of Experiment 6.}
 The extended GBDT is an Instant model, so its wins over RWKV-Curve, the GRU, the LSTM and FSRS compare two categories of
-model, and its like-for-like rival, RWKV-Instant, remains better. The online layer was selected and measured on 100
-validation users. The Elo ratings used in the analysis start at zero and need about 100 to 200 reviews to settle. All
+model, and its like-for-like rival, RWKV-Instant, remains better. The online layer's settings were selected on 100 validation users. The Elo ratings used in the analysis start at zero and need about 100 to 200 reviews to settle. All
 srs-benchmark results are on Anki data only. The speed comparison uses ten users and RWKV's one-review-at-a-time mode.
 
 \paragraph{The Duolingo fallback.}
