@@ -1,0 +1,34 @@
+% tk_dir_tree: repository layout (DIAGRAMS.md item 16), forest
+\begin{forest}
+  for tree={font=\footnotesize, grow'=0, child anchor=west, parent anchor=south east,
+    anchor=west, s sep=6pt, l sep=12pt, align=left, inner sep=2pt,
+    edge={draw=black!60, line width=0.4pt},
+    folder/.style={fill=black!4, draw=black!60, rounded corners=2pt},
+    file/.style={font=\footnotesize\ttfamily, fill=none, draw=none}},
+  [repo/, folder
+    [AnkiFirstRun/, folder
+      [dynamic\_retention\_dt.py, file]
+      [train\_data.parquet, file]
+      [test\_data.parquet, file]]
+    [pg\_sampler.py, file]
+    [fsrs\_benchmark/, folder
+      [data.py, file]
+      [split.py, file]
+      [metrics.py, file]
+      [run.py, file]
+      [report.py, file]
+      [supplementary.py, file]
+      [models/, folder
+        [fsrs\_model.py, file]
+        [hlr.py, file]
+        [ours.py, file]
+        [laglogit.py, file]
+        [dynamic\_retention\_gpu.py, file]]
+      [tests/, folder]]
+    [model\_diagnostics/, folder]
+    [experiments/, folder]
+    [results/, folder
+      [full\_u100\_c1000/, folder]]
+    [docs/, folder]
+  ]
+\end{forest}

@@ -1,0 +1,532 @@
+\chapter{Entire Architecture of Axiom}
+\label{ch:implementation}
+
+% Listings are plain, breakable blocks: the caption is a line above each listing.
+\newcounter{listingnum}[chapter]
+\renewcommand{\thelistingnum}{\thechapter.\arabic{listingnum}}
+\newcommand{\ListingCaption}[1]{%
+  \Needspace{14\baselineskip}\par\medskip\refstepcounter{listingnum}%
+  \noindent\textbf{Listing \thelistingnum:} #1\par\nopagebreak\smallskip}
+
+\lstset{basicstyle=\ttfamily\fontsize{8}{10}\selectfont}
+\captionsetup[lstlisting]{justification=raggedright, singlelinecheck=false}
+
+\section{Overview of Axiom}
+\label{sec:axiom-overview}
+
+Axiom is a learning planner built as a Next.js application. It turns a stated goal, a course or an everyday task into a schedule that accounts for cognitive load, energy windows and deadlines. The application follows one loop, which is the organising idea of the whole system. The loop has three parts. The first part answers WHAT is changing: the trend engine collects signals from public sources and ranks the topics they mention. The second part answers HOW the learner can study a topic: the roadmap and content agents turn a goal or a topic into a roadmap, courses, assessments and review material. The third part answers WHEN the work is done: the cognitive-load scheduler places each task into the days and time slots that the learner has available.
+
+The three parts can be used on their own. A learner can open the trend views without generating any content, and the scheduler accepts tasks that the learner types in by hand. The description in this chapter is a description of the code. It does not report how learners use the application, and it does not measure whether the application helps learning.
+
+\section{Technology Stack}
+\label{sec:axiom-tools}
+
+Table~\ref{tab:axiom-tools} lists the main components and the role each one plays. The client versions are those declared in its package manifest. The Python packages are those imported by the research code; only some of them are pinned in the requirements files of the repository. The research side is written in Python and is run from the same repository; its packages are listed in Section~\ref{sec:impl-environment}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Main components of the Axiom application, and the Python packages imported by the local research code.}
+  \label{tab:axiom-tools}
+  \footnotesize
+  \begin{tabular}{@{}p{3.0cm}p{5.4cm}p{5.4cm}@{}}
+    \toprule
+    Layer & Component (declared version) & Role in Axiom \\
+    \midrule
+    Web framework & Next.js 16.2.2 (App Router); React 19.2.4; TypeScript 5 & Pages, layouts, server actions and route handlers \\
+    Styling and visuals & Tailwind CSS 4; Three.js with React Three Fiber and Drei & Interface styling and 3D visual components \\
+    Content rendering & KaTeX; Mermaid; react-markdown & Mathematics and diagrams inside generated content \\
+    Generative model & \texttt{@google/genai} 1.49; model \texttt{gemma-4-31b-it} & Content agents, the explore overview and assessment grading \\
+    Database & \texttt{@vercel/postgres} 0.10 (Vercel Postgres) & Users, tasks, roadmaps, courses, mastery and daily observations \\
+    Authentication & bcrypt 6 (password hashing); jsonwebtoken 9 (session token) & Login, and a token check on the dashboard routes \\
+    Input checks & zod 4 & Checks the shape of the request body of the recall prototype route \\
+    Trend sources & Hacker News (public API); Reddit (OAuth); NewsAPI (key required) & Signals for the trend engine \\
+    Research side (imported) & numpy, pandas, pyarrow, numba, scipy, matplotlib, LightGBM, py-fsrs (module \texttt{fsrs}), arviz, polyagamma & Retention models, baselines and diagnostics \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The client is a single Next.js project in the \texttt{client} folder. Server-side logic runs in server actions under \texttt{app/actions} and in route handlers under \texttt{app/api}. Persistence goes through \texttt{@vercel/postgres}. The tables are created on first use by \texttt{CREATE TABLE IF NOT EXISTS} statements in the action files, so no separate migration step is needed for a new database. The research pages start the Python code as a local child process, so they need the full repository to be present and do not run on a serverless host.
+
+\section{Whole-System Architecture}
+\label{sec:axiom-architecture}
+
+Figure~\ref{fig:tk_axiom_architecture} shows the whole system. The upper part is the application. The lower part is the local research pipeline, which is kept separate from the application's scheduler.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_axiom_architecture}
+  \caption{Whole-system architecture. The browser calls server actions and route handlers. These call the content agents, the trend engine and the cognitive-load scheduler, which keep their state in Vercel Postgres. The local Python research pipeline is started by the research routes as a child process; it writes files and does not use the database or the scheduler.}
+  \label{fig:tk_axiom_architecture}
+\end{figure}
+
+The browser renders the dashboard, the roadmap, the trend views, the flashcard and short-bit decks, and the research workspace. Every change to user data goes through a server action or a route handler. Requests to the dashboard routes are redirected to the login page unless the session token verifies. The server actions call three subsystems. The content agents build a prompt, send it to the Gemini client, and parse the JSON that comes back. The trend engine fetches the three public sources, maps their titles to topics, scores the topics and stores the result. The cognitive-load scheduler is deterministic code: it reads the stored tasks, places them into time slots and writes the schedule back. The agents and the scheduler keep their state in Vercel Postgres. The research side is different in two respects. Its models are run by Python processes that the research routes start, and their results are written to files under the local results folder and the run folder, not to the database. The scheduler does not import the Python models, so the retention model described in Chapter~\ref{ch:methodology} is not part of the scheduling path.
+
+\section{Trend Engine}
+\label{sec:axiom-trends}
+
+The trend engine answers the WHAT question. It fetches recent items from three sources. Hacker News contributes the top fifty of its current stories, read from the public Firebase interface, which needs no key. Reddit contributes hot posts from a set of subreddits, read from the public JSON listing, or, when the Reddit client identifier and secret are both set, through an OAuth token. NewsAPI contributes articles for each topic query, and it needs an API key; its free tier provides no engagement figures. Each title is passed through a keyword-based mapper that assigns it to a canonical topic, such as a language, a cloud service or a branch of machine learning, or to no topic.
+
+For each topic the engine counts the mentions across the three sources, averages their engagement, and computes a recency term. The recency of an item is $\exp(-\text{age}/24\,\mathrm{h})$, which decays with a time constant of 24 hours. Each of the three quantities is min--max normalised across the topics, and the trend score combines them,
+\begin{equation}
+  \mathrm{trend\_score} = 100\,\bigl(0.4\,\hat{F} + 0.4\,\hat{E} + 0.2\,\hat{R}\bigr),
+  \label{eq:axiom-trend}
+\end{equation}
+where $\hat{F}$, $\hat{E}$ and $\hat{R}$ are the normalised frequency, engagement and recency. The topics are sorted by this score. The direction of a topic is found by sorting its signals by publication time and splitting them into an older and a newer half. The topic is rising when the mean engagement of the newer half is more than 1.2 times that of the older half, declining when it is less than 0.8 times, and stable otherwise; a topic with fewer than four signals is stable. Momentum uses the three time-ordered thirds of the signals: it is accelerating when the mean engagement rises by more than five points from the middle third to the last third, slowing when it falls by more than five points, and steady otherwise, and a topic with fewer than six signals is steady. The explore mode sends a chosen topic, together with its live signals where they exist, to the Gemini client, which returns an overview and a breakdown into subtopics. The scoring code itself contains no language model call.
+
+\section{Content Agents}
+\label{sec:axiom-agents}
+
+The HOW part of the loop is a set of seven agents. The roadmap agent turns a goal into a directed acyclic graph of nodes. Each node has prerequisites, and the prompt includes the learner's profile and the stored mastery scores, so that topics already known are given less weight. The course agent first writes a skeleton and then one slide at a time. The slide types are title, section, content, code, list, table, quote, image, combined content with code or image, conclusion and Mermaid diagram. The assessment agent generates a quiz with several question formats and evaluates free-text answers. The cheat-sheet agent returns a JSON document of titled sections for a topic. The flashcard agent writes a set of cards, the short-bit agent writes a set of short cards for micro-learning, and the story agent writes the next chapter of a narrative.
+
+All seven agents use the same path. A prompt is built from the topic and the learner's context, the shared client in \texttt{gemini.ts} sends it, and the reply is parsed. The client spaces the calls so that no more than 30 are made in a minute, and it uses only the configured model. Generated roadmaps and courses are stored in the database, in the \texttt{roadmaps} and \texttt{courses} tables. Assessment results and the completed roadmap nodes write to the per-topic mastery table, and the next roadmap request reads that table. The mastery values are stored as they are produced by these actions; the report does not evaluate how accurate they are.
+
+\section{Cognitive-Load Scheduler}
+\label{sec:axiom-scheduler}
+
+The WHEN part of the loop is a deterministic scheduler. It uses no language model and no random numbers. Its input is the stored task list and the learner's profile, and its output is a schedule of days, sections and slots, together with a reasoning log.
+
+Each task has a cost in axioms, which is the unit of the energy model. The cost of a task with difficulty $d$ and numeric priority $p$ is
+\begin{equation}
+  E_{\mathrm{task}} = 0.6\,d^{2} + 0.8\,p,
+  \label{eq:axiom-cost}
+\end{equation}
+where $p$ is 9 for a high-priority task, 5 for a normal one and 2 for a low one. Restorative tasks, such as breaks, earn axioms instead, at a rate of 0.25 per minute of completion time. Each day has a budget of 50 axioms. The budget is split across the morning, the afternoon and the evening with default weights of 0.40, 0.35 and 0.25, and these weights are the learner's own when they have been set.
+
+Tasks are ranked before they are placed. The urgency of a task is $U = p/(D+1)$, where $D$ is the number of days remaining to its deadline, and the score is
+\begin{equation}
+  \mathrm{Score} = \frac{2p + d + 3U}{E_{\mathrm{task}}}.
+  \label{eq:axiom-score}
+\end{equation}
+Tasks are taken in decreasing order of score. Before placement, an anti-starvation rule inserts one lower-priority task after every three consecutive high-priority tasks, and a diversity check requires the Shannon entropy of the task types on a day to exceed 0.5.
+
+The available attention in each day is described by a bandwidth curve over 96 quarter-hour slots. The default curve is highest in the late morning, around 10:00 to 11:00, and again in the late afternoon, around 16:00 to 17:00. It is lowest in the early afternoon, from 13:00 to 14:00, and after 20:00. Before 06:00 and from 22:00 onwards it sits at a floor value of 1.0. The learner's energy level scales the whole curve, with multipliers from 0.5 to 1.4. A task is placed in the slot with the highest fitness among the slots that fit in the remaining bandwidth. The fitness of a slot is the bandwidth left after the task, plus a bonus of 1.2 in a productive hour, minus a penalty of 0.8 after two context switches or 2.0 after three or more, plus a bonus of 2.0 when the deadline is within six hours or 1.0 when it is within a day. The scheduler looks up to 30 days ahead. Among equal candidates it prefers the earlier slot. Each placement adds a reasoning step that lists the candidate slots and why the winner was chosen, and the reasoning chain is shown in the interface.
+
+A day that cannot take all its tasks is reported as a conflict. The learner can then defer a task, sacrifice it at a reduced load, or, for normal and low priority tasks only, extend its deadline. The scheduler does not add tasks to a full day without reporting it. A burnout risk is also computed from the axioms planned for the next three scheduled days. The day is rated critical when the largest day exceeds 45 axioms or the mean exceeds 40, warning when the largest exceeds 35 or the mean exceeds 30, watch when the largest exceeds 25, and safe otherwise.
+
+The scheduler learns from completed work through two rules. The first is a feedback rule for the section weights. For each section, the observed ratio $R$ of actual to scheduled axioms updates the section weight,
+\begin{equation}
+  w_{\mathrm{new}} = w_{\mathrm{old}}\,\bigl(1 + 0.2\,(R - 1)\bigr),
+  \label{eq:axiom-feedback}
+\end{equation}
+after which each weight is clamped to the interval from 0.05 to 0.90 and the three weights are renormalised to sum to one.
+
+The second rule adjusts the effort multiplier of each task type. The defaults range from 1.4 for learning tasks to 0.6 for administrative tasks. A type with at least three scheduled tasks is multiplied by 0.9 when at least 80\% of those tasks are completed, and by 1.2 when fewer than 50\% are; the result is clamped to the interval from 0.5 to 1.5. Other types keep their defaults.
+
+\section{Where the Bayesian Retention Model Fits}
+\label{sec:axiom-bayes}
+
+The application contains two Bayesian surfaces, and both are reached from the \texttt{/bayesian-demo} pages. Neither of them is connected to the cognitive-load scheduler.
+
+The first is the research workspace. It is a local tool for configuring a study. The learner or researcher chooses synthetic data, an uploaded file of at most 200 KB, or an Anki cohort; sets the generating conditions and the sampler settings; and starts a run. Each run uses four independent chains, which are not thinned, and the results include the split $\hat{R}$, the effective sample size, the Monte Carlo standard error, comparisons between nested model variants and parameter recovery where the true values are known. The job runs in a local Python worker started by the research routes. The workspace reports that a run has finished when the computation ends; it does not treat a finished run as a converged one.
+
+The second is the recall prototype at \texttt{/bayesian-demo/recall}. It shows six synthetic topic histories, each of four to forty binary reviews, and fits them with the Python retention models through the bayesian-demo route. The Python bridge runs with a seed of 42, 480 iterations, 160 burn-in iterations and thinning by two, which keeps 160 draws, and the request is stopped after 30 seconds. The queue of topics in the prototype is ordered by a separate heuristic in \texttt{client/src/lib/bayesian/demo.ts}. That heuristic is not the cognitive-load scheduler. The prototype uses the earlier AR(1) logit model in \texttt{dynamic\_retention\_model.py}. That model does not use the gap between reviews, so it is not the continuous-time model of Chapter~\ref{ch:methodology}. The prototype's topics, durations and questions are labelled fixtures, and it reports no measured scheduling outcome.
+
+The continuous-time model of this report therefore lives in the research pipeline described in the rest of this chapter. The research workspace runs diagnostic variants of that model, built on the same class as the Chapter~\ref{ch:methodology} sampler, and the application does not use its outputs to schedule the learner's tasks.
+
+
+The rest of this chapter describes the research pipeline implementation, the code that produced the results in Chapter~\ref{ch:results}. It names the
+modules and functions, shows the two parts of the sampler where the numerical work happens, and
+explains how the runs are orchestrated, resumed and tested. The code is written in Python. The
+sampler's inner loop is compiled with Numba. Other compiled or accelerated code appears only where stated: the optional PyTorch port of the sampler used for the Duolingo run, and, in Experiment~4, LightGBM and two Numba feature kernels (Section~\ref{sec:impl-improved}).
+
+\section{Environment and Tools}
+\label{sec:impl-environment}
+
+The project uses a single virtual environment created with \texttt{uv} and placed in \texttt{.venv}
+at the repository root. Table~\ref{tab:tools} lists the tools and the role each one plays. The
+experiments were run on a laptop with eight cores and 19~GB of memory, and the turbo frequency setting was disabled for the long runs. The report
+timings in Chapter~\ref{ch:results} come from that machine, and they are not portable measurements.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Tools and libraries used in the project.}
+  \label{tab:tools}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}p{5.8cm}@{}}
+    \toprule
+    \textbf{Tool} & \textbf{Version or setting} & \textbf{Use in the project}\\
+    \midrule
+    Python & 3.12 & Language for all code, run under \texttt{uv} in \texttt{.venv}\\
+    NumPy, pandas, pyarrow & Installed; NumPy and pandas versions recorded in \texttt{run\_info.json} & Arrays, event tables and Parquet files\\
+    Numba & Versions recorded in \texttt{run\_info.json} & Just-in-time compilation of the FFBS pass \cite{lam2015numba}\\
+    SciPy & Listed in the environment & Numerical routines available to the code\\
+    Matplotlib & Installed with the environment & Reliability and gap-bin figures from \texttt{report.py}\\
+    huggingface\_hub & Installed with the environment & Download of the gated Anki revlog dataset \cite{ankirevlogs10k}\\
+    py-fsrs & 6.3.2 with the optimiser extra & FSRS-6 reference model and optimiser \cite{pyfsrs}\\
+    PyTorch & Optional, through \texttt{fsrs[optimizer]} & Optimiser back end of py-fsrs, and the optional GPU port\\
+    pytest & Installed with the environment & Test suite (Section~\ref{sec:impl-testing})\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The library versions that matter for a result are written to the run record. Each run writes a
+\texttt{run\_info.json} file that stores the arguments, the git commit of the code, and the versions
+of a fixed list of packages (py-fsrs, NumPy, pandas, PyTorch and Numba). A reader who wants to repeat a run can therefore compare
+versions with the record and not rely on this chapter alone.
+
+\section{Project Structure}
+\label{sec:impl-structure}
+
+The repository has three parts. The sampler lives in \texttt{AnkiFirstRun/}, together with the
+training and test Parquet files of the preliminary run described in Chapter~\ref{ch:results}. The
+benchmark package \texttt{fsrs\_benchmark/\allowbreak } contains the data, split, model, metric, runner and
+report modules, and its test suite. The directories \texttt{model\_diagnostics/} and
+\texttt{experiments/} hold the sampler diagnostics of Chapter~\ref{ch:results}. Figure~\ref{fig:tk_dir_tree}
+shows this layout, and Table~\ref{tab:modules} gives the role of each module. The figure shows the parts
+used in the report and does not list every file.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_dir_tree}
+  \caption{Layout of the repository parts used in the report. Folders are shaded. The results
+    directory holds one run, and the sampler lives beside the benchmark package. The Experiment~4 modules (Section~\ref{sec:impl-improved}) are not drawn.}
+  \label{fig:tk_dir_tree}
+\end{figure}
+
+Table~\ref{tab:modules} lists the modules, and Figure~\ref{fig:tk_module_deps} shows how they depend on
+each other. The runner depends on most of the other modules. The
+sampler is isolated behind the \texttt{OursModel} adapter, so the baselines and the metrics do not
+depend on it. The GPU port is drawn with a dashed border because it is optional. It was used only for the Duolingo run (Experiment~3), not for the Anki benchmark.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_module_deps}
+  \caption{Module dependencies. Solid arrows are imports between project modules, and dashed arrows
+    point to external libraries. The GPU port is optional and is drawn dashed. The Duolingo loader and the Experiment~4 modules (Section~\ref{sec:impl-improved}) are not drawn.}
+  \label{fig:tk_module_deps}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize\setlength{\tabcolsep}{4pt}
+  \footnotesize
+  \caption{Modules of the project and their main functions and classes. The Experiment~4 modules \texttt{ours\_v2.py}, \texttt{ours\_v3.py} and \texttt{gbdt.py} are described in Section~\ref{sec:impl-improved}.}
+  \label{tab:modules}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{5.8cm}>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{5.0cm}@{}}
+    \toprule
+    \textbf{Module} & \textbf{Role} & \textbf{Main functions and classes}\\
+    \midrule
+    \texttt{fsrs\_benchmark/\allowbreak data.py} & Anki revlog download and user loading & \texttt{download\_users}, \texttt{load\_user}\\
+    \texttt{fsrs\_benchmark/\allowbreak duolingo.py} & Duolingo trace scan and sampling & \texttt{scan}, \texttt{sample\_users}, \texttt{load\_users}\\
+    \texttt{fsrs\_benchmark/\allowbreak split.py} & Leakage-free split and event table & \texttt{make\_split}, \texttt{save\_events}, \texttt{load\_events}\\
+    \texttt{fsrs\_benchmark/\allowbreak metrics.py} & Scoring rules and bootstrap & \texttt{log\_loss}, \texttt{brier}, \texttt{auc}, \texttt{ece}, \texttt{mean\_bias}, \texttt{paired\_\allowbreak bootstrap}\\
+    \texttt{models/fsrs\_model.py} & FSRS-6 adapter & \texttt{FSRSModel}\\
+    \texttt{models/hlr.py} & HLR port & \texttt{HLRModel}, \texttt{features}, \texttt{sgd\_update}\\
+    \texttt{models/laglogit.py} & LagLogit+$\Delta t$ baseline & \texttt{LagLogitModel}\\
+    \texttt{models/ours.py} & Adapter to the sampler & \texttt{OursModel}\\
+    \texttt{models/\allowbreak dynamic\_retention\_gpu.py} & Optional PyTorch port of the sampler & \texttt{DynamicRetentionModel\allowbreak GPU}\\
+    \texttt{AnkiFirstRun/\allowbreak dynamic\_retention\_dt.py} & Sampler and diagnostics & \texttt{DynamicRetentionModel\allowbreak DT}, \texttt{\_ffbs\_step\_numba}, \texttt{split\_rhat}, \texttt{ess}\\
+    \texttt{pg\_sampler.py} & P\'olya--Gamma draws & \texttt{sample\_pg1}\\
+    \texttt{fsrs\_benchmark/\allowbreak run.py} & Runner, caching and resume & \texttt{run}, \texttt{parse\_args}, \texttt{make\_model}, \texttt{check\_\allowbreak resume\_\allowbreak config}\\
+    \texttt{fsrs\_benchmark/\allowbreak report.py} & Tables, figures and report & \texttt{build\_report}\\
+    \texttt{fsrs\_benchmark/\allowbreak supplementary.py} & Supplementary summaries & \texttt{build}\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\section{Data and Split Modules}
+\label{sec:impl-data}
+
+The data module reads the Anki revlog dataset of Experiment 2 \cite{ankirevlogs10k}. The dataset is
+gated on Hugging Face, so \texttt{download\_users} needs an access token, and it fails with a clear
+message when the token or the licence is missing. It downloads a seeded sample of users. \texttt{load\_user}
+turns one user file into the review table and applies the event rules of Chapter~\ref{ch:dataset}.
+Rating~0 rows are dropped because they are manual reschedules. The state-4 filtered-deck reviews are
+kept as real recall. A card is dropped when its first kept review is not a new card. The outcome is
+$y = 1$ when the rating is greater than one. The gap in days is taken from the timestamps in seconds,
+and it falls back to the elapsed-day column when the seconds are missing.
+
+The Duolingo loader in \texttt{duolingo.py} reads the public trace file of Settles and Meeder
+\cite{settles2016trainable}. It scans the large CSV once, caches the per-user counts, samples users
+with a minimum number of rows, and builds events for the sampled users in chunks. This path is used
+by the runner when \texttt{-{}-dataset duolingo} is given. The Anki benchmark uses the Anki dataset. The Duolingo loader produced the events of Experiment~3 in Chapter~\ref{ch:results}, and it is also covered by its tests.
+
+The split module implements the protocol of Chapter~\ref{ch:dataset}. \texttt{make\_split} selects
+cards up to the card cap with a seeded sample, computes the per-user cutoff as the 80th percentile of
+that user's day offset, labels every review before the cutoff as TRAIN, and marks the scored events.
+A scored event is a TEST review that is not the first review of its card and has an elapsed time of
+at least one day. Every other row stays in the table as history. \texttt{save\_events} and
+\texttt{load\_events} write and read the resulting table, whose columns are listed in
+Table~\ref{tab:events}. The split is computed per user, so one user's split does not depend on the
+other users, and the tests check this property directly (Section~\ref{sec:impl-testing}).
+
+\section{Model Module: Numba FFBS Kernel}
+\label{sec:impl-model}
+
+The sampler is the class \texttt{DynamicRetentionModelDT} in \path{AnkiFirstRun/dynamic_retention_dt.py}.
+It stores all sequences in padded arrays with one row per card sequence and one column per review. The
+outcome matrix \texttt{R}, the gap matrix \texttt{DT} and a mask \texttt{M} of observed transitions are
+built once. The vector \texttt{lens} records the length of each sequence, so the kernel can stop each
+row at its last review. The mathematics is the one of Chapter~\ref{ch:methodology}, and this section
+only shows where each step is computed.
+
+The kernel \texttt{\_ffbs\_step\_numba} performs the forward filter and the backward sampling for all
+sequences in one call. It is decorated with \texttt{@nb.njit(fastmath=True)}, so Numba compiles it on
+first use. Listing~\ref{lst:ffbs} shows the whole function. Its first argument is the padded outcome
+matrix, which the code calls \texttt{R}. The forward pass loops over the columns, and in each column it
+computes the predicted mean and variance, the gain and the filtered mean and variance for every row at
+once. The P\'olya--Gamma pseudo-observation is \texttt{(R - 0.5) / omega}, the variance of the
+pseudo-observation is \texttt{1 / omega}, and the code keeps the arrays of predicted means and
+variances for the backward pass. The backward pass draws the last state of each row from its filtered
+distribution and then the earlier states from their conditionals. Variances are floored at a small
+positive value before the square root, so the draws stay defined. Padded columns after a row's last
+review are set to zero in the output.
+
+\ListingCaption{\label{lst:ffbs}The Numba FFBS kernel \texttt{\_ffbs\_step\_numba}, copied verbatim from \texttt{AnkiFirstRun/\allowbreak dynamic\_retention\_dt.py} (lines 17 to 89). The docstring (lines 19 to 22) is omitted between the two parts. Line numbers are those of the source file.}
+\lstinputlisting[firstline=17, lastline=18, firstnumber=17]{../AnkiFirstRun/dynamic_retention_dt.py}
+\par\noindent\hfill{\footnotesize\ttfamily\itshape ... docstring omitted (lines 19--22) ...}\hfill\par
+\lstinputlisting[firstline=23, lastline=89, firstnumber=23]{../AnkiFirstRun/dynamic_retention_dt.py}
+
+The kernel seeds NumPy's generator inside the compiled function, so a call with the same seed gives the
+same draws. The padded layout means that the cost is set by the number of rows times the length of the
+longest sequence, not by the number of reviews alone. Chapter~\ref{ch:methodology} gives the complexity
+of each step in the same terms.
+
+The method \texttt{\_dyn} computes the decay factor and the transition variance from the current rate,
+the practice count and the gap. It uses the closed forms of Equations~\eqref{eq:phi} and \eqref{eq:q},
+with \texttt{expm1} for the variance. The first review of each row is set to no history: its decay is
+zero and its variance is the initial prior variance (Listing~\ref{lst:dyn}). The listing is copied
+from the source file, so the line numbers are those of the source.
+
+\ListingCaption{\label{lst:dyn}The \texttt{\_dyn} method from the sampler module, copied verbatim (lines 185 to 192). It gives the decay and transition variance of Equations~\eqref{eq:phi} and \eqref{eq:q}, with no history at the first review. Line numbers are those of the source file.}
+\lstinputlisting[firstline=185, lastline=192, firstnumber=185]{../AnkiFirstRun/dynamic_retention_dt.py}
+
+The P\'olya--Gamma draws come from \texttt{sample\_pg1} in \texttt{pg\_sampler.py}, shown in
+Listing~\ref{lst:pg}. It evaluates the truncated infinite-sum representation with \texttt{n\_terms}
+terms, which defaults to 200, using vectorised Gamma draws for every entry of the input. The truncation
+is the approximation described in Chapter~\ref{ch:methodology}, and the listing makes it visible: the
+sum stops after \texttt{n\_terms} terms and no tail correction is applied.
+
+\ListingCaption{\label{lst:pg}The truncated P\'olya--Gamma sampler \texttt{sample\_pg1}, copied verbatim from \texttt{pg\_sampler.py} (lines 45 to 67). The sum is truncated at \texttt{n\_terms}, which is 200 by default. Line numbers are those of the source file.}
+\lstinputlisting[firstline=45, lastline=67, firstnumber=45]{../pg_sampler.py}
+
+The sweep itself is the method \texttt{run}. In each iteration it draws the P\'olya--Gamma variables,
+calls the kernel, updates the effects, and then updates the rate and the noise variance. The rate and
+the coefficient $\kappa$ use Metropolis--Hastings, and the step size is adapted only during burn-in.
+After burn-in, every \texttt{thin}-th draw is stored, together with the state of each sequence at its
+last review, which the prediction step later uses as the warm start.
+
+\section{Baselines: FSRS Adapter and HLR Port}
+\label{sec:impl-baselines}
+
+The FSRS adapter in \texttt{fsrs\_benchmark/\allowbreak models/fsrs\_model.py} wraps py-fsrs \cite{pyfsrs}. The class
+\texttt{FSRSModel} takes two options: whether to optimise the weights for each user, and the number of
+worker processes. In the default configuration it uses the 21 default parameters of FSRS-6 for every
+user. In the optimised configuration it runs the py-fsrs optimiser on each user's TRAIN logs. A user
+with fewer than 512 informative training reviews keeps the default weights, which is the fallback
+described in Chapter~\ref{ch:results}. Only one of the 100 users fell back in the reported run. The
+adapter rebuilds each card's memory state by replaying its reviews in order, and it predicts each scored
+event from the state before that review. The tests check that a later review cannot change an earlier
+prediction, and they compare the replay with py-fsrs on real cards. Parallel prediction runs in a spawn
+process pool, and a test checks that the parallel and serial runs give the same numbers.
+
+The HLR baseline is a port of the half-life regression of Settles and Meeder \cite{settles2016trainable}.
+Its features are the square roots of one plus the counts of correct and incorrect prior answers, and a
+bias term. The predicted half-life is $2$ raised to the inner product of the weights and the features, and
+the recall probability is $2$ raised to the minus gap divided by that half-life. The weights are fitted by
+stochastic gradient descent with per-feature learning rates that shrink as a feature is used. The
+constants and the update follow the reference implementation. The test file \texttt{test\_hlr\_verify.py}
+contains a transcription of the reference functions from Duolingo's public code, and it compares the port's update with that transcription on random states, and checks the observed half-life against the reference formula. This is a check against a
+transcription, not a run of the official repository, and the test file says so. The features of a row use
+only the events before it, which a separate test checks.
+
+\texttt{LagLogitModel} in \texttt{laglogit.py} is the LagLogit+$\Delta t$ baseline. It is a static logistic
+regression on the lagged outcome and the gap, and it is used for the comparisons of the preliminary run.
+Its tests check that every scored event is predicted, and that flipping an outcome together with all later outcomes of its card leaves its prediction and the earlier ones unchanged.
+
+The adapter for the sampler is \texttt{OursModel} in \texttt{models/ours.py}. It builds one sequence per
+user and card, with the lagged outcome \texttt{x}, the gap \texttt{dt} and the event identifiers, and it
+gives the sampler only the TRAIN rows. A user or card with no TRAIN rows maps to a padding index, so the
+sampler's cold path applies. Chapter~\ref{ch:methodology} describes that path. In the reported run, a warm
+card starts from its last training state, and a cold card has no memory across its test reviews. The
+share of scored events on cold cards is 43.5\%. This is an implementation limitation that uses less
+history than the protocol allows, not more, so it does not use test labels. It was not changed in the
+code, because a change would invalidate the reported run. Chapter~\ref{ch:results} reports the effect
+of this limitation.
+
+The adapter also selects a back end. The default is the Numba sampler. The optional PyTorch port in
+\texttt{models/\allowbreak dynamic\_retention\_gpu.py} implements the same model. Its tests compare the deterministic
+parts with the NumPy original, and they check that padding does not leak into real events. It was used for the
+Duolingo run (Experiment~3), and not for the Anki benchmark.
+
+\section{Improved Models: ours\_v2, ours\_v3 and gbdt}
+\label{sec:impl-improved}
+
+The three models of Section~\ref{sec:method-improved} are separate modules in
+\texttt{fsrs\_benchmark/\allowbreak models/}, and each follows the common model interface: \texttt{fit} on
+the TRAIN rows and \texttt{predict} for the scored rows, with probabilities clipped to $[10^{-6}, 1-10^{-6}]$.
+They are registered in the runner next to the earlier models, so one run produces all of them under the same
+split, scoring and metrics. Each module has a \texttt{FROZEN\_KWARGS} dictionary holding the configuration
+that was fixed on validation data before the test run, and the runner reads it.
+
+\texttt{ours\_v2.py} defines the class \texttt{OursV2}. It stores the $21$ FSRS-6 weights and the user effects
+as PyTorch tensors, lays the cards out sorted by length so that the loop is over the review index rather than
+over cards, and fits all parameters by Adam on the negative log posterior. The same loop, run over the full
+card histories, gives the one-step-ahead predictions. \texttt{ours\_v3.py} defines \texttt{OursV3}, which has
+the same structure and adds the penalty, the lag term and the card effect as constructor options that are off by default,
+so that with all options off it equals v2. \texttt{gbdt.py} defines the class \texttt{GBDT}. The card and user
+features are computed by two Numba kernels (\texttt{\_card\_kernel} and \texttt{\_user\_kernel}) that scan each
+card or user in time order, so that a feature at a review sees only earlier rows, and rows with the same
+timestamp are grouped. An \texttt{Aggregates} class computes the smoothed lexeme rate, out of fold for the
+training rows. LightGBM is trained on the design matrix, with early stopping on a holdout of the fit data.
+
+The frozen configurations are short enough to show.
+
+{\footnotesize
+\begin{verbatim}
+# ours_v2.py
+FROZEN_KWARGS = dict(epochs=20)
+# ours_v3.py
+FROZEN_KWARGS = dict(epochs=20, tau_pen=300.0, lag=True,
+                     card_bias=True, card_tau=0.2)
+# gbdt.py
+FROZEN_KWARGS = dict(groups=tuple(g for g in ALL_GROUPS if g != "userprior"),
+                     train_rows="nonfirst", num_leaves=15, learning_rate=0.02,
+                     m_user=3.0, m_lex=3.0)
+\end{verbatim}
+}
+
+The group \texttt{userprior} is left out of the final GBDT, which is the setting called no user prior group in
+Chapter~\ref{ch:results}. The three models fit in seconds on the Anki benchmark and in minutes on Duolingo, and
+none of them uses the Numba sampler.
+
+\section{Metrics Module}
+\label{sec:impl-metrics}
+
+The metrics are written from scratch in \texttt{fsrs\_benchmark/\allowbreak metrics.py} and are not taken from a
+library. \texttt{log\_loss} clips probabilities before taking logarithms. \texttt{brier} gives the mean squared
+error of the probabilities. \texttt{auc} is the rank-based area under the ROC curve, with tied scores given
+the average rank. \texttt{ece} bins the predictions into ten equal-width bins and averages the gap between
+mean prediction and observed recall, weighted by bin size. \texttt{reliability\_curve} returns the data
+for the reliability diagram, \texttt{mean\_bias} gives the signed difference between the mean prediction and
+the mean outcome, and \texttt{rmse\_bins} gives the root mean squared error over bins. \texttt{summarize}
+returns all of these for one model and one scope. \texttt{paired\_bootstrap} compares two models by
+resampling users, with 1000 resamples and a fixed seed, so that the confidence intervals are clustered by
+user and reproducible.
+
+The tests in \texttt{test\_metrics.py} are known-answer tests. They check AUC on a textbook example with a
+value of 0.75, AUC with tied scores and with a single class, log loss and Brier score on values computed
+by hand, the clipping of extreme probabilities, and ECE for a perfectly calibrated set and for a hand-computed
+case. A second file, \texttt{test\_metrics\_verify.py}, cross-checks these functions with independent calculations, and \texttt{test\_metrics.py} includes a timing test of the bootstrap on 30,000 events. Chapter~\ref{ch:results} defines each
+metric and gives the results.
+
+\section{Run Orchestration, Resume and Reports}
+\label{sec:impl-orchestration}
+
+The runner \texttt{fsrs\_benchmark/\allowbreak run.py} is the command-line entry point. Its main arguments are the number
+of users, the maximum number of cards per user, the seed, the number of sampler iterations and burn-in
+sweeps, the number of workers, the run name, the dataset, the device, and \texttt{-{}-resume}. By default it
+runs the five models of the benchmark: FSRS-6 with default weights, FSRS-6 optimised, HLR, and the two
+sampler variants with and without $\kappa$. Four further keys, including the LagLogit baseline and the GPU
+variants, run only when they are named in \texttt{-{}-models}, so that the default run does not change when
+they are added.
+
+Figure~\ref{fig:tk_run_pipeline} shows the flow. The runner loads the events, builds the split, and saves
+the event table to \texttt{events.parquet}. For each model key it then decides whether to fit. Without
+\texttt{-{}-resume}, the model is fitted on the TRAIN rows, predicts the scored events, and writes
+\texttt{pred\_<key>.parquet} with a JSON sidecar that records the configuration and the timings. With
+\texttt{-{}-resume} and an existing prediction file, the runner first checks the sidecar against the current
+configuration. If the configuration differs, the runner stops with a message that names the differing
+keys and asks the user to delete the file or to drop \texttt{-{}-resume}. A file without a sidecar is also
+refused, because its configuration cannot be checked. A matching file is loaded without refitting. The
+runner then checks that every prediction covers exactly the scored events, merges the keys on
+\texttt{event\_id}, and writes \texttt{predictions.parquet}.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_run_pipeline}
+  \caption{Run pipeline with caching. For each model key, a matching prediction file from an earlier run is
+    loaded after its configuration is checked. Otherwise the model is fitted and the prediction is saved. All
+    keys are then merged, and the report is built from the merged predictions.}
+  \label{fig:tk_run_pipeline}
+\end{figure}
+
+The run record \texttt{run\_info.json} stores the counts of users, cards, events, TRAIN rows, TEST rows and
+scored events, the users with no TRAIN rows, the arguments, the git commit, the package versions, the
+timings of each model, and whether each model was resumed. The runner also writes a diagnostics file for each
+sampler variant. The report module \texttt{build\_report} reads \texttt{predictions.parquet} and
+\texttt{run\_info.json}, and it writes \texttt{metrics.csv}, \texttt{paired.csv}, \texttt{users.csv},
+\texttt{user\_wins.csv}, the reliability and gap-bin figures, and \texttt{report.md}. Every number in the
+report is computed from these files, and the report can be rebuilt without refitting any model.
+
+\section{Testing Strategy}
+\label{sec:impl-testing}
+
+The benchmark has \NumBenchTests{} tests in \texttt{fsrs\_benchmark/\allowbreak tests}, which run on the CPU with
+pytest. The tests use small synthetic data where possible, and they use two cached real users where the
+behaviour depends on real data. The Hugging Face download and the runner's data access are mocked in the data and runner tests. The sampler
+has its own diagnostic tests in \texttt{model\_diagnostics/}, which contain 32 test functions. Four of those
+files need optional packages that are not in the environment used for the reported run, so they are not
+counted in \NumBenchTests{}. Table~\ref{tab:tests} groups the test files by area, and
+Figure~\ref{fig:tk_test_pyramid} shows the three layers of the strategy.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Test suites of the benchmark, grouped by area, and what they check.}
+  \label{tab:tests}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{6.0cm}>{\raggedright\arraybackslash}p{4.6cm}@{}}
+    \toprule
+    \textbf{Area} & \textbf{Test files} & \textbf{What they check}\\
+    \midrule
+    Metrics & \texttt{test\_metrics.py}, \texttt{test\_metrics\_verify.py} & Known answers for AUC, log loss, Brier, ECE, bias; bootstrap behaviour and speed\\
+    Data and Duolingo loader & \texttt{test\_data.py}, \texttt{test\_data\_verify.py}, \texttt{test\_duolingo.py}, \texttt{test\_duolingo\_verify.py} & Event rules, labels, gap from seconds, first flags, download and token errors, scan cache and sampling\\
+    Split & \texttt{test\_split.py}, \texttt{test\_split\_verify.py} & Strict cutoff, 80th-percentile rule, scoring rules, card cap, determinism, per-user independence, round trip\\
+    FSRS-6 adapter & \texttt{test\_fsrs\_model.py}, \texttt{test\_fsrs\_model\_verify.py}, \texttt{test\_fsrs\_parallel.py} & No leakage in replay, agreement with py-fsrs, valid output, parallel equals serial\\
+    HLR port & \texttt{test\_hlr.py}, \texttt{test\_hlr\_verify.py} & One SGD step and parameter recovery; prior-only features; update against the Duolingo transcription\\
+    Sampler adapter and diagnostics & \texttt{test\_ours.py}, \texttt{test\_ours\_verify.py}, \texttt{test\_ours\_backend.py}, \texttt{test\_mcmc\_verify.py} & Only TRAIN rows reach the sampler, prefix-only prediction, warm and cold paths, strict JSON diagnostics\\
+    GPU port & \texttt{test\_dynamic\_retention\allowbreak\_gpu.py}, \texttt{test\_dynamic\_retention\allowbreak\_gpu\allowbreak\_verify.py} & Deterministic parts equal the NumPy original; padding does not leak\\
+    LagLogit baseline & \texttt{test\_laglogit.py} & Every scored event predicted; label flip of later rows changes nothing\\
+    Runner and resume & \texttt{test\_run.py}, \texttt{test\_run\_verify.py}, \texttt{test\_run\_duolingo.py}, \texttt{test\_task41\_verify.py}, \texttt{test\_task52\_54\_verify.py} & Smoke run, resume skips finished models, resume refuses other configurations, fit ignores test labels\\
+    Report and supplementary & \texttt{test\_report.py}, \texttt{test\_report\_verify.py}, \texttt{test\_supplementary.py} & Recomputed metrics match, file contents, report wording\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_test_pyramid}
+  \caption{Testing pyramid. Unit tests cover the metric and data rules and are the largest layer. Model
+    tests check each adapter against its reference. A small number of end-to-end and leakage tests check
+    the whole runner.}
+  \label{fig:tk_test_pyramid}
+\end{figure}
+
+Three groups of tests carry most of the weight for the claims made in this report. The first is the
+leakage group. The test \texttt{test\_fit\_does\_not\_see\_test\_labels} in \texttt{test\_run\_verify.py} is
+parametrised over every model key. It fits each model twice, once on the real table and once on a copy whose
+TEST outcomes are flipped, and it requires identical predictions. The sampler tests check that its warm and
+cold paths are built from TRAIN rows only, and that the prediction for an event does not change when its own
+outcome or a later outcome is changed. The second group is the resume group. It checks that resuming gives
+identical predictions to a fresh run, that a configuration mismatch is refused, and that only the missing
+model is refitted. The third group is the known-answer metric tests, which fix the scoring rules that every
+result depends on.
+
+The tests check the code against its specification. They do not establish that the sampler has converged,
+and they do not check the scientific claims. Convergence is a property of the fitted chain, and it is
+assessed in Chapter~\ref{ch:results}. The HLR check compares against a transcription of the reference code,
+not against a run of the official repository.
+
+\section{Reproducibility Commands}
+\label{sec:impl-reproducibility}
+
+The reported benchmark is reproduced with three commands, run from the repository root with the project
+environment. The first fits every model and writes the run directory. The second builds the report from it,
+and the third runs the benchmark tests. The Anki dataset is gated, so the first command needs a Hugging Face
+token with access to it.
+
+{\footnotesize
+\begin{verbatim}
+.venv/bin/python -m fsrs_benchmark.run --n_users 100 --max_cards 1000 \
+  --seed 0 --iters 2000 --burn 1000 --workers 8 \
+  --run_name full_u100_c1000
+.venv/bin/python -m fsrs_benchmark.report --run_dir results/full_u100_c1000
+.venv/bin/python -m pytest fsrs_benchmark/tests -q
+\end{verbatim}
+}
+
+An interrupted run is continued by repeating the first command with \texttt{-{}-resume} added. Models that
+finished earlier are loaded after their configuration is checked, and the rest are fitted. The sampler is
+slow, and this is why resume exists: the reported run took several hours for the sampler variants alone
+(Chapter~\ref{ch:results}). The sampler variants are the largest cost, and the baselines take minutes.
+The record of each run states the commit and package versions, so a later run can be compared with the
+original.

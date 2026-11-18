@@ -1,0 +1,25 @@
+% tk_event_pipeline: revlog rows to the event table (DIAGRAMS.md item 8)
+\begin{tikzpicture}[font=\small]
+  \tikzset{filterrule/.style={box, minimum width=2.8cm, minimum height=1.1cm, text width=2.6cm, font=\small}}
+  % row 1, left to right
+  \node[filterrule, fill=black!10] (r0) at (1.4,0) {Raw revlog rows};
+  \node[filterrule] (r1) at (4.9,0) {Drop rating 0\\(manual reschedules)};
+  \node[filterrule] (r2) at (8.4,0) {Keep state 4\\(filtered-deck reviews)};
+  \node[filterrule] (r3) at (11.9,0) {Drop cards whose first kept review is not new};
+  % row 2, left to right (reading continues here)
+  \node[filterrule] (r4) at (1.4,-3.2) {Recompute gaps\\(\texttt{elapsed\_\allowbreak days},\\\texttt{dt\_\allowbreak days})};
+  \node[filterrule] (r5) at (4.9,-3.2) {Label $y = \mathrm{1}[\mathrm{rating} > 1]$};
+  \node[filterrule] (r6) at (8.4,-3.2) {Card cap ($\le 1000$ per user)};
+  \node[filterrule, fill=ours!15, draw=ours!85!black] (r7) at (11.9,-3.2) {Event table};
+  \draw[arrow] (r0) -- (r1);
+  \draw[arrow] (r1) -- (r2);
+  \draw[arrow] (r2) -- (r3);
+  % wrap from the end of row 1 to the start of row 2
+  \draw[arrow] (r3.south) -- (11.9,-1.6) -- (1.4,-1.6) -- (r4.north);
+  \draw[arrow] (r4) -- (r5);
+  \draw[arrow] (r5) -- (r6);
+  \draw[arrow] (r6) -- (r7);
+  % final counts
+  \node[box, minimum width=13.2cm, minimum height=0.9cm, font=\small] (counts) at (6.7,-5.6)
+    {Final event table: 768,658 events, 99,074 cards, 100 users};
+\end{tikzpicture}

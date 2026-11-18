@@ -1,0 +1,17 @@
+% tk_fsrs_vs_ours: FSRS-6 and Ours side by side, rows aligned (DIAGRAMS.md item 20)
+% Columns: row labels 0.0-2.6, FSRS-6 2.8-8.4, Ours 8.6-14.2 (cm).
+\begin{tikzpicture}[font=\small]
+  \node[box, modelbox=fsrsopt, minimum width=5.6cm, minimum height=0.9cm, font=\small\bfseries] at (5.6,0) {FSRS-6 (py-fsrs)};
+  \node[box, modelbox=ours, minimum width=5.6cm, minimum height=0.9cm, font=\small\bfseries] at (11.4,0) {Ours (Bayesian)};
+  \foreach \rowno/\lab/\fsrscell/\oursc in {
+      0/{Inputs}/{four grades (binary on Duolingo)}/{binary outcome $y$},
+      1/{State}/{2-D state $S$, $D$; deterministic}/{1-D latent $\psi$; stochastic},
+      2/{Parameters}/{21 per user (defaults on Duolingo)}/{pooled $\lambda$, $\sigma^2$;\\hierarchical $\alpha_u$, $\beta_i$, $\gamma_u$},
+      3/{Uncertainty}/{none (point estimate)}/{posterior draws (250 kept)\\ (100 on Duolingo)},
+      4/{Fit cost}/{optimised fit $\approx$11 min (653 s) for 100 users}/{$\approx$7.6 h for 100 users}} {
+    \pgfmathsetmacro{\yc}{-1.5-1.25*\rowno}
+    \node[box, font=\small\bfseries, minimum width=2.6cm, minimum height=0.9cm, fill=black!10] at (1.3,\yc) {\lab};
+    \node[box, minimum width=5.6cm, minimum height=0.9cm] at (5.6,\yc) {\fsrscell};
+    \node[box, modelbox=ours, minimum width=5.6cm, minimum height=0.9cm] at (11.4,\yc) {\oursc};
+  }
+\end{tikzpicture}

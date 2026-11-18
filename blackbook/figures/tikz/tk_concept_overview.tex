@@ -1,0 +1,16 @@
+% tk_concept_overview: from review logs to a scheduler (DIAGRAMS.md item 12)
+\begin{tikzpicture}[font=\footnotesize]
+  \node[box, minimum width=2.9cm, minimum height=1.6cm, text width=2.7cm] (logs) at (1.45,0)
+    {Review logs\\(outcome $y$, gap $\Delta t$)};
+  \node[box, modelbox=ours, minimum width=3.1cm, minimum height=1.6cm, text width=2.9cm] (ssm) at (5.0,0)
+    {Bayesian\\state-space model\\(latent\\memory $\psi(t)$)};
+  \node[box, minimum width=2.9cm, minimum height=1.6cm, text width=2.7cm] (prob) at (8.7,0)
+    {$P(\text{recall at } t)$\\with uncertainty};
+  \node[box, dashed, minimum width=2.9cm, minimum height=1.6cm, text width=2.7cm] (sched) at (12.4,0)
+    {Scheduler\\(choose next review)\\\emph{future work}};
+  \draw[arrow] (logs) -- (ssm);
+  \draw[arrow] (ssm) -- (prob);
+  \draw[dashedarrow] (prob) -- (sched);
+  % loop: the scheduler's choice feeds new review logs
+  \draw[dashedarrow] (sched.south) -- ++(0,-1.1) -| node[below, pos=0.25, font=\footnotesize] {next review} (logs.south);
+\end{tikzpicture}

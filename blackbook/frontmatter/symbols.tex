@@ -1,0 +1,64 @@
+% List of symbols (unnumbered chapter, front matter item 9)
+\chapter*{List of Symbols}
+\addcontentsline{toc}{chapter}{List of Symbols}
+
+\begin{longtable}{@{}p{3.2cm}p{10.3cm}@{}}
+\toprule
+\textbf{Symbol} & \textbf{Meaning}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Symbol} & \textbf{Meaning} \emph{(continued)}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{2}{r}{\emph{continued on next page}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+$y$ & Binary recall outcome of a review: $1$ if the rating is greater than 1, else $0$\\
+$\Delta t$ & Elapsed time in days between two reviews (clipped to $[0.01, 365]$)\\
+$\psi_{n,t}$ & Latent state (logit scale) of card sequence $n$ at review $t$\\
+$\varphi$ & OU decay factor, $\varphi = \exp(-\lambda \Delta t)$\\
+$q$ & OU transition noise variance, $q = \sigma^2(1-e^{-2\lambda\Delta t})/(2\lambda)$\\
+$\lambda$ & OU mean-reversion rate ($\lambda_{n,t}$ when practice-dependent)\\
+$\kappa$ & Practice coefficient in $\lambda_{n,t} = \lambda\exp(-\kappa C_{n,t})$\\
+$C_{n,t}$ & $\log(1 + \text{number of successful recalls before review } t)$\\
+$\sigma^2$ & OU diffusion (volatility) parameter\\
+$\mu_{n,t}$ & Equilibrium mean, $\mu_{n,t} = b_0 + \alpha_u + \beta_i + \gamma_u X_{n,t}$\\
+$X_{n,t}$ & Lagged outcome: $y$ of the previous review of the same card (0 at first review)\\
+$b_0$ & Global intercept\\
+$\alpha_u$ & User effect\\
+$\beta_i$ & Item (card-level) effect\\
+$\gamma_u$ & User-specific coefficient on the lagged outcome\\
+$g_0$ & Hyper-mean of $\gamma_u$\\
+$\tau^2$ & Hierarchical variance hyperparameter (e.g.\ $\tau^2_\alpha$, $\tau^2_\beta$, $\tau^2_\gamma$)\\
+$\omega$ & P\'olya-Gamma auxiliary variable, $\omega \sim \mathrm{PG}(1,\psi)$\\
+$z$ & Pseudo-observation, $z = (y - \tfrac{1}{2})/\omega$\\
+$C$ & Shorthand for $C_{n,t}$ in the rate formula (defined above)\\
+$\hat{R}$ & Potential scale reduction factor\\
+$k_{n,t}$ & P\'olya--Gamma numerator $k_{n,t} = y_{n,t} - \tfrac{1}{2}$\\
+$L$ & Number of terms in the truncated P\'olya--Gamma series ($L = 200$)\\
+$K_{n,t}$ & Kalman gain of the FFBS filter (distinct from $L$)\\
+$N$ & Total number of review events\\
+$N_{\mathrm{tr}}$ & Number of transition terms ($t \ge 2$) in the $\lambda$ and $\sigma^2$ updates\\
+$U$, $I$ & Numbers of users and items\\
+$G$ & Number of groups in a hierarchical effect (in the $\tau^2$ update)\\
+$S$ & Number of posterior draws used for prediction (at most 100)\\
+$Q(\lambda)$ & Half sum of squared standardised residuals used in the $\lambda$ and $\sigma^2$ conditionals\\
+$d_{n,t}$ & Transition design, $1-\varphi_{n,t}$\\
+$v_{n,t}(\lambda)$ & Variance factor $(1-e^{-2\lambda\Delta t})/(2\lambda)$\\
+$\mathrm{logistic}(\psi)$ & Logistic function $1/(1+e^{-\psi})$\\
+$a_{n,t}$ & FFBS predicted mean of the state before review $t$ is observed, $a_{n,t} = \varphi_{n,t}\,m_{n,t-1} + (1-\varphi_{n,t})\,\mu_{n,t}$\\
+$m_{n,t}$ & FFBS filtered mean of $\psi_{n,t}$\\
+$P_{n,t}$ & FFBS filtered variance of $\psi_{n,t}$\\
+$R_{n,t}$ & FFBS predicted variance of $\psi_{n,t}$ before the observation\\
+$K_{n,t}$ & FFBS gain (listed above)\\
+$J_{n,t}$ & Backward-pass gain of the FFBS smoother\\
+$h_{n,t}$ & Mean of the backward-pass conditional draw of $\psi_{n,t}$\\
+$H_{n,t}$ & Variance of the backward-pass conditional draw of $\psi_{n,t}$\\
+$r_{n,t}$ & Transition residual $r_{n,t} = \psi_{n,t} - \varphi_{n,t}\,\psi_{n,t-1}$ in the effects regression\\
+$\bar\omega_{n,t}$ & Mean of the P\'olya--Gamma weight, $\bar\omega = \tanh(a/2)/(2a)$, used in prediction\\
+$N_{\mathrm{seq}}$ & Number of card sequences (rows of the padded FFBS array)\\
+$T_{\max}$ & Length of the longest sequence (columns of the padded FFBS array)\\
+\end{longtable}

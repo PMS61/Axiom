@@ -1,0 +1,38 @@
+% tk_split_timeline: one user's time axis with the train/test split (DIAGRAMS.md item 9)
+\begin{tikzpicture}[font=\small]
+  % regions: train up to the 80th-percentile cutoff, test after it
+  \fill[black!6] (0,-0.6) rectangle (8.4,2.2);
+  \fill[black!14] (8.4,-0.6) rectangle (13.6,2.2);
+  \node[font=\footnotesize\bfseries] at (4.2,2.45) {TRAIN};
+  \node[font=\footnotesize\bfseries] at (12.6,2.45) {TEST};
+  \draw[dashed, black!70, line width=0.6pt] (8.4,-0.8) -- (8.4,3.2);
+  \node[font=\footnotesize, anchor=east] at (8.25,3.1) {cutoff = 80th percentile of \texttt{day\_offset}};
+  % card rows: ticks for train reviews; circles for test reviews
+  \def\cardA{1.4}
+  \def\cardB{0.3}
+  % train reviews (ticks)
+  \foreach \x in {1.0,3.2,5.6,7.6} { \draw[black!70, line width=0.6pt] (\x,\cardA-0.22) -- (\x,\cardA+0.22); }
+  \foreach \x in {0.6,2.4,4.6,6.3,7.8} { \draw[black!70, line width=0.6pt] (\x,\cardB-0.22) -- (\x,\cardB+0.22); }
+  % test reviews: history only (hollow), scored (filled)
+  \node[hollowevent] at (9.0,\cardA) {};
+  \node[event] (sA1) at (10.6,\cardA) {};
+  \node[event] (sA2) at (12.6,\cardA) {};
+  \node[hollowevent] at (9.6,\cardB) {};
+  \node[event] (sB1) at (11.2,\cardB) {};
+  % one-step-ahead: event k is predicted from all events before it
+  \draw[arrow] (9.0,\cardA+0.2) to[bend left=55] (sA1.north);
+  \node[font=\footnotesize, align=center] at (9.8,2.95) {predict $k$ using\\all events $<k$};
+  % time axis
+  \draw[arrow] (0,-0.9) -- (13.6,-0.9);
+  \node[font=\footnotesize, anchor=north east] at (13.6,-1.0) {\texttt{day\_offset}};
+  % legend
+  \draw[black!70, line width=0.6pt] (0.3,-1.9) -- (0.3,-1.5);
+  \node[font=\footnotesize, anchor=west] at (0.5,-1.7) {train review};
+  \node[hollowevent] at (3.6,-1.7) {};
+  \node[font=\footnotesize, anchor=west] at (3.9,-1.7) {history only (same day or first review)};
+  \node[event] at (10.0,-1.7) {};
+  \node[font=\footnotesize, anchor=west] at (10.3,-1.7) {scored event};
+  % counts
+  \node[box, minimum width=13.6cm, minimum height=0.9cm, font=\small] at (6.8,-3.3)
+    {Dataset totals (100 users): train 606,364; test 162,294; scored 95,400};
+\end{tikzpicture}

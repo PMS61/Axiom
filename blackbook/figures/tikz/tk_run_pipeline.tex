@@ -1,0 +1,32 @@
+% tk_run_pipeline: run flow with caching and --resume (DIAGRAMS.md item 18)
+\begin{tikzpicture}[font=\footnotesize]
+  % top row: events
+  \node[box, minimum width=3.4cm] (load) at (0,0) {load and split events\\(Anki or Duolingo)};
+  \node[box, minimum width=3.4cm] (split) at (4.6,0) {\texttt{split.make\_split}\\(cutoff, scoring, card cap)};
+  \node[store, minimum width=2.6cm] (ev) at (8.3,0) {\texttt{events.parquet}};
+  \draw[arrow] (load) -- (split);
+  \draw[arrow] (split) -- (ev);
+  % loop frame over the model keys; its label sits above the frame line
+  \draw[rounded corners=3pt, black!55, dashed] (-0.2,-2.5) rectangle (11.4,-7.55);
+  \node[anchor=west] at (5.1,-2.2) {for each model key};
+  \node[decision, minimum width=4.2cm, minimum height=1.4cm] (dec) at (2.8,-3.1)
+    {\texttt{pred\_<key>.parquet} exists\\and \texttt{-{}-resume}?};
+  \node[box, minimum width=3.6cm] (cache) at (8.3,-3.1) {load cached predictions,\\check config sidecar};
+  \node[box, minimum width=3.6cm] (fit) at (2.8,-5.3) {\texttt{fit(train)}\\\texttt{predict(scored)}};
+  \node[box, minimum width=3.6cm] (save) at (8.3,-5.3) {save \texttt{pred\_<key>.parquet}\\+ \texttt{.json}, diagnostics};
+  \node[decision, minimum width=3.6cm, minimum height=1.1cm] (next) at (8.3,-6.9) {next model key:\\more keys?};
+  \draw[arrow] (ev.south) -- (8.3,-1.4) -- (2.8,-1.4) -- (dec.north);
+  \draw[arrow] (dec.east) -- node[above] {yes} (cache.west);
+  \draw[arrow] (dec.south) -- node[right] {no} (fit.north);
+  \draw[arrow] (fit.east) -- (save.west);
+  \draw[arrow] (cache.south) -- (save.north);
+  \draw[arrow] (save.south) -- (next.north);
+  \draw[arrow] (next.west) -- node[above] {yes} (0.2,-6.9) -- (0.2,-3.1) -- (dec.west);
+  % after the loop: merge, run record, report
+  \node[box, minimum width=5.0cm] (merge) at (8.3,-9.0) {merge keys on \texttt{event\_id}\\write \texttt{predictions.parquet}};
+  \draw[arrow] (next.south) -- node[right] {no} (merge.north);
+  \node[box, minimum width=5.0cm] (info) at (8.3,-10.8) {\texttt{run\_info.json}\\(counts, arguments, git, packages)};
+  \node[box] (rep) at (8.3,-12.6) {\texttt{build\_report()}\\\texttt{metrics.csv}, \texttt{paired.csv}, \texttt{user\_wins.csv}\\\texttt{reliability.png}, \texttt{gapbins\_logloss.png}\\\texttt{report.md}};
+  \draw[arrow] (merge) -- (info);
+  \draw[arrow] (info) -- (rep);
+\end{tikzpicture}

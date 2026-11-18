@@ -1,0 +1,38 @@
+% tk_axiom_architecture: whole-system architecture of the Axiom application and the local research pipeline
+% (Chapter 7). Coordinates in cm. Every box is named from the code: client/src/app, client/src/lib, proxy.ts.
+\begin{tikzpicture}[font=\small]
+  % browser and server (full width)
+  \node[box, minimum width=13.0cm, minimum height=1.1cm, text width=12.2cm, font=\footnotesize]
+    (ui) at (6.5,0) {Browser UI: dashboard, roadmap, trends, flashcards, short-bit, stories, and the research workspace at \texttt{/bayesian-demo}};
+  \node[box, minimum width=13.0cm, minimum height=1.1cm, text width=12.2cm, font=\footnotesize]
+    (srv) at (6.5,-1.9) {Next.js server actions and route handlers (\texttt{app/actions}, \texttt{app/api}); dashboard routes guarded by the JWT proxy};
+  \draw[arrow] (ui.south) -- (srv.north);
+
+  % three server-side subsystems
+  \node[box, text width=3.9cm, minimum height=2.0cm, font=\footnotesize]
+    (ag) at (2.0,-4.1) {\textbf{Content agents (Gemini)}\\roadmap, course, assessment,\\cheatsheet, flashcard,\\short-bit, story};
+  \node[box, text width=3.9cm, minimum height=2.0cm, font=\footnotesize]
+    (tr) at (6.5,-4.1) {\textbf{Trend engine}\\Hacker News, Reddit, NewsAPI;\\scored topics, direction,\\momentum};
+  \node[box, text width=3.9cm, minimum height=2.0cm, font=\footnotesize]
+    (sc) at (11.0,-4.1) {\textbf{Cognitive-load scheduler}\\energy budget, bandwidth\\curve, placement, burnout\\risk, reasoning chain};
+  \draw[arrow] (srv.south -| ag.north) -- (ag.north);
+  \draw[arrow] (srv.south -| tr.north) -- (tr.north);
+  \draw[arrow] (srv.south -| sc.north) -- (sc.north);
+
+  % persistence: a flat box at normal size, below the three subsystems
+  \node[box, fill=black!12, minimum width=8.0cm, minimum height=1.0cm, text width=7.6cm, font=\footnotesize] (pg) at (6.5,-6.9) {\textbf{Vercel Postgres} (database)\\users, tasks, section weights, roadmaps, courses, mastery, reports};
+  \draw[arrow] (ag.south) |- (pg.west);
+  \draw[arrow] (tr.south) -- (pg.north);
+  \draw[arrow] (sc.south) |- (pg.east);
+
+  % local Python research pipeline (separate from the scheduler)
+  \draw[draw=black!60, dashed, rounded corners=4pt, fill=black!2] (0,-8.3) rectangle (13.0,-11.5);
+  \node[anchor=north, font=\footnotesize\bfseries] at (6.5,-8.4) {Local Python research pipeline (separate from the scheduler)};
+  \node[box, text width=4.6cm, minimum height=1.6cm, font=\footnotesize]
+    (rm) at (3.3,-10.0) {Retention models: dynamic (AR(1) logit or state-space) and static samplers};
+  \node[box, text width=4.6cm, minimum height=1.6cm, font=\footnotesize]
+    (jb) at (9.7,-10.0) {\texttt{model\_diagnostics.run} and \texttt{fsrs\_benchmark} jobs writing files to \texttt{results/} and \texttt{.task3-runs/}};
+  % the API starts the Python jobs as local child processes
+  \draw[dashedarrow] (srv.west) -- (-0.5,-1.9) -- (-0.5,-10.0) -- (rm.west);
+  \node[font=\footnotesize, rotate=90] at (-0.8,-5.2) {spawns jobs};
+\end{tikzpicture}

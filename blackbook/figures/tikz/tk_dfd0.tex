@@ -1,0 +1,14 @@
+% tk_dfd0: context diagram (DIAGRAMS.md item 2)
+\begin{tikzpicture}[font=\small]
+  \node[process, minimum size=3.8cm, font=\small] (sys) at (7.0,0) {0. Retention\\Benchmark System};
+  \node[entity, minimum width=3.0cm, minimum height=1.2cm] (res) at (1.6,0) {Researcher};
+  \node[entity, minimum width=3.6cm, minimum height=1.0cm] (hf) at (7.0,4.2) {Hugging Face\\dataset};
+  \node[entity, minimum width=2.8cm, minimum height=1.2cm, dashed] (app) at (12.7,0) {Spaced-repetition\\app (future)};
+  % config in, report out
+  \draw[arrow] (3.1,0.4) -- (5.14,0.4) node[above, midway, align=center, font=\footnotesize] {config /\\CLI args};
+  \draw[arrow] (5.14,-0.4) -- (3.1,-0.4) node[below, midway, align=center, font=\footnotesize] {predictions\\\& report};
+  % revlogs in
+  \draw[arrow] (7.0,3.7) -- (7.0,1.9) node[right, midway, font=\footnotesize, xshift=3pt] {revlogs};
+  % recall probabilities out (future app, dashed)
+  \draw[dashedarrow] (8.86,0) -- (11.0,0) node[above, midway, align=center, font=\footnotesize] {recall\\probabilities};
+\end{tikzpicture}

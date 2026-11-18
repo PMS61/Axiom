@@ -1,0 +1,28 @@
+% tk_gibbs_flow: one Gibbs sweep as a cycle (DIAGRAMS.md item 28)
+\begin{tikzpicture}[font=\footnotesize]
+  \tikzset{conj/.style={box, minimum width=2.7cm, minimum height=0.9cm, text width=2.5cm, font=\footnotesize},
+    mh/.style={box, minimum width=2.7cm, minimum height=0.9cm, text width=2.5cm, font=\footnotesize,
+      fill=orange!30, draw=orange!60!black}}
+  % seven blocks on a circle (radius 4.2 cm), in sweep order
+  \node[conj] (om) at (90:4.2)   {draw $\omega \mid \psi$ (PG)};
+  \node[conj] (ps) at (38.6:4.2) {draw $\psi \mid \omega, \theta$ (FFBS)};
+  \node[conj] (ef) at (-12.9:4.2) {draw $b_0, \alpha, \beta, \gamma, g_0$};
+  \node[conj] (ta) at (-64.3:4.2) {draw $\tau^2_\alpha, \tau^2_\beta, \tau^2_\gamma$};
+  \node[mh]   (la) at (-115.7:4.2) {MH on $\log\lambda$};
+  \node[mh]   (ka) at (-167.1:4.2) {MH on $\kappa$ (optional)};
+  \node[conj] (s2) at (141.4:4.2) {draw $\sigma^2$};
+  % arrows, clockwise
+  \draw[arrow] (om) -- (ps);
+  \draw[arrow] (ps) -- (ef);
+  \draw[arrow] (ef) -- (ta);
+  \draw[arrow] (ta) -- (la);
+  \draw[arrow] (la) -- (ka);
+  \draw[arrow] (ka) -- (s2);
+  \draw[arrow] (s2) -- (om);
+  \node[font=\small, align=center] at (0,0) {one Gibbs sweep};
+  % legend
+  \node[box, fill=black!8, minimum width=0.6cm, minimum height=0.4cm, inner sep=0pt] (lg1) at (-4.6,-5.4) {};
+  \node[anchor=west, font=\footnotesize] at (-4.3,-5.4) {conjugate draw};
+  \node[box, fill=orange!30, draw=orange!60!black, minimum width=0.6cm, minimum height=0.4cm, inner sep=0pt] (lg2) at (-0.4,-5.4) {};
+  \node[anchor=west, font=\footnotesize] at (-0.1,-5.4) {Metropolis--Hastings};
+\end{tikzpicture}

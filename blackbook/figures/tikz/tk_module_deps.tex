@@ -1,0 +1,39 @@
+% tk_module_deps: module dependency graph (DIAGRAMS.md item 17)
+\begin{tikzpicture}[font=\footnotesize]
+  % project modules
+  \node[modulebox, minimum width=2.2cm] (run) at (5.8,9.4) {run.py};
+  \node[modulebox, minimum width=2.2cm] (rep) at (10.8,9.4) {report.py};
+  \node[modulebox, minimum width=2.2cm] (met) at (10.8,7.0) {metrics.py};
+  \node[modulebox, minimum width=2.2cm] (dat) at (1.4,7.0) {data.py};
+  \node[modulebox, minimum width=2.2cm] (spl) at (4.0,7.0) {split.py};
+  % models/ group
+  \draw[dashed, rounded corners=3pt, black!60] (3.9,2.0) rectangle (10.4,6.2);
+  \node[font=\footnotesize\ttfamily, anchor=north west] at (4.0,6.1) {models/};
+  \node[modulebox, minimum width=2.2cm] (fsrs) at (6.2,5.3) {fsrs\_model.py};
+  \node[modulebox, minimum width=2.2cm] (hlr) at (9.0,5.3) {hlr.py};
+  \node[modulebox, minimum width=2.2cm] (lag) at (6.2,4.0) {laglogit.py};
+  \node[modulebox, minimum width=2.2cm] (ours) at (9.0,4.0) {ours.py};
+  \node[modulebox, minimum width=3.7cm, dashed] (gpu) at (6.5,2.9) {dynamic\_retention\_gpu.py};
+  \node[modulebox, minimum width=3.0cm] (dt) at (9.0,0.9) {dynamic\_retention\_dt.py};
+  \node[modulebox, minimum width=2.4cm] (pg) at (4.2,0.9) {pg\_sampler.py};
+  % external libraries
+  \node[extlib, minimum width=1.6cm, minimum height=0.6cm] (fsl) at (2.9,4.2) {py-fsrs /\\torch};
+  \node[extlib, minimum width=1.8cm, minimum height=0.6cm] (pan) at (1.4,3.2) {pandas};
+  \node[extlib, minimum width=1.8cm, minimum height=0.6cm] (npy) at (10.8,4.6) {numpy};
+  \node[extlib, minimum width=2.0cm, minimum height=0.6cm] (mpl) at (13.5,9.4) {matplotlib};
+  \node[extlib, minimum width=1.6cm, minimum height=0.6cm] (nba) at (12.6,0.9) {numba};
+  % project dependencies
+  \draw[arrow] (run.south) -- (5.8,6.2);
+  \draw[arrow] (run.south west) -- (dat.north east);
+  \draw[arrow] (run.south) -- (spl.north east);
+  \draw[arrow] (run.east) -- (rep.west);
+  \draw[arrow] (rep.south) -- (met.north);
+  \draw[arrow] (ours.south) -- (dt.north);
+  \draw[arrow] (dt.west) -- (pg.east);
+  \draw[arrow] (fsrs.west) -- (fsl.east);
+  % external dependencies (dashed)
+  \draw[dashed, black!60, -{Stealth[length=2mm]}] (dat.south) -- (pan.north);
+  \draw[dashed, black!60, -{Stealth[length=2mm]}] (met.south) -- (npy.north);
+  \draw[dashed, black!60, -{Stealth[length=2mm]}] (rep.east) -- (mpl.west);
+  \draw[dashed, black!60, -{Stealth[length=2mm]}] (dt.east) -- (nba.west);
+\end{tikzpicture}

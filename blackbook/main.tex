@@ -1,0 +1,46 @@
+\documentclass[12pt,a4paper]{report}
+
+\input{config}
+\input{preamble}
+
+\begin{document}
+
+% ---- Front matter and body: one arabic page count from the title page (= Page 1) ----
+\pagenumbering{arabic}
+\input{frontmatter/titlepage}
+\input{frontmatter/statement}
+\input{frontmatter/certificate}
+\input{frontmatter/approval}
+\input{frontmatter/acknowledgement}
+\input{frontmatter/abstract}
+\tableofcontents
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+\input{frontmatter/abbreviations}
+\input{frontmatter/symbols}
+
+% ---- Chapters ----
+\clearpage
+\input{chapters/ch1_introduction}
+\input{chapters/ch2_literature}
+\input{chapters/ch3_dataset}
+\input{chapters/ch4_system}
+\input{chapters/ch5_algorithms}
+\input{chapters/ch6_metrics}
+\input{chapters/ch7_axiom}
+\input{chapters/ch8_conclusion}
+
+% ---- Back matter ----
+
+\renewcommand{\bibname}{Bibliography}
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\appendix
+% TOC rows of the appendices read "Appendix A : Title" (tocloft prefix, see preamble.tex)
+\addtocontents{toc}{\protect\renewcommand{\protect\cftchapprefix}{Appendix\protect\ }}
+\input{chapters/appendices}
+
+\end{document}

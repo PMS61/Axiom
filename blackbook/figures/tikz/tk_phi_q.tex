@@ -1,0 +1,27 @@
+% tk_phi_q: phi and q against the gap (DIAGRAMS.md item 24); sigma^2 = 0.2
+\begin{tikzpicture}
+  \begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.8cm},
+    width=6.2cm, height=5.6cm, xmin=0, xmax=30, xlabel={$\Delta t$ (days)},
+    label style={font=\small}, tick label style={font=\footnotesize}, title style={font=\small}]
+    \nextgroupplot[ymin=0, ymax=1.05, ylabel={$\varphi(\Delta t)=e^{-\lambda\Delta t}$}, title={$\varphi$},
+      legend pos=north east, legend style={font=\footnotesize, draw=none, fill=none}]
+    \addplot[black, thick, domain=0:30, samples=120] {exp(-0.05*x)};
+    \addlegendentry{$\lambda=0.05$}
+    \addplot[black!70, thick, dashed, domain=0:30, samples=120] {exp(-0.4*x)};
+    \addlegendentry{$\lambda=0.4$}
+    \addplot[black!45, very thick, dotted, domain=0:30, samples=120] {exp(-1.9*x)};
+    \addlegendentry{$\lambda=1.9$}
+    \nextgroupplot[ymin=0, ymax=4.0, ylabel={$q(\Delta t)=\sigma^2(1-e^{-2\lambda\Delta t})/(2\lambda)$}, title={$q$},
+      legend pos=north west, legend style={font=\footnotesize, draw=none, fill=none}]
+    \addplot[black, thick, domain=0:30, samples=120] {0.2*(1-exp(-0.1*x))/0.1};
+    \addlegendentry{$\lambda=0.05$}
+    \addplot[black!70, thick, dashed, domain=0:30, samples=120] {0.2*(1-exp(-0.8*x))/0.8};
+    \addlegendentry{$\lambda=0.4$}
+    \addplot[black!45, very thick, dotted, domain=0:30, samples=120] {0.2*(1-exp(-3.8*x))/3.8};
+    \addlegendentry{$\lambda=1.9$}
+    % asymptotes sigma^2/(2 lambda), drawn last so they stay visible
+    \addplot[black, densely dashed, domain=0:30] {2.0};
+    \addplot[black!70, densely dashed, domain=0:30] {0.25};
+    \addplot[black!45, densely dashed, domain=0:30] {0.0526316};
+  \end{groupplot}
+\end{tikzpicture}

@@ -1,0 +1,186 @@
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+\section{Discussion}
+\label{sec:concl-discussion}
+
+The results support a narrow conclusion. The proposed continuous-time model is a working, tested
+latent-state model, and it beats HLR clearly on both benchmarks. Against FSRS-6 the answer depends on
+the dataset. Experiments~4 and~5 add further results: a gradient-boosted tree model with no memory equation has the lowest log loss of the models compared on both datasets, ahead of FSRS-6, the proposed model and the MAP variants, and a constant floor with no model at all beats FSRS-6 (optimised) on Duolingo. This section discusses the comparisons in turn.
+
+\subsection*{Against HLR}
+
+HLR was the weakest model on Anki in every metric (Chapter~\ref{ch:results}). Its log loss was 0.680
+against 0.422 for the proposed model, and its ECE was 0.146 against 0.025. The paired difference in log loss
+was $-0.258$ with an interval of $[-0.314, -0.204]$, which excludes zero. The gap-level biases show why. HLR
+over-predicts by $+0.170$ at one day and under-predicts by $-0.249$ at 61 days or more. A single fitted
+curve with a half-life that depends only on review counts does not calibrate across gaps. The proposed model
+has a latent state that evolves between reviews, and its bias is near zero at one day ($-0.006$). It does not
+remove the long-gap error, since it over-predicts by $+0.090$ at 61 days or more. On Duolingo, HLR is again last
+on log loss, at 0.418 against 0.268 for the proposed model.
+
+\subsection*{Against FSRS-6 on Anki}
+
+Among the five models of Experiment~2 on Anki, optimised FSRS-6 is the best model on every metric. Its log loss is 0.379 against 0.422 for the
+proposed model, and the paired difference is $+0.043$ with an interval of $[0.033, 0.055]$. Three differences between
+the two models could account for this result. We did not test any of them, so they are hypotheses for future work.
+Figure~\ref{fig:tk_fsrs_vs_ours} sets the two models side by side.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_fsrs_vs_ours}
+  \caption[FSRS-6 and the proposed model]{FSRS-6 and the proposed model compared on the same rows. Cells qualified for Duolingo say what
+    changes on that dataset. FSRS-6 uses the four Anki grades on Anki and only two outcomes on Duolingo.
+    Its per-user parameters fall back to defaults for almost all Duolingo users. The proposed model's posterior
+    draws are 250 on Anki and 100 on Duolingo. The fit costs are for the Anki benchmark.}
+  \label{fig:tk_fsrs_vs_ours}
+\end{figure}
+
+The first hypothesis concerns the outcome. FSRS-6 uses all four Anki grades, while the proposed model
+uses a binary outcome. The grades carry more information, and the model discards it. The second concerns the state.
+FSRS-6 tracks a two-dimensional memory state, with stability and difficulty, and updates it deterministically. The
+proposed model tracks a one-dimensional latent state with stochastic transitions. A richer deterministic state may
+fit Anki better than a simpler stochastic one. The third concerns the parameters. FSRS-6 fits 21 parameters
+per user. The proposed model pools its rate and diffusion variance across users, and it shares its effects through a
+hierarchy. Per-user fitting may capture individual differences that the pooled structure does not. The
+proposed model's distinctive features, its stochastic state and its posterior uncertainty, are not what
+separates the two models on Anki. The benchmark does not measure the value of uncertainty for a scheduler,
+and it does not test the state against a deterministic one of the same size.
+
+\subsection*{The Duolingo reversal}
+
+In Experiment~3 on full Duolingo, the proposed model has the lowest log loss of the five models of that experiment, at 0.268. FSRS-6 (optimised)
+has 0.300, and LagLogit+$\Delta t$ has 0.291. The ranking of FSRS-6 and the proposed model reverses between the two
+datasets. This reversal is the main finding of the cross-dataset comparison, and the reasons for it are not established.
+Chapter~\ref{ch:results} sets out the candidates: the grades, per-user fitting, the gap range and the data size.
+
+The Duolingo result needs four caveats, and they carry as much weight as the result itself. FSRS-6 (optimised) fell
+back to default weights for 115,110 of 115,222 users, so the comparison is mainly with FSRS-6's defaults. Both models
+see only binary outcomes there. The chains did not converge. The gain over LagLogit+$\Delta t$ is also unevenly
+spread. The proposed model wins for only 43.0\% of users, and its gain per event is largest for the lightest users.
+The heaviest quartile gains only 0.006 per event, and the median user is slightly worse. The aggregate result is therefore driven by the lighter half of users, who supply 55.8\% of the gain from 12.8\% of events, although only 34--37\% of them beat LagLogit+$\Delta t$. The heaviest quartile supplies 16.8\% of the gain and gains 0.006 per event.
+
+\subsection*{What Experiment 4 adds}
+
+Experiment~4 (Section~\ref{sec:results-exp4}) changes the reading of the earlier results. Among the models compared in Experiment~4, the GBDT has the best value of every metric on both datasets. Its log loss is 0.358 on Anki and 0.259 on Duolingo, and its paired difference against FSRS-6 (optimised) is $-0.021$ on Anki and $-0.041$ on Duolingo, with intervals that exclude zero. It beats the proposed model (v1) on Anki by 0.064 in log loss. The MAP variants v2 and v3 tie FSRS-6 (optimised) on Anki and beat it on Duolingo, but they do not reach the proposed model (v1) on Duolingo.
+The gain of the GBDT comes mostly from running statistics of the learner's own performance, and from training on all non-first reviews, so it is not evidence that a better memory model has been found. The sentence \lq\lq FSRS-6 is the best model\rq\rq{} is therefore true only of the five models of Experiment~2. Nor is the proposed model the best predictor: on both datasets a tree model with no memory equation is more accurate.
+
+The Bayesian models are the interpretable ones. They keep a latent memory state, a forgetting rate and, for the MCMC model, a posterior, whereas the GBDT is a pure predictor with no stability or difficulty state, so a scheduler cannot use it directly. The choice between the two kinds depends on the purpose. The results do not show which kind gives better schedules, because no scheduling simulation was run. The Experiment~4 results also carry the disclosures of Section~\ref{sec:results-exp4-disclosures}: the test set was looked at twice, many variants were tried, and a same-session leak was found and fixed.
+
+\subsection*{What Experiment 5 adds}
+
+Experiment~5 (Section~\ref{sec:results-exp5}) adds three reference points. On Duolingo the per-user constant smoothed toward the population rate has log loss 0.2723, which beats FSRS-6 (optimised) at 0.3003. Only the GBDT (0.2588) and the proposed model (0.2682) beat that floor, and the proposed model's margin over it is $-0.0040$ with an interval that excludes zero. On Anki the GBDT's paired difference from FSRS-6 (optimised) is $-0.0210$, $-0.0226$ and $-0.0210$ on three independent 100-user samples, and each interval excludes zero. Under the srs-benchmark protocol, on 1,000 of its users, the pooled GBDT has log loss 0.3211 against 0.3580 for FSRS-6 and 0.3441 for the GRU, it is level with RWKV-Curve on the size-weighted measure (paired interval includes zero), and it trails RWKV-Instant at 0.2860. These results strengthen the finding that a tree model is more accurate than the models of this report. They do not make it the most accurate model on the srs-benchmark, and its srs-benchmark figure is a lower bound.
+
+\subsection*{What the preliminary run adds}
+
+Experiment~1 gave a first look at the latent state. At gaps of 14 to 60 days the dynamic model had a log loss of 0.273
+against 0.346 for the static lagged-logistic baseline, and a bias of $-0.051$ against $-0.155$. Those are the
+results on which the case for a latent state rests. The no-memory ablation, with the rate fixed at 5, matched the
+learned-rate model overall, so the run does not show that the state carries information beyond a fixed rate. The
+run was short and its provenance is not authenticated, so it can only motivate the larger benchmarks.
+
+\section{Limitations}
+\label{sec:concl-limitations}
+
+The limitations below are listed in order of their effect on the conclusions.
+
+\paragraph{Non-convergence and identifiability.}
+No run met the convergence gate of split $\hat R < 1.01$ and effective sample size of at least 400. The learned rate
+$\lambda$ has an effective sample size of 3 in every run, and its split $\hat R$ is above 2.0 in all four runs that report it, including Experiment~1
+(Section~\ref{sec:results-mcmc}). Two structural causes are identified in Chapter~\ref{ch:results}. The first is a ridge
+between $\lambda$ and $\sigma^2$, because only the ratio $\sigma^2/\lambda$ is informed when the gap is long. The second
+is a rank deficiency of the mean design, with rank 33 for 37 columns. The four null directions are nested additive shifts.
+All scores in this report are therefore provisional.
+
+\paragraph{A single seed and a single chain.}
+The Duolingo run uses seed 0 and one chain, and the report gives no estimate of its variation between seeds or chains. The Anki seeds 1 and 2 of Experiment~5 cover only the frozen models without the proposed model (v1), so the variation of the proposed model across samples is not estimated. The Experiment~2 chain drew 250 kept draws, and the Duolingo chain drew 100.
+
+\paragraph{Binarised grades.}
+On Anki the four grades are reduced to a binary outcome, with recall if the grade is above Again. FSRS-6 keeps the
+grades. The comparison on Anki is therefore between a model that sees less information and a model that sees more. On
+Duolingo the outcome is binary by construction.
+
+\paragraph{The cold-card path.}
+For a card with no training reviews, the prediction step restarts the latent state from the prior at every test review
+(Section~\ref{sec:method-prediction}). Cold cards are 41,469 of the 95,400 scored Anki reviews, which is 43.5\%. On these
+cards, earlier test outcomes reach the prediction only through the lagged outcome and the practice count. This path uses
+less of each card's history than it could. It is an implementation limitation. It does not by itself explain the gap to
+FSRS-6, which is present on both warm and cold cards. The code was not changed after the reported run, because a change
+would invalidate the reported scores.
+
+\paragraph{Intra-day order and the time scale.}
+Gaps are measured in days and clipped to the interval $[0.01, 365]$ days. Within-day order is not reliable. Of the
+2,348,660 adjacent card intervals examined, 945,560 are same-day ties. For 177,986 intervals, the calendar gap and the
+elapsed seconds disagree by more than one day.
+
+\paragraph{Provenance of the preliminary run.}
+Experiment~1 used an earlier pre-processed Anki extract whose provenance is not authenticated. Its chain ran for 200
+iterations. Its results are therefore not used as evidence for the model.
+
+\paragraph{Computational cost.}
+The Anki fit of the proposed model took 27,530 seconds on one CPU core, about 7.6 hours for 2000 sweeps, and the prediction
+took 1,266 seconds. A sweep took about 14 seconds. That cost makes multi-chain runs expensive on a laptop, and the
+GPU port was used only for the Duolingo run.
+
+\paragraph{Limits of Experiment 4.}
+The GBDT is a pure predictor, so it cannot drive a scheduler by itself. The Experiment~4 results come from one seed and one split, and on 100 Anki users.
+The test set was looked at twice, many variants were tried, and the v2 and v3 models are MAP point estimates with no posterior
+(Section~\ref{sec:results-exp4-disclosures}). No scheduling simulation was run. A GRU model and an ensemble of v1 and v2 were not completed.
+
+\paragraph{Limits of Experiment 5.}
+The srs-benchmark comparison uses 1,000 of the 9,999 users of the collection. Its boosting run reached the cap of 2000 rounds, so the GBDT figure is a lower bound, and the other models' values are the benchmark's own runs. The seed checks cover three Anki samples of 100 users and only the frozen models other than v1. The constant floors are reference points, not models, and only six paired srs-benchmark differences are reported.
+
+\paragraph{The Duolingo fallback.}
+Because FSRS-6 (optimised) fell back to default weights for almost all users, the Duolingo comparison with FSRS-6
+does not test per-user optimisation. The evaluation on Duolingo also has no scored reviews beyond 14 days, so the
+long-gap behaviour that is weak on Anki is not measured there.
+
+\section{Conclusion}
+\label{sec:concl-conclusion}
+
+This report set out to test five questions (Section~\ref{sec:intro-objectives}). The first asked whether the
+continuous-time model predicts recall better than HLR and FSRS-6. On the Anki benchmark it does not predict better than
+optimised FSRS-6 in Experiment~2, though it is better than HLR. On full Duolingo it has the lowest log loss of the five models of Experiment~3, with the
+caveats in Section~\ref{sec:concl-discussion}. The second question asked whether an explicit latent state improves
+calibration at long gaps. The preliminary run suggests that it does at gaps of 14 to 60 days, but the run is too short and
+too weakly documented to answer the question. The no-memory ablation matched the learned-rate model. The third question asked
+whether the sampler converges within a practical budget. It did not, in any of the reported runs, and this affects how the
+scores should be read. The fourth question asked how much of the remaining error is due to the memory model. In Experiment~4 a gradient-boosted tree model with no memory equation has the lowest log loss on both datasets, 0.358 on Anki and 0.259 on Duolingo, with paired intervals against FSRS-6 (optimised) that exclude zero. The honest answer is that a non-Bayesian predictor is the most accurate in these experiments, and that its advantage comes mainly from running statistics of the learner's performance and not from a memory model. The Bayesian models, which are the subject of this report, are the interpretable ones, and the MAP variants are a cheap approximation that ties FSRS-6 (optimised) on Anki and beats it on Duolingo. The fifth question asked whether these results survive reference points and external checks. Experiment~5 answers that a constant floor beats FSRS-6 (optimised) on Duolingo, that the tree model's advantage holds on three further Anki samples, and that under the srs-benchmark protocol the tree model trails RWKV-Instant.
+
+The contribution of the work is the model, the sampler, the benchmark and the diagnostics. The model is a scalar
+Ornstein--Uhlenbeck state with an exact closed-form transition over any gap, and it has a practice-dependent rate and a
+hierarchical equilibrium mean. The sampler combines P\'olya--Gamma augmentation, FFBS and random-walk Metropolis steps in a
+tested Python package. The benchmark applies one leakage-free protocol to two datasets. The diagnostics show where the sampler
+fails. The model is not shown to outperform FSRS-6 in general, it is not the most accurate predictor in Experiment~4, and the sampler's inference is not shown to converge.
+
+\section{Future Scope}
+\label{sec:concl-future}
+
+Figure~\ref{fig:tk_roadmap} groups the future work into three horizons. The short-term items are the most
+direct. Multi-chain long runs, on a machine with more time or on a cloud GPU, are the only way to test whether the
+convergence gate can be met with the current model. A fixed cold-card filter, which keeps the latent state across
+the test reviews of cold cards, would remove the implementation limitation that Section~\ref{sec:concl-limitations}
+describes. The pooled GBDT should be run with more boosting rounds and on more of the 9,999 users of the srs-benchmark collection, because the 1,000-user run reached its round cap. That would tighten the lower bound and test whether the comparison with the sequence models holds on the full collection. A GRU model and an ensemble of the proposed model with v2 should also be completed. A scheduling simulation would test whether better prediction gives better schedules. A paper based on this work is prepared for submission to EDM 2027.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_roadmap}
+  \caption[Future work]{Future work in three horizons. Short term: multi-chain runs to meet the convergence gate. Medium term:
+    per-user rates and informative priors, a reparameterisation of the mean, the interweaving kernel, and an
+    ordinal P\'olya--Gamma model for the four grades. Long term: a two-dimensional state and scheduling by optimal
+    control, with application integration. The diagram does not show the cold-card filter, which is a short-term item
+    in the text.}
+  \label{fig:tk_roadmap}
+\end{figure}
+
+The medium-term items address the identifiability problems and the information lost by the binary outcome. Per-user
+rates and informative priors would reduce the ridge between $\lambda$ and $\sigma^2$. Reparameterising the mean would
+remove the rank deficiency of the design. An ordinal Pólya--Gamma model would use all four Anki grades rather than the
+binary outcome, which is the difference that Section~\ref{sec:concl-discussion} identifies as a candidate reason for the
+Anki result. The interweaving kernel was designed and implemented as an experimental pilot, and it has no results.
+Evaluating it is the first step, and it should be judged on the convergence gate, not on the log loss alone.
+
+The long-term items go further. A two-dimensional state could represent stability and difficulty as FSRS-6 does, and it
+would test whether the one-dimensional state is the limit on Anki. Scheduling by optimal control would use the predictive
+probabilities to choose review times, which this report does not address. Such a scheduler would need an evaluation of
+retention and workload, which the present benchmark does not provide. Application integration would need a live study with learners, which is outside the present scope.

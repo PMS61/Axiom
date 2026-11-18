@@ -1,0 +1,85 @@
+% figures/tikz/styles.tex -- shared TikZ styles for every diagram (Phase 2).
+% Input once from preamble.tex (after tikz and the colours are loaded).
+% Colours fsrsopt, fsrsdef, hlr, ours, ourskappa, laglogit come from preamble.tex.
+\usepgfplotslibrary{groupplots}
+
+\usetikzlibrary{shapes.geometric,shapes.multipart,shapes.misc,matrix,calc,fit,
+  positioning,arrows.meta,decorations.pathreplacing,backgrounds}
+
+\tikzset{
+  % base text size for every diagram
+  every picture/.style={font=\small},
+  % generic rounded box (components, process steps)
+  box/.style={rounded corners=3pt, draw=black!70, line width=0.5pt, fill=black!4,
+    align=center, inner sep=4pt, minimum height=0.8cm, font=\small},
+  % model-coloured boxes: use as box with fill and border of the model colour, e.g.
+  % [box, modelbox=ours]
+  modelbox/.style n args={1}{fill=#1!12, draw=#1!85!black, text=black},
+  % store (cylinder, e.g. files on disk)
+  store/.style={shape=cylinder, shape aspect=0.35, shape border rotate=90, draw=black!70,
+    line width=0.5pt, fill=black!4, align=center, inner sep=3pt, font=\small},
+  % decision (diamond) and merge
+  decision/.style={diamond, aspect=2, draw=black!70, line width=0.5pt, fill=white,
+    align=center, inner sep=1pt, font=\footnotesize},
+  % actor glyph label and stick-figure lines
+  actor/.style={align=center, font=\small},
+  actorline/.style={draw=black!75, line width=0.6pt},
+  % arrows
+  arrow/.style={-{Stealth[length=2.2mm,width=1.6mm]}, draw=black!75, line width=0.5pt},
+  dashedarrow/.style={arrow, dashed},
+  % UML
+  uml/.style={draw=black!70, line width=0.5pt, fill=black!4, font=\footnotesize, align=left},
+  realize/.style={dashed, line width=0.5pt, draw=black!75,
+    -{Triangle[open, length=3.2mm, width=2.4mm]}},
+  composition/.style={line width=0.5pt, draw=black!75,
+    {Diamond[length=3.4mm, width=2.4mm, fill=white]}-},
+  % DFD
+  process/.style={circle, draw=black!70, line width=0.5pt, fill=black!4, align=center,
+    inner sep=2pt, font=\footnotesize},
+  entity/.style={rectangle, draw=black!70, line width=0.5pt, fill=black!4, align=center,
+    inner sep=3pt, font=\footnotesize},
+  % open-ended data store: draw only its two horizontal edges (add lines by hand)
+  dstore/.style={draw=none, align=center, inner sep=3pt, font=\footnotesize},
+  % timeline and event markers
+  event/.style={circle, draw=black!75, line width=0.6pt, fill=black, inner sep=0pt,
+    minimum size=2.6mm},
+  hollowevent/.style={event, fill=white},
+  % legend swatch helper
+  swatch/.style={rectangle, draw=black!60, line width=0.4pt, minimum width=3mm, minimum height=2.5mm, inner sep=0pt}
+}
+
+% Stick-figure actor centred at #1 (a coordinate), label #2 placed below it.
+\newcommand{\StickActor}[2]{%
+  \begin{scope}[shift={#1}]
+    \draw[actorline] (0,0.62) circle (0.13);
+    \draw[actorline] (0,0.49) -- (0,0.08);
+    \draw[actorline] (-0.22,0.38) -- (0.22,0.38);
+    \draw[actorline] (0,0.08) -- (-0.18,-0.26);
+    \draw[actorline] (0,0.08) -- (0.18,-0.26);
+    \node[actor, anchor=north] at (0,-0.32) {#2};
+  \end{scope}%
+}
+
+% UML use case (ellipse)
+\tikzset{usecase/.style={ellipse, draw=black!70, line width=0.5pt, fill=black!4,
+  align=center, font=\footnotesize, inner sep=2pt, minimum height=0.9cm}}
+
+% Module box (code file) and external library (ellipse), used by the code diagrams
+\tikzset{
+  modulebox/.style={rounded corners=2pt, draw=black!70, line width=0.5pt, fill=black!4,
+    align=center, inner sep=3pt, font=\footnotesize\ttfamily},
+  extlib/.style={ellipse, draw=black!50, line width=0.5pt, fill=black!8, align=center,
+    inner sep=2pt, font=\footnotesize},
+  % test pyramid layers and roadmap lanes
+  lane/.style={rounded corners=3pt, draw=black!50, line width=0.5pt, fill=black!3,
+    font=\small, anchor=west}
+}
+
+% Graphical-model nodes (Chapter 4): latent, observed, auxiliary, deterministic, data square
+\tikzset{
+  latent/.style={circle, draw=black!75, line width=0.5pt, fill=white, minimum size=0.8cm, inner sep=0pt, font=\footnotesize},
+  obsnode/.style={latent, fill=black!18},
+  auxnode/.style={latent, dashed},
+  detnode/.style={rectangle, rounded corners=2pt, draw=black!75, line width=0.5pt, fill=white, minimum size=0.7cm, inner sep=1pt, font=\footnotesize},
+  datasq/.style={rectangle, draw=black!75, line width=0.5pt, fill=black!18, minimum size=0.55cm, inner sep=0pt, font=\footnotesize}
+}

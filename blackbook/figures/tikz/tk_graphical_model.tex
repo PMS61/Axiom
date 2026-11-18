@@ -1,0 +1,62 @@
+% tk_graphical_model: directed graphical model with plates (DIAGRAMS.md item 22)
+\begin{tikzpicture}[font=\footnotesize]
+  % global parameters (outside every plate)
+  \node[latent] (tb0) at (6.1,6.7) {$b_0$};
+  \node[latent] (tg0) at (3.3,6.7) {$g_0$};
+  \node[latent] (tla) at (7.5,6.7) {$\lambda$};
+  \node[latent] (tka) at (9.0,6.7) {$\kappa$};
+  \node[latent] (ts2) at (10.4,6.7) {$\sigma^2$};
+  \node[latent] (tta) at (1.9,6.7) {$\tau^2_\alpha$};
+  \node[latent] (ttb) at (0.4,6.7) {$\tau^2_\beta$};
+  \node[latent] (ttg) at (4.7,6.7) {$\tau^2_\gamma$};
+  % plates
+  \draw[rounded corners=2pt, black!60] (0.2,2.4) rectangle (4.0,5.5);
+  \node[anchor=south east, font=\footnotesize] at (3.9,2.5) {$u=1..U$};
+  \draw[rounded corners=2pt, black!60] (0.2,0.2) rectangle (4.0,2.1);
+  \node[anchor=south east, font=\footnotesize] at (3.9,0.3) {$i=1..I$};
+  \draw[rounded corners=2pt, black!60] (4.6,0.2) rectangle (13.9,5.5);
+  \node[anchor=north east, font=\footnotesize] at (13.8,5.4) {$n=1..N$};
+  % user and item effects
+  \node[latent] (al) at (1.2,3.6) {$\alpha_u$};
+  \node[latent] (ga) at (2.9,3.6) {$\gamma_u$};
+  \node[latent] (be) at (2.0,1.1) {$\beta_i$};
+  % sequence n: chain psi_1 -> psi_2 -> ... -> psi_T, with mu, X, y, omega, Delta t
+  \def\xa{5.9} \def\xb{8.3} \def\xT{12.1}
+  \node[latent] (p1) at (\xa,2.6) {$\psi_{n,1}$};
+  \node[latent] (p2) at (\xb,2.6) {$\psi_{n,2}$};
+  \node[latent] (pT) at (\xT,2.6) {$\psi_{n,T}$};
+  \node[obsnode] (y1) at (\xa,0.9) {$y_{n,1}$};
+  \node[obsnode] (y2) at (\xb,0.9) {$y_{n,2}$};
+  \node[obsnode] (yT) at (\xT,0.9) {$y_{n,T}$};
+  \node[detnode] (m1) at (\xa,4.3) {$\mu_{n,1}$};
+  \node[detnode] (m2) at (\xb,4.3) {$\mu_{n,2}$};
+  \node[detnode] (mT) at (\xT,4.3) {$\mu_{n,T}$};
+  \node[datasq] (x1) at (\xa+1.0,4.3) {$X_{n,1}$};
+  \node[datasq] (x2) at (\xb+1.0,4.3) {$X_{n,2}$};
+  \node[datasq] (xT) at (\xT+1.0,4.3) {$X_{n,T}$};
+  \node[auxnode] (w1) at (\xa+0.9,1.7) {$\omega_{n,1}$};
+  \node[auxnode] (w2) at (\xb+0.9,1.7) {$\omega_{n,2}$};
+  \node[auxnode] (wT) at (\xT+0.9,1.7) {$\omega_{n,T}$};
+  \node[datasq] (d2) at (\xb-1.2,3.5) {$\Delta t$};
+  \node[datasq] (dT) at (\xT-1.2,3.5) {$\Delta t$};
+  \node[font=\footnotesize] at (10.4,2.25) {$\cdots$};
+  % arrows: chain, emissions, means, globals
+  \draw[arrow] (p1) -- (p2);
+  \draw[arrow] (p2) -- (pT);
+  \draw[arrow] (p1) -- (y1); \draw[arrow] (p2) -- (y2); \draw[arrow] (pT) -- (yT);
+  \draw[arrow] (m1) -- (p1); \draw[arrow] (m2) -- (p2); \draw[arrow] (mT) -- (pT);
+  \draw[arrow] (x1) -- (m1); \draw[arrow] (x2) -- (m2); \draw[arrow] (xT) -- (mT);
+  \draw[black!60] (w1) -- (p1); \draw[black!60] (w2) -- (p2); \draw[black!60] (wT) -- (pT);
+  \draw[arrow] (d2) -- (p2); \draw[arrow] (dT) -- (pT);
+  \draw[arrow] (tb0) -- (m1);
+  \draw[arrow] (tla) to[bend right=10] (p1);
+  \draw[arrow] (ts2) to[bend right=8] (p2);
+  \draw[arrow] (tg0) -- (ga);
+  \draw[arrow] (tta) -- (al);
+  \draw[arrow] (ttb.south) -- (0.4,1.1) -- (be.west);
+  \draw[arrow] (ttg) -- (ga);
+  \draw[arrow] (al.north) to[out=90,in=180] (m1.west);
+  \draw[arrow] (ga.east) -- (m1.west);
+  \draw[arrow] (be.east) to[out=10,in=270] (m1.south);
+  \draw[arrow] (tka) -- (tla);
+\end{tikzpicture}

@@ -1,0 +1,33 @@
+% tk_usecase: UML use-case diagram (DIAGRAMS.md item 4)
+% All use cases sit in one column so the Researcher can be associated with each
+% of them without any association line crossing another ellipse.
+\begin{tikzpicture}[font=\small]
+  % system boundary
+  \draw[black!60, line width=0.6pt] (1.6,0.2) rectangle (8.8,9.7);
+  \node[font=\small\bfseries] at (5.2,9.3) {Benchmark \& Retention Model};
+  \node[usecase, minimum width=4.0cm] (uc1) at (4.6,8.6) {Download data};
+  \node[usecase, minimum width=4.0cm] (uc2) at (4.6,7.5) {Build event table \& split};
+  \node[usecase, minimum width=4.0cm] (uc3) at (4.6,6.4) {Fit model};
+  \node[usecase, minimum width=4.0cm] (uc4) at (4.6,5.3) {Resume interrupted run};
+  \node[usecase, minimum width=4.0cm] (uc5) at (4.6,4.2) {Run MCMC diagnostics};
+  \node[usecase, minimum width=4.0cm] (uc6) at (4.6,3.1) {Predict recall probability};
+  \node[usecase, minimum width=4.0cm] (uc7) at (4.6,2.0) {Evaluate \& compare models};
+  \node[usecase, minimum width=4.0cm] (uc8) at (4.6,0.9) {Generate report};
+  % actors
+  \StickActor{(1.0,4.6)}{}
+  % label to the left of the figure, clear of every association line
+  \node[actor, anchor=east] at (0.75,4.95) {Researcher};
+  \StickActor{(10.2,8.6)}{Dataset Provider}
+  \StickActor{(10.2,3.1)}{Learner App\\(future)}
+  % Researcher associations: one fan from the actor to each use case
+  \foreach \u in {uc1,uc2,uc3,uc4,uc5,uc6,uc7,uc8} {
+    \draw[black!75, line width=0.5pt] (1.45,4.6) -- (\u.west);
+  }
+  % Dataset provider supplies the revlogs
+  \draw[black!75, line width=0.5pt] (9.6,8.6) -- (uc1.east);
+  % learner app consumes the predictions (future)
+  \draw[black!75, line width=0.5pt, dashed] (9.6,3.1) -- (uc6.east);
+  % <<extend>>: Resume interrupted run extends Fit model
+  \draw[dashed, line width=0.5pt, -{Triangle[open, length=2.6mm, width=2.0mm]}]
+    (uc4.east) -- ++(0.7,0) |- node[pos=0.25, above right, font=\footnotesize] {\guillemotleft extend\guillemotright} (uc3.east);
+\end{tikzpicture}

@@ -1,0 +1,42 @@
+% tk_architecture: four layers and the stores they read and write (DIAGRAMS.md item 1)
+\begin{tikzpicture}[font=\small]
+  % layer 1: data ingestion (box y0=-2.6)
+  \draw[rounded corners=4pt, draw=black!60, fill=black!2] (0,-2.6) rectangle (10.8,0);
+  \node[anchor=west, font=\small\bfseries] at (0.25,-0.35) {1. Data ingestion};
+  \node[box, text width=2.8cm, minimum height=1.3cm] at (1.8,-1.6) {HF download\\\texttt{download\_\allowbreak users}};
+  \node[box, text width=2.8cm, minimum height=1.3cm] at (5.4,-1.6) {\texttt{load\_user}};
+  \node[box, text width=2.8cm, minimum height=1.3cm] at (9.0,-1.6) {Event rules\\(filter, label $y$)};
+  % layer 2: split and protocol (y0=-6.1)
+  \draw[rounded corners=4pt, draw=black!60, fill=black!2] (0,-6.1) rectangle (10.8,-3.5);
+  \node[anchor=west, font=\small\bfseries] at (0.25,-3.85) {2. Split and protocol};
+  \node[box, text width=2.1cm, minimum height=1.3cm] at (4.05,-5.1) {Per-user 80th-pct\\cutoff};
+  \node[box, text width=2.1cm, minimum height=1.3cm] at (1.45,-5.1) {Card cap\\($\le 1000$ per user)};
+  \node[box, text width=2.1cm, minimum height=1.3cm] at (6.65,-5.1) {Scored-event\\filter};
+  \node[box, text width=2.1cm, minimum height=1.3cm] at (9.25,-5.1) {One-step-ahead\\protocol};
+  % layer 3: models (y0=-9.6), coloured per PLAN.md
+  \draw[rounded corners=4pt, draw=black!60, fill=black!2] (0,-9.6) rectangle (10.8,-7.0);
+  \node[anchor=west, font=\small\bfseries] at (0.25,-7.35) {3. Models};
+  \node[box, modelbox=fsrsdef, text width=1.45cm, inner sep=1.5pt, font=\footnotesize, minimum height=1.3cm] at (1.1,-8.6) {\mbox{FSRS-6}\\default};
+  \node[box, modelbox=fsrsopt, text width=1.45cm, inner sep=1.5pt, font=\footnotesize, minimum height=1.3cm] at (2.85,-8.6) {\mbox{FSRS-6}\\optimised};
+  \node[box, modelbox=hlr, text width=1.45cm, inner sep=1.5pt, font=\footnotesize, minimum height=1.3cm] at (4.6,-8.6) {HLR};
+  \node[box, modelbox=ours, text width=1.45cm, inner sep=1.5pt, font=\footnotesize, minimum height=1.3cm] at (6.35,-8.6) {Ours\\(learned\\$\lambda$)};
+  \node[box, modelbox=ourskappa, text width=1.45cm, inner sep=1.5pt, font=\footnotesize, minimum height=1.3cm] at (8.1,-8.6) {Ours\\(+$\kappa$)};
+  \node[box, modelbox=laglogit, text width=1.45cm, inner sep=1.5pt, font=\footnotesize, minimum height=1.3cm] at (9.85,-8.6) {LagLogit\\(Exp.~3)};
+  % layer 4: evaluation (y0=-13.1)
+  \draw[rounded corners=4pt, draw=black!60, fill=black!2] (0,-13.1) rectangle (10.8,-10.5);
+  \node[anchor=west, font=\small\bfseries] at (0.25,-10.85) {4. Evaluation};
+  \node[box, text width=2.8cm, minimum height=1.3cm] at (1.8,-12.1) {Metrics\\(log loss, Brier,\\AUC, ECE)};
+  \node[box, text width=2.8cm, minimum height=1.3cm] at (5.4,-12.1) {Paired bootstrap\\(user-clustered)};
+  \node[box, text width=2.8cm, minimum height=1.3cm] at (9.0,-12.1) {Report\\(\texttt{metrics.csv}, plots)};
+  % arrows between layers
+  \draw[arrow] (5.4,-2.6) -- (5.4,-3.5);
+  \draw[arrow] (5.4,-6.1) -- (5.4,-7.0);
+  \draw[arrow] (5.4,-9.6) -- (5.4,-10.5);
+  % side stores
+  \node[store, minimum width=2.6cm, minimum height=1.3cm] (hf) at (12.9,-1.3) {anki-revlogs-10k\\(HF)};
+  \node[store, minimum width=2.6cm, minimum height=1.3cm] (ev) at (12.9,-4.8) {events.parquet};
+  \node[store, minimum width=2.6cm, minimum height=1.3cm] (pr) at (12.9,-8.3) {pred\_*.parquet};
+  \draw[arrow] (hf.west) -- (10.8,-1.3);
+  \draw[arrow] (10.8,-4.8) -- (ev.west);
+  \draw[arrow] (10.8,-8.3) -- (pr.west);
+\end{tikzpicture}

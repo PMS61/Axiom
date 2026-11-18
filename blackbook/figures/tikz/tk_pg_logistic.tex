@@ -1,0 +1,16 @@
+% tk_pg_logistic: logistic and the Polya-Gamma mean weight (DIAGRAMS.md item 26)
+\begin{tikzpicture}
+  \begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.6cm},
+    width=6.2cm, height=5.4cm, xmin=-6, xmax=6, xlabel={$\psi$}, xtick={-6,-3,0,3,6},
+    label style={font=\small}, tick label style={font=\footnotesize}, title style={font=\small}]
+    \nextgroupplot[ymin=0, ymax=1.05, ylabel={$\mathrm{logistic}(\psi)$}, title={(a) observation model}]
+    \addplot[black, thick, domain=-6:6, samples=121] {1/(1+exp(-x))};
+    \nextgroupplot[ymin=0, ymax=0.3, ylabel={$E[\omega]=\tanh(\psi/2)/(2\psi)$},
+      title={\shortstack{(b) PG(1, $\psi$) mean weight\\ = precision of pseudo-obs $z$}}]
+    % tanh(psi/2) = (e^psi - 1)/(e^psi + 1); samples avoid psi = 0 exactly
+    \addplot[black, thick, domain=-6:6, samples=120] {((exp(x)-1)/(exp(x)+1))/(2*x)};
+    % marker last: the value 1/4 at psi = 0
+    \addplot[only marks, mark=*, mark size=1.6pt, black] coordinates {(0,0.25)};
+    \node[font=\footnotesize, anchor=east] at (axis cs:5.8,0.04) {$0.25$ at $\psi=0$};
+  \end{groupplot}
+\end{tikzpicture}

@@ -1,0 +1,67 @@
+% tk_class: UML class diagram of the model classes (DIAGRAMS.md item 5)
+\begin{tikzpicture}[font=\footnotesize]
+  % interface
+  \node[uml, rectangle split, rectangle split parts=2, text width=4.0cm, anchor=north,
+        align=left, inner sep=3pt] (iface) at (7.125,10.6) {
+    \centering\guillemotleft interface\guillemotright\\\centering\textbf{\textit{Model}}
+    \nodepart{two}
+    \texttt{fit(events)}\\ \texttt{predict(events)}
+  };
+  % implementing classes (top at y=8.2)
+  \node[uml, rectangle split, rectangle split parts=3, text width=3.3cm, anchor=north, inner sep=3pt]
+    (fsrs) at (1.65,7.5) {
+    \centering\textbf{FSRSModel}
+    \nodepart{two}
+    \texttt{optimize}\\ \texttt{n\_workers}
+    \nodepart{three}
+    \texttt{fit(events)}\\ \texttt{predict(events)}
+  };
+  \node[uml, rectangle split, rectangle split parts=3, text width=3.3cm, anchor=north, inner sep=3pt]
+    (hlr) at (5.3,7.5) {
+    \centering\textbf{HLRModel}
+    \nodepart{two}
+    \texttt{lrate}\\ \texttt{l2wt}
+    \nodepart{three}
+    \texttt{fit(events)}\\ \texttt{predict(events)}
+  };
+  \node[uml, rectangle split, rectangle split parts=3, text width=3.3cm, anchor=north, inner sep=3pt]
+    (ours) at (8.95,7.5) {
+    \centering\textbf{OursModel}
+    \nodepart{two}
+    \texttt{use\_kappa}\\ \texttt{iters}\\ \texttt{burn}\\ \texttt{thin}\\ \texttt{seed}\\ \texttt{max\_draws}
+    \nodepart{three}
+    \texttt{fit(events)}\\ \texttt{predict(events)}
+  };
+  \node[uml, rectangle split, rectangle split parts=3, text width=3.3cm, anchor=north, inner sep=3pt]
+    (lag) at (12.6,7.5) {
+    \centering\textbf{LagLogitModel}
+    \nodepart{two}
+    \texttt{use\_dt}
+    \nodepart{three}
+    \texttt{fit(events)}\\ \texttt{predict(events)}
+  };
+  % realisation: one bus per class to the interface
+  \draw[realize] (fsrs.north) -- ++(0,0.9) -| (iface.south);
+  \draw[realize] (hlr.north) -- ++(0,0.9) -| (iface.south);
+  \draw[realize] (ours.north) -- ++(0,0.9) -| (iface.south);
+  \draw[realize] (lag.north) -- ++(0,0.9) -| (iface.south);
+  % core model (composition from OursModel)
+  \node[uml, rectangle split, rectangle split parts=3, text width=8.0cm, anchor=north, inner sep=3pt]
+    (dr) at (6.2,2.6) {
+    \centering\textbf{DynamicRetentionModelDT}
+    \nodepart{two}
+    \texttt{lam, sigma2, kappa, b0, alpha, beta, gamma, tau2}
+    \nodepart{three}
+    \texttt{run()}\\ \texttt{\_ffbs()}\\ \texttt{\_update\_effects()}\\ \texttt{\_update\_lam\_sigma2()}\\ \texttt{predict()}
+  };
+  \draw[composition] (ours.south) -- ++(0,-0.5) -| (dr.north);
+  % helpers used by the core model
+  \node[uml, text width=3.6cm, align=center, anchor=north, inner sep=3pt] (pg) at (3.2,-1.8) {
+    \guillemotleft function\guillemotright\\\texttt{sample\_pg1}\\(pg\_sampler)
+  };
+  \node[uml, text width=4.2cm, align=center, anchor=north, inner sep=3pt] (ffbs) at (10.4,-1.8) {
+    \guillemotleft kernel\guillemotright\\\texttt{\_ffbs\_step\_numba}\\(numba)
+  };
+  \draw[dashedarrow] (pg.north |- dr.south) -- (pg.north) node[right, midway, font=\footnotesize, xshift=3pt] {\guillemotleft uses\guillemotright};
+  \draw[dashedarrow] (ffbs.north |- dr.south) -- (ffbs.north) node[right, midway, font=\footnotesize, xshift=3pt] {\guillemotleft uses\guillemotright};
+\end{tikzpicture}

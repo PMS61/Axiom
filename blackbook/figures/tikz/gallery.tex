@@ -1,0 +1,61 @@
+% gallery.tex -- every TikZ diagram on its own page, with its name.
+% Build from this folder:  cd figures/tikz && latexmk -pdf -interaction=nonstopmode gallery.tex
+\documentclass[12pt,a4paper]{report}
+% Project helper files (binhex.tex, config, preamble) live two folders up; newtx needs
+% binhex.tex through \input, so tell LaTeX where else to look.
+\makeatletter\def\input@path{{../../}}\makeatother
+\input{../../config}
+\input{../../preamble}
+
+\begin{document}
+\pagestyle{empty}
+\chapter*{Diagram gallery (Phase 2)}
+One diagram per page, at its report size. Each name is a file in
+\texttt{figures/tikz/}\allowbreak\texttt{<name>.tex}.
+
+\newsavebox{\galbox}
+% Measure each diagram (width in pt) in the log, then show it on its own page.
+\newcommand{\GalleryItem}[2]{%
+  \sbox{\galbox}{\input{#1}}%
+  \clearpage
+  \begin{figure}[p]
+    \centering
+    \input{#1}
+    \caption{#2}
+  \end{figure}%
+}
+
+\GalleryItem{tk_architecture}{\texttt{tk\_architecture} (DIAGRAMS.md item 1)}
+\GalleryItem{tk_dfd0}{\texttt{tk\_dfd0} (item 2)}
+\GalleryItem{tk_dfd1}{\texttt{tk\_dfd1} (item 3)}
+\GalleryItem{tk_usecase}{\texttt{tk\_usecase} (item 4)}
+\GalleryItem{tk_class}{\texttt{tk\_class} (item 5)}
+\GalleryItem{tk_sequence}{\texttt{tk\_sequence} (item 6)}
+\GalleryItem{tk_activity_sweep}{\texttt{tk\_activity\_sweep} (item 7)}
+\GalleryItem{tk_event_pipeline}{\texttt{tk\_event\_pipeline} (item 8)}
+\GalleryItem{tk_split_timeline}{\texttt{tk\_split\_timeline} (item 9)}
+
+\GalleryItem{tk_forgetting_curve}{\texttt{tk\_forgetting\_curve} (DIAGRAMS.md item 10)}
+\GalleryItem{tk_spaced_vs_massed}{\texttt{tk\_spaced\_vs\_massed} (item 11)}
+\GalleryItem{tk_concept_overview}{\texttt{tk\_concept\_overview} (item 12)}
+\GalleryItem{tk_lit_timeline}{\texttt{tk\_lit\_timeline} (item 13)}
+\GalleryItem{tk_leitner}{\texttt{tk\_leitner} (item 14)}
+\GalleryItem{tk_taxonomy}{\texttt{tk\_\allowbreak taxonomy} (item 15)}
+\GalleryItem{tk_dir_tree}{\texttt{tk\_\allowbreak dir\_tree} (item 16)}
+\GalleryItem{tk_module_deps}{\texttt{tk\_module\_deps} (item 17)}
+\GalleryItem{tk_run_pipeline}{\texttt{tk\_run\_pipeline} (item 18)}
+\GalleryItem{tk_test_pyramid}{\texttt{tk\_test\_pyramid} (item 19)}
+\GalleryItem{tk_fsrs_vs_ours}{\texttt{tk\_fsrs\_vs\_ours} (item 20)}
+\GalleryItem{tk_roadmap}{\texttt{tk\_roadmap} (item 21)}
+
+\GalleryItem{tk_graphical_model}{\texttt{tk\_graphical\_model} (DIAGRAMS.md item 22)}
+\GalleryItem{tk_ou_paths}{\texttt{tk\_ou\_paths} (item 23)}
+\GalleryItem{tk_phi_q}{\texttt{tk\_phi\_q} (item 24)}
+\GalleryItem{tk_kappa_rate}{\texttt{tk\_kappa\_rate} (item 25)}
+\GalleryItem{tk_pg_logistic}{\texttt{tk\_pg\_logistic} (item 26)}
+\GalleryItem{tk_ffbs}{\texttt{tk\_ffbs} (item 27)}
+\GalleryItem{tk_gibbs_flow}{\texttt{tk\_gibbs\_flow} (item 28)}
+
+\GalleryItem{tk_axiom_architecture}{\texttt{tk\_axiom\_architecture} (Chapter 7)}
+
+\end{document}

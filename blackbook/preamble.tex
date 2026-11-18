@@ -1,0 +1,186 @@
+% preamble.tex -- packages and layout. Loaded by main.tex after config.tex.
+
+% ---- Encoding, page, font ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,left=1.5in,right=1in,top=1in,bottom=1in,headheight=14pt]{geometry}
+
+% ---- Math (load before newtxmath) ----
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+
+% ---- Times-like font (12 pt set by the class option) ----
+% Times clone (newtx). The real Times New Roman is not installed, so it is not used.
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+% To use real Times New Roman once the TTF is installed, compile with XeLaTeX and
+% replace the two lines above (newtxtext/newtxmath) by:
+%   \usepackage{fontspec}
+%   \setmainfont{Times New Roman}
+%   \usepackage{unicode-math}
+%   \setmathfont{Times New Roman}
+
+% ---- Spacing: 12 pt, one-and-a-half line spacing, justified text (LaTeX default) ----
+\usepackage{setspace}
+\onehalfspacing
+
+% ---- Headings, lists of contents, header/footer ----
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{fancyhdr}
+
+% ---- Floats, tables, lists ----
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\emergencystretch=3em
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{longtable}
+\usepackage{enumitem}
+
+% ---- Colour ----
+\usepackage{xcolor}
+\definecolor{fsrsopt}{HTML}{1F4E79}   % FSRS-6 optimised
+\definecolor{fsrsdef}{HTML}{5B9BD5}   % FSRS-6 default
+\definecolor{hlr}{HTML}{C00000}       % HLR
+\definecolor{ours}{HTML}{2E7D32}      % Ours (learned lambda)
+\definecolor{ourskappa}{HTML}{F9A825} % Ours + kappa
+\definecolor{laglogit}{HTML}{7F7F7F}  % LagLogit + Delta t
+\definecolor{darkblue}{RGB}{0,0,139}
+
+% ---- Diagrams and plots ----
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes,fit,calc,backgrounds,decorations.pathreplacing,shadows}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween}
+\usepackage{pgf-umlsd}
+\usepackage{forest}
+% Shared TikZ styles (figures/tikz/styles.tex). The IfFileExists branch lets
+% figures/tikz/gallery.tex, which runs from inside figures/tikz, find the same file.
+\IfFileExists{figures/tikz/styles.tex}{\input{figures/tikz/styles.tex}}{\input{styles.tex}}
+
+% ---- Code listings (Python) ----
+\usepackage{listings}
+\usepackage{needspace}
+\lstdefinestyle{pystyle}{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  numbers=left,
+  numberstyle=\tiny\color[gray]{0.4},
+  numbersep=8pt,
+  backgroundcolor=\color[gray]{0.95},
+  frame=single,
+  rulecolor=\color[gray]{0.7},
+  keywordstyle=\color{blue!60!black}\bfseries,
+  commentstyle=\color[gray]{0.4}\itshape,
+  stringstyle=\color{red!50!black},
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4,
+  columns=flexible,
+  xleftmargin=1.5em,
+  framexleftmargin=1.5em,
+  aboveskip=1em,
+  belowskip=1em,
+  captionpos=b
+}
+\lstset{style=pystyle}
+
+% Float pages: put floats at the top of the page instead of centring them between blank bands.
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{12pt plus 1fil}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+
+% ---- Algorithm boxes: \begin{algobox}{Title} ... \end{algobox} ----
+\usepackage[most]{tcolorbox}
+\newcounter{algocounter}[chapter]
+\renewcommand{\thealgocounter}{\thechapter.\arabic{algocounter}}
+\newenvironment{algobox}[1]{%
+  \refstepcounter{algocounter}%
+  \begin{tcolorbox}[
+    enhanced, breakable,
+    colback=white, colframe=darkblue!70!black,
+    coltitle=white, fonttitle=\bfseries,
+    title={Algorithm \thealgocounter: #1},
+    boxrule=0.6pt, arc=2pt,
+    left=6pt, right=6pt, top=4pt, bottom=4pt]%
+}{%
+  \end{tcolorbox}%
+}
+
+% ---- Captions, numbering within chapters ----
+\captionsetup{font=small,labelfont=bf,labelsep=colon}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+\numberwithin{equation}{chapter}
+
+% ---- Citations: numeric, square brackets, sorted and compressed ----
+\usepackage[square,numbers,sort&compress]{natbib}
+
+% ---- Natbib bibliography: numbered entries "1." (in-text citations stay [n]) ----
+\makeatletter
+\renewcommand{\@biblabel}[1]{#1.}
+\makeatother
+
+% ---- Headings ----
+% Numbered chapter: one centred bold line "Chapter N : Title" (\@chapapp is "Appendix" after \appendix,
+% which gives "Appendix A : Title"). Starred chapters (Contents, lists, Bibliography) are centred, unnumbered.
+\makeatletter
+\titleformat{\chapter}[block]
+  {\normalfont\bfseries\fontsize{16}{20}\selectfont\centering}
+  {\@chapapp\ \thechapter\ :}{0.5em}
+  {\fontsize{16}{20}\selectfont}
+\titleformat{name=\chapter,numberless}[block]
+  {\normalfont\bfseries\fontsize{16}{20}\selectfont\centering}
+  {}{0pt}
+  {\fontsize{16}{20}\selectfont}
+\titlespacing*{\chapter}{0pt}{6pt}{20pt}
+\titleformat{\section}
+  {\normalfont\bfseries\fontsize{14}{17}\selectfont\raggedright}
+  {\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{18pt}{10pt}
+\titleformat{\subsection}
+  {\normalfont\bfseries\fontsize{12}{15}\selectfont\raggedright}
+  {\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+\makeatother
+
+% ---- Lists of contents: titles bold and left; chapter rows bold "Chapter N : Title" ----
+% \cftchapprefix is changed to "Appendix" by main.tex (via \addtocontents) before the appendix entries.
+\newcommand{\cftchapprefix}{Chapter\ }
+\renewcommand{\cftchappresnum}{\cftchapprefix}
+\renewcommand{\cftchapaftersnum}{\ :}
+\setlength{\cftchapnumwidth}{6.5em}
+\setlength{\cftbeforechapskip}{8pt}
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cfttoctitlefont}{\bfseries\fontsize{16}{20}\selectfont}
+\renewcommand{\cftaftertoctitle}{}
+\renewcommand{\cftloftitlefont}{\bfseries\fontsize{16}{20}\selectfont}
+\renewcommand{\cftafterloftitle}{}
+\renewcommand{\cftlottitlefont}{\bfseries\fontsize{16}{20}\selectfont}
+\renewcommand{\cftafterlottitle}{}
+
+% ---- Page style: no header; "Page N" bottom right on every page (plain included) ----
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[R]{Page \thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[R]{Page \thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
+
+% ---- Hyperlinks: load last ----
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black,filecolor=black,pdfborder={0 0 0}]{hyperref}
+\hypersetup{pdftitle={\ShortTitle},pdfauthor={\StudentAName, \StudentBName, \StudentCName, \StudentDName}}

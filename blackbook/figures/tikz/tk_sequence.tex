@@ -1,0 +1,23 @@
+% tk_sequence: run-time sequence of run.py (DIAGRAMS.md item 6), pgf-umlsd
+\begin{sequencediagram}
+  % message labels sit on a white background, so no lifeline runs through them
+  \tikzset{every node/.append style={fill=white, inner sep=1pt}}
+  \newinst[0.75]{res}{Researcher}
+  \newinst[0.75]{run}{\texttt{run.py}}
+  \newinst[0.75]{data}{\texttt{data/split}}
+  \newinst[0.75]{mod}{Model}
+  \newinst[0.75]{rep}{\texttt{metrics/report}}
+
+  \begin{call}{res}{run(args)}{run}{}\end{call}
+  \begin{call}{run}{load events}{data}{\raisebox{2.5pt}{events}}\end{call}
+  \begin{call}{run}{make split}{data}{\raisebox{2.5pt}{event table}}\end{call}
+
+  \begin{sdblock}{loop}{\hspace{4pt}\footnotesize for each model key (skip if -{}-resume)}
+    \begin{call}{run}{make model}{mod}{\raisebox{2.5pt}{model}}\end{call}
+    \begin{call}{run}{fit(train)}{mod}{}\end{call}
+    \begin{call}{run}{predict(scored)}{mod}{\raisebox{2.5pt}{probabilities}}\end{call}
+    \begin{callself}[2]{run}{save pred\_<key>.parquet}{}\end{callself}
+  \end{sdblock}
+
+  \begin{call}{run}{build report}{rep}{\raisebox{2.5pt}{metrics.csv, paired.csv, report.md}}\end{call}
+\end{sequencediagram}

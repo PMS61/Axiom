@@ -1,0 +1,151 @@
+\chapter{Details of the Datasets}
+\label{ch:dataset}
+
+\section{Datasets Used}
+\label{sec:dataset-used}
+
+The study uses two public collections of spaced-repetition review logs, and a third benchmark that evaluates on the first. Each collection records, for a learner and a card, the reviews made, their outcomes and the time between them. The collections differ in size and in how the outcome is recorded, and those differences matter when results are compared across them. The split and scoring protocol of Section~\ref{sec:design-split} is applied to both benchmark datasets.
+
+The first is the benchmark sample of Experiment~2, the Anki FSRS benchmark. It is drawn from the \texttt{anki-revlogs-10k} collection \cite{ankirevlogs10k}, which is gated on Hugging Face. Users are sampled with seed 0, and at most 1000 cards per user are kept, also with seed 0. After the event rules of Section~\ref{sec:design-pipeline}, the sample has 100 users, 99,074 cards and 768,658 review events. The per-user cutoff gives 606,364 training events and 162,294 test events. Of the 95,400 scored reviews, 0.831 are recalls.
+
+The second is the full Duolingo benchmark of Experiment~3, built from the half-life regression traces of Settles and Meeder \cite{settles2016trainable}. The traces cover 115,222 users and 5,861,629 cards, where a card is a pair of user and lexeme. The outcome is binary: a review counts as recalled when the predicted recall probability in the trace is at least 0.5. FSRS-6 therefore sees two outcomes, not the four Anki grades. The traces hold 12,854,226 events, of which 6,468,512 are training and 6,385,714 are test events. There are 1,189,355 scored reviews, with a recall rate of 0.920. Table~\ref{tab:exp3-setup} gives the setup in full.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Experiment 3: setup]{Experiment 3: data, outcome and models. The numbers are from the run report
+    in \texttt{results/duolingo\_full}.}
+  \label{tab:exp3-setup}
+  \begin{tabular}{@{}lp{9.5cm}@{}}
+    \toprule
+    Item & Value \\
+    \midrule
+    Users; cards & 115,222 users; 5,861,629 cards \\
+    Events & 12,854,226 in total: 6,468,512 training and 6,385,714 test \\
+    Scored reviews & 1,189,355, with a recall rate of 0.920 \\
+    Outcome & $y=1$ if the trace's predicted recall probability is at least 0.5; FSRS-6 sees Again and Good only \\
+    Users without training rows & 64,254 \\
+    FSRS-6 (optimised) & Falls back to default weights for 115,110 of 115,222 users (fewer than 512 informative training rows), so on this data it is effectively the default model \\
+    Ours & GPU port of the same sampler (PyTorch, Kaggle T4): 2000 iterations, 1000 burn-in, thinning 10, giving 100 kept draws \\
+    Gaps scored & Only 1 day, 2--3 days and 4--14 days; no scored review falls at 15 days or longer \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The srs-benchmark project \cite{srsbenchmark} is not a collection of its own. It is a benchmark that evaluates recall models on the \texttt{anki-revlogs-10k} collection, which has 9,999 users. The 100-user sample of Experiment~2 is drawn from the same collection, but the srs-benchmark numbers are not directly comparable with Table~\ref{tab:exp4-anki}, because they come from a different sample. Experiment~5 (Section~\ref{sec:results-exp5-srsb}) runs a pooled GBDT under the benchmark's protocol and reports its results against the benchmark's own models.
+
+\section{Data Pipeline and Event Definition}
+\label{sec:design-pipeline}
+
+Figure~\ref{fig:tk_event_pipeline} shows how the raw review rows become the event table. The steps are applied in the
+order shown, and the final table holds 768,658 events from 99,074 cards of 100 users.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_event_pipeline}
+  \caption{Event pipeline from raw revlog rows to the event table. Reviews with rating 0 are dropped as manual
+    reschedules. Filtered-deck reviews (state 4) are retained. Cards whose first kept review is not new are dropped,
+    because their history is truncated. The final table holds 768,658 events.}
+  \label{fig:tk_event_pipeline}
+\end{figure}
+
+The first rule removes manual reschedules, which are reviews with rating 0. These do not reflect recall. The
+second rule keeps the reviews made in filtered decks, which are state 4. They carry real ratings and durations, so
+they are genuine recall events. The third rule drops a card whose first kept review is not a new-card review. Such a
+card has truncated history, so its memory state cannot be reconstructed from the log. The whole card is dropped.
+
+The outcome is defined from the rating by
+\begin{equation}
+  y = \mathbf{1}[\mathrm{rating} > 1].
+  \label{eq:label}
+\end{equation}
+A review counts as recalled when its rating is greater than one. This binarisation is a design choice, and it
+is discussed as a limitation in Chapter~\ref{ch:conclusion}.
+
+Gaps are recomputed from the kept rows. The raw \texttt{elapsed\_days} field can refer to a dropped row, so it may
+not match the replayed history. The system therefore sets \texttt{elapsed\_days} to the difference in
+\texttt{day\_offset} between consecutive kept reviews of a card. The field \texttt{dt\_days} is the elapsed time in
+seconds over the same window, including the dropped rows, converted to days. This keeps the time spent in the window.
+If the seconds are missing or invalid in the window, \texttt{dt\_days} falls back to \texttt{elapsed\_days}. The
+two definitions do not always agree. In the audit of the data, 177,986 of the 2,348,660 adjacent card intervals
+differ by more than one day between the calendar gap and the elapsed seconds.
+
+The cap of at most 1000 cards per user is applied after the rules above. Within each user, the cards are sampled with
+the seed, so the same seed always keeps the same cards. Table~\ref{tab:events} lists the columns of the event table,
+which is the only input to the models.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize\setlength{\tabcolsep}{4pt}
+  \caption{Columns of the event table written by \texttt{make\_split}. One row per kept review.}
+  \label{tab:events}
+  \footnotesize
+  \begin{tabular}{@{}p{2.8cm}p{1.8cm}p{9.6cm}@{}}
+    \toprule
+    Column & Type & Meaning \\
+    \midrule
+    \texttt{event\_id} & int64 & Unique key, $\texttt{user\_id} \times 10^9 + \texttt{review\_idx}$ \\
+    \texttt{user\_id} & int & Learner, taken from the folder name of the review file \\
+    \texttt{card\_id} & int & Card (item). Memory state is kept per card \\
+    \texttt{review\_idx} & int & Position among the reviews kept by \texttt{load\_user} (not renumbered after the card cap), starting at 0 \\
+    \texttt{day\_offset} & int & Day index of the review in the dataset \\
+    \texttt{rating} & int & Raw rating; rating 0 is removed before this table is built \\
+    \texttt{state} & int & Card state at the review; 0 is new, 4 is a filtered-deck review \\
+    \texttt{elapsed\_days} & int & Days since the previous kept review of the card; $-1$ for a first review \\
+    \texttt{dt\_days} & float & Elapsed time in days from the seconds field; missing for a first review \\
+    \texttt{y} & int & Recall outcome, $y = \mathbf{1}[\text{rating} > 1]$ \\
+    \texttt{is\_first} & bool & True for the first kept review of a card \\
+    \texttt{cutoff\_day} & float & The user's 80th-percentile cutoff in \texttt{day\_offset} units \\
+    \texttt{is\_train} & bool & True if \texttt{day\_offset} is before the cutoff \\
+    \texttt{scored} & bool & True for test events that are not first reviews and have \texttt{elapsed\_days} $\ge 1$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Leakage-Free Split and One-Step-Ahead Protocol}
+\label{sec:design-split}
+
+A random split of review events would overstate a model's accuracy. A random split can place a card's later reviews in
+the training set and its earlier reviews in the test set, so the model is scored on events whose future it has seen.
+The system uses a per-user time cutoff instead. For user $u$, let $d_{u,k}$ be the day offset of review $k$ among the
+kept reviews. The cutoff is
+\begin{equation}
+  c_u = Q_{0.8}\bigl(\{d_{u,k}\}_k\bigr),
+  \label{eq:cutoff}
+\end{equation}
+where $Q_{0.8}$ is the 80th percentile with linear interpolation. A review is in the training set when its day offset is
+before the cutoff, and in the test set otherwise:
+\begin{equation}
+  \mathrm{is\_train}_{u,k} = \mathbf{1}[d_{u,k} < c_u].
+  \label{eq:train}
+\end{equation}
+
+The order of operations matters. The card cap is applied first, and the cutoff is then computed from the reviews that
+the benchmark actually evaluates. Had the cutoff been computed before the cap, it would reflect cards that are then
+discarded. Figure~\ref{fig:tk_split_timeline} shows one user's time axis. The training reviews lie to the left of the
+cutoff, and the test reviews to the right. A test event is scored only if it is not a card's first review and its
+gap is at least one day, as Equation~\eqref{eq:scored} states. Same-day reviews are still fed to the models as history.
+
+\begin{equation}
+  \mathrm{scored}_{u,k} = \neg\,\mathrm{is\_train}_{u,k} \;\wedge\; \neg\,\mathrm{is\_first}_{u,k} \;\wedge\;
+  \bigl(\mathrm{elapsed\_days}_{u,k} \ge 1\bigr).
+  \label{eq:scored}
+\end{equation}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_split_timeline}
+  \caption{One user's time axis, split at the 80th percentile of \texttt{day\_offset}. Training reviews are
+    ticks to the left of the cutoff. Test reviews are circles to the right. A scored test event (filled) is predicted
+    from all events before it, including earlier test outcomes, but not from its own outcome. Totals are over all 100
+    users.}
+  \label{fig:tk_split_timeline}
+\end{figure}
+
+The one-step-ahead protocol governs the prediction. For a scored event $k$, the prediction uses only the events that
+precede it, so it may use the training history and the earlier test outcomes of the same user. It may not use the
+outcome of event $k$ or of any later event. Parameters are estimated on the training events and then frozen, so the
+earlier test outcomes can affect the predictions for later test events of the same card, as the protocol allows.
+
+The leakage check verifies the protocol. The test suite flips the labels of the test events and confirms that the
+predictions for those events do not change. Over the 100 users, the split gives 606,364 training events, 162,294 test
+events and 95,400 scored events, which sum to the 768,658 events of the pipeline.

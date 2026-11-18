@@ -1,0 +1,16 @@
+% binhex.tex -- LOCAL STAND-IN for the file newtx expects (\input{binhex}).
+% The installed TeX tree (texlive-fontsextra) does not ship binhex.tex, so
+% newtxtext.sty fails with "File binhex.tex not found". This file defines the
+% one macro newtx uses from it:
+%   \nhex{4}{x}  -> the 4-digit uppercase hexadecimal form of integer 0..65535
+% (newtx only calls it with width 4). Expandable: uses \numexpr and \ifcase.
+% Replace with the official binhex.tex once it is installed system-wide.
+\def\ntx@hexdigit#1{\ifcase\numexpr#1\relax 0\or1\or2\or3\or4\or5\or6\or7\or8\or9\or A\or B\or C\or D\or E\or F\fi}
+% floor(x/b) for 0 <= x < 65536: round((2x-(b-1))/(2b)) = floor(x/b)
+\def\ntx@fl#1#2{\numexpr((2*#1-(#2-1))/(2*#2))\relax}
+\def\nhex#1#2{%
+  \ntx@hexdigit{\ntx@fl{#2}{4096}}%
+  \ntx@hexdigit{\numexpr(\ntx@fl{#2}{256}-16*\ntx@fl{#2}{4096})\relax}%
+  \ntx@hexdigit{\numexpr(\ntx@fl{#2}{16}-16*\ntx@fl{#2}{256})\relax}%
+  \ntx@hexdigit{\numexpr(#2-16*\ntx@fl{#2}{16})\relax}%
+}

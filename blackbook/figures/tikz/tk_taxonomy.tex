@@ -1,0 +1,27 @@
+% tk_taxonomy: families of memory and recall models (DIAGRAMS.md item 15), forest
+\begin{forest}
+  for tree={font=\footnotesize, draw=black!70, fill=black!4, rounded corners=3pt,
+    inner sep=3pt, align=left, text width=4.7cm, grow=east,
+    edge={draw=black!75, -{Stealth[length=2mm]}}, parent anchor=east, child anchor=west,
+    s sep=4pt, l sep=12pt}
+  [{\textbf{Memory / recall models}}, text width=4.0cm, fill=black!10
+    [{\textbf{Heuristic schedulers}}, text width=4.0cm
+      [Pimsleur (1967)]
+      [Leitner (1972)]
+      [SM-2 (1990)]
+    ]
+    [{\textbf{Trainable regression}}, text width=4.0cm
+      [HLR]
+      [PPE (Walsh et al.\ 2018)]
+      [LagLogit + $\Delta t$]
+    ]
+    [{\textbf{State-based models}}, text width=4.0cm
+      [FSRS-6 (deterministic 2-D state)]
+      [HOUM (continuous-time OU)]
+      [{Ours (Bayesian OU state-space)}, fill=ours!15, draw=ours!85!black]
+    ]
+    [{\textbf{Neural sequence models}}, text width=4.0cm
+      [{RNN / LSTM, Transformers\\(mentioned only)}, text width=4.7cm]
+    ]
+  ]
+\end{forest}

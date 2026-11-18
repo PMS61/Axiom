@@ -1,0 +1,27 @@
+% tk_ou_paths: OU mean and +-2 sd band (DIAGRAMS.md item 23); mu=2.3, m0=4, sigma^2=0.2
+\begin{tikzpicture}
+  \begin{axis}[width=13cm, height=7cm, xmin=0, xmax=30, ymin=-0.3, ymax=6,
+    xlabel={$t$ (days)}, ylabel={$m(t)$ and $\pm 2\,\mathrm{sd}(t)$}, axis lines=left,
+    legend pos=north east, legend style={font=\footnotesize, draw=none, fill=none},
+    label style={font=\small}, tick label style={font=\footnotesize}]
+    % lambda = 0.05: m = 2.3 + 1.7 e^{-0.05 t}; sd = sqrt(2 (1 - e^{-0.1 t}))
+    \addplot[name path=u1, draw=none, forget plot, domain=0:30, samples=80] {2.3+1.7*exp(-0.05*x)+2*sqrt(2*(1-exp(-0.1*x)))};
+    \addplot[name path=d1, draw=none, forget plot, domain=0:30, samples=80] {2.3+1.7*exp(-0.05*x)-2*sqrt(2*(1-exp(-0.1*x)))};
+    \addplot[purple!14, forget plot] fill between[of=u1 and d1];
+    % lambda = 0.4: sd = sqrt(0.25 (1 - e^{-0.8 t}))
+    \addplot[name path=u2, draw=none, forget plot, domain=0:30, samples=80] {2.3+1.7*exp(-0.4*x)+2*sqrt(0.25*(1-exp(-0.8*x)))};
+    \addplot[name path=d2, draw=none, forget plot, domain=0:30, samples=80] {2.3+1.7*exp(-0.4*x)-2*sqrt(0.25*(1-exp(-0.8*x)))};
+    \addplot[teal!14, forget plot] fill between[of=u2 and d2];
+    % lambda = 1.9: sd = sqrt((0.2/3.8)(1 - e^{-3.8 t}))
+    \addplot[name path=u3, draw=none, forget plot, domain=0:30, samples=80] {2.3+1.7*exp(-1.9*x)+2*sqrt(0.2/3.8*(1-exp(-3.8*x)))};
+    \addplot[name path=d3, draw=none, forget plot, domain=0:30, samples=80] {2.3+1.7*exp(-1.9*x)-2*sqrt(0.2/3.8*(1-exp(-3.8*x)))};
+    \addplot[brown!16, forget plot] fill between[of=u3 and d3];
+    % mean paths (drawn after the bands)
+    \addplot[purple, thick, domain=0:30, samples=120] {2.3+1.7*exp(-0.05*x)};
+    \addlegendentry{$\lambda=0.05$}
+    \addplot[teal, thick, dashed, domain=0:30, samples=120] {2.3+1.7*exp(-0.4*x)};
+    \addlegendentry{$\lambda=0.4$}
+    \addplot[brown, very thick, dotted, domain=0:30, samples=120] {2.3+1.7*exp(-1.9*x)};
+    \addlegendentry{$\lambda=1.9$}
+  \end{axis}
+\end{tikzpicture}

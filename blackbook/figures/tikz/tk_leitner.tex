@@ -1,0 +1,18 @@
+% tk_leitner: the Leitner box system (DIAGRAMS.md item 14)
+\begin{tikzpicture}[font=\small]
+  \foreach \i/\d in {1/1,2/2,3/4,4/8,5/16} {
+    \pgfmathsetmacro{\xc}{(\i-1)*2.8}
+    \node[box, minimum width=2.1cm, minimum height=1.5cm, text width=1.9cm] (b\i) at (\xc,0)
+      {Box \i\\[2pt]{\footnotesize review every\\\d\ day\ifnum\d>1 s\fi}};
+  }
+  % correct answers move a card to the next box (green)
+  \foreach \i/\j in {1/2,2/3,3/4,4/5} {
+    \draw[-{Stealth[length=2.2mm]}, line width=0.8pt, draw=ours!85!black] (b\i.east) -- (b\j.west);
+  }
+  \node[font=\footnotesize, text=ours!85!black, align=center] at (1.4,1.15) {correct $\rightarrow$ next box};
+  % wrong answers send a card back to Box 1 (red), from every box
+  \draw[line width=0.8pt, draw=hlr!85!black] (b2.south) -- (b2.south |- 0,-1.6);
+  \foreach \i in {3,4,5} { \draw[line width=0.8pt, draw=hlr!85!black] (b\i.south) -- (b\i.south |- 0,-1.6); }
+  \draw[-{Stealth[length=2.2mm]}, line width=0.8pt, draw=hlr!85!black] (b5.south |- 0,-1.6) -- (-0.0,-1.6) -- (b1.south);
+  \node[font=\footnotesize, text=hlr!85!black, anchor=north] at (5.6,-1.6) {wrong $\rightarrow$ Box 1 (from every box)};
+\end{tikzpicture}

@@ -1,0 +1,348 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Overview}
+\label{sec:intro-background}
+
+Spaced repetition is a method of scheduling reviews of learning items, such as flashcards,
+vocabulary words and facts, so that each review happens when recall is becoming unreliable.
+The learner attempts to recall an item, the outcome is recorded, and a scheduler chooses the
+time of the next review. Applications such as Anki and Duolingo use this idea at scale, and the
+review logs they produce are a useful record of how people forget and relearn.
+
+The idea rests on the forgetting curve. Ebbinghaus \cite{ebbinghaus1885memory} showed that
+retention of newly learned material falls with time, and that the fall can be slowed by
+repetition. Figure~\ref{fig:tk_forgetting_curve} sketches this pattern. Each review
+restores retention, and the decay becomes slower as the memory is strengthened. The figure is
+schematic and is not fitted to any data.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_forgetting_curve}
+  \caption{Schematic forgetting curve. Each review (dashed vertical line) restores retention,
+    and the later curves decay more slowly. This illustration is not fitted to data.}
+  \label{fig:tk_forgetting_curve}
+\end{figure}
+
+Spacing matters as well as repetition itself. The same five reviews can be placed very differently in
+time, either massed into one or two days or spread over several weeks
+(Figure~\ref{fig:tk_spaced_vs_massed}). This difference is the spacing effect, and computational
+models of it are evaluated in \cite{walsh2018ppe}. Schedulers that use this effect have a long history. Pimsleur
+\cite{pimsleur1967} proposed graded intervals, Leitner \cite{leitner1972lernen} introduced a box
+system, and SM-2 \cite{wozniak1990sm2} adjusted each item's interval from the learner's grades.
+Later schedulers estimate their parameters from data. Half-life regression (HLR)
+\cite{settles2016trainable} and the Free Spaced Repetition Scheduler (FSRS) \cite{ye2022stochastic}
+are two examples. Chapter~\ref{ch:literature} reviews these methods in detail.
+
+A scheduler is only as useful as its predictions are accurate, and accuracy has several parts. A
+model must rank recalled items above forgotten ones, which is measured by the area under the ROC
+curve (AUC). It must also give probabilities that match the observed frequencies, which is measured
+by calibration. Log loss and the Brier score combine both aspects into a single number for each
+event. Expected calibration error (ECE) and the mean bias within each gap bin show where a model
+is miscalibrated. These measures are used throughout this report, and their definitions are given
+in Chapter~\ref{ch:results}.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_spaced_vs_massed}
+  \caption{The same five reviews, massed on days 0--1 (top) or spaced over days 0, 1, 3, 8 and 20
+    (bottom). The inset spreads the massed reviews apart for legibility. The layout is illustrative.}
+  \label{fig:tk_spaced_vs_massed}
+\end{figure}
+
+\section{Motivation}
+\label{sec:intro-motivation}
+
+Three properties of the common models motivate this work.
+
+\begin{enumerate}
+  \item \textbf{Fixed parameters.} Some models, such as HLR \cite{settles2016trainable}, fit their
+    weights once from a training window and keep them fixed. A learner's memory changes
+    between sessions, so a fixed estimate can drift away from the current state.
+  \item \textbf{Irregular gaps.} The time between reviews varies from hours to months. HLR, for
+    example, assumes that recall decays along a fixed curve, $p_t = 2^{-\Delta t_t/h}$, whose half-life
+    $h = 2^{\theta^\top x}$ depends only on review counts. The curve has no latent state that evolves
+    between reviews. In the benchmark reported in Chapter~\ref{ch:results}, the mean bias of HLR is
+    $+0.170$ at a one-day gap and $-0.249$ at gaps of 61 days or more. The errors have opposite signs
+    at the two ends, which is consistent with a single fitted curve that does not calibrate well
+    across gaps.
+  \item \textbf{No representation of state uncertainty.} A point estimate of recall probability does
+    not describe the uncertainty about the learner's current state. A latent-state model with Bayesian
+    inference keeps a posterior distribution over that state, and the prediction averages over it.
+\end{enumerate}
+
+A Bayesian treatment is attractive for a further reason. The benchmark alone holds 768,658 review
+events from 100 users, and each learner's history is a separate sequence with its own parameters.
+Posterior sampling gives a distribution for each parameter and each latent state, so the spread of
+the estimates is available for inspection. Point predictions can also be scored, so the benefit is
+not that uncertainty makes a model checkable. The narrower claim is that a posterior distribution
+carries information that a single fitted value does not, and whether this improves predictions is an
+empirical question.
+
+A latent-state model of this kind is a natural candidate. The question this work asks is whether
+it improves on the existing benchmarks in practice. The answer is only partly positive, as
+Section~\ref{sec:intro-contributions} explains.
+
+\section{Problem Statement}
+\label{sec:intro-problem}
+
+\textbf{The problem is to predict, from a learner's past reviews, the probability that the learner recalls an item at its next review, with calibrated uncertainty, so that the prediction can drive scheduling.}
+
+Consider one learner $u$ and one card (item) $i$, with a time-ordered sequence of reviews
+indexed by $t$. Each review has three observed quantities. The first is the elapsed time
+$\Delta t_t$ in days since the previous review of the same card. The second is the binary outcome
+$y_t \in \{0,1\}$, where $y_t = 1$ means that the item was recalled. The third is a practice term
+$C_t$, the logarithm of one plus the number of earlier successful recalls of the card.
+
+The model assumes a latent memory state $\psi_t$ on the logit scale. The outcome depends on the
+state through a logistic link,
+\begin{equation}
+  P(y_t = 1 \mid \psi_t) = \operatorname{logistic}(\psi_t) = \frac{1}{1 + e^{-\psi_t}},
+  \label{eq:observation}
+\end{equation}
+and between reviews the state follows a mean-reverting Ornstein--Uhlenbeck (OU) process,
+\begin{equation}
+  \mathrm{d}\psi(t) = \lambda\,\bigl(\mu(t) - \psi(t)\bigr)\,\mathrm{d}t + \sigma\,\mathrm{d}W(t),
+  \label{eq:ou}
+\end{equation}
+where $\lambda > 0$ is the rate of mean reversion, $\mu(t)$ is the equilibrium mean,
+$\sigma$ is the diffusion scale and $W(t)$ is a standard Wiener process. The equilibrium mean
+depends on a global intercept, a learner effect, a card effect and the lagged outcome. The
+rate can depend on practice through $C_t$. Chapter~\ref{ch:methodology} gives the full model
+and its exact discretisation over each gap.
+
+The inference problem is stated as follows. Given the training events $\mathcal{D}_{\mathrm{train}}$,
+estimate the global parameters ($\lambda$, $\sigma^2$, $\kappa$), the intercept and the learner and
+card effects by posterior sampling, and produce one-step-ahead predictions
+\begin{equation}
+  p_t = P\bigl(y_t = 1 \mid \mathcal{D}_{1:t-1}\bigr),
+  \label{eq:predict}
+\end{equation}
+where $\mathcal{D}_{1:t-1}$ contains only events that occur before event $t$. For a held-out test
+event, earlier test outcomes may be used but the outcome of the event being predicted may not. The
+protocol is designed so that no future outcome leaks into a prediction.
+
+This protocol matters because a random split of review events would give an optimistic picture. A
+random split can place a card's later reviews in the training set and its earlier reviews in the
+test set, so that the model is scored on events it has effectively seen the future of. A per-user
+chronological split avoids this. Within the test period, each prediction uses only the events that
+precede it, which mirrors how a scheduler would be used in practice.
+
+Figure~\ref{fig:tk_concept_overview} shows the overall idea. Review logs are turned into a
+probability of recall with uncertainty, and that probability could later drive a scheduler. The
+scheduler is outside the scope of this work and is shown dashed.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_concept_overview}
+  \caption{Conceptual overview. Review logs feed a Bayesian state-space model, which gives a
+    probability of recall with uncertainty. The scheduler (dashed) is future work and is not
+    implemented.}
+  \label{fig:tk_concept_overview}
+\end{figure}
+
+\section{Objectives}
+\label{sec:intro-objectives}
+
+The objectives are stated as the following research questions, which the experiments in
+Chapter~\ref{ch:results} answer.
+
+\begin{description}
+  \item[RQ1.] Does the continuous-time model predict recall better than HLR and FSRS-6 on the two leakage-free benchmarks?
+  \item[RQ2.] Does an explicit latent state improve calibration at long gaps, compared with a static
+    lagged-logistic baseline that uses the same gap information? This question is answered only by the
+    preliminary Experiment 1.
+  \item[RQ3.] Does the sampler converge within a practical computing budget, and if not, how does
+    this affect the reported scores?
+  \item[RQ4.] After the first experiments, how much of the remaining error is due to the memory model, and how does
+    the Bayesian model compare with cheaper MAP variants and with a gradient-boosted tree model that has no memory equation?
+    This question is answered by Experiment 4.
+  \item[RQ5.] Do the results survive reference points and external checks? Do constant floors with no memory model, two further Anki samples and the srs-benchmark protocol change the reading of Experiments 2 to 4? This question is answered by Experiment 5.
+\end{description}
+
+To answer them, the work pursues six objectives:
+
+\begin{enumerate}
+  \item to formulate recall as a scalar latent state that follows an OU process in continuous time,
+    with a closed-form discretisation over arbitrary gaps;
+  \item to implement posterior inference by P\'olya--Gamma augmentation \cite{polson2013pg}, forward
+    filtering and backward sampling (FFBS) \cite{carter1994gibbs,fruhwirth1994data}, and random-walk
+    Metropolis--Hastings steps for the rate parameters, all in a modular Python code base with a
+    Numba-compiled kernel;
+  \item to evaluate the model one step ahead on a gated Anki dataset (Hugging Face) \cite{ankirevlogs10k} and on the full Duolingo traces \cite{settles2016trainable}, against
+    FSRS-6 \cite{pyfsrs,ye2022stochastic} and HLR \cite{settles2016trainable}, using a leakage-free
+    per-user split; and
+  \item to check whether the sampler converges, and to report the diagnostics whatever they show; and
+  \item to extend the study with two MAP variants of the hierarchy (v2 and v3) and a LightGBM model (GBDT) \cite{ke2017lightgbm}, evaluated under the same protocol with a leakage audit.
+  \item to test the results against constant floors, on three Anki samples of 100 users each, and under the srs-benchmark protocol on 1,000 of its users (Experiment 5).
+\end{enumerate}
+
+\section{Mathematical Background}
+\label{sec:intro-math}
+
+This section introduces the statistical tools on which the model and its inference rest, at the level needed to read the introduction. The full model, its priors and the sampler are given in Chapter~\ref{ch:methodology}, and the forward references below point to the matching sections there.
+
+\subsection{Logistic link, log loss and Brier score}
+\label{sec:intro-math-logit}
+
+A review has a binary outcome $y \in \{0,1\}$. Its probability of recall is linked to a real-valued latent state $\psi$ by the logistic function
+\begin{equation}
+  \sigma(\psi) = \frac{1}{1+e^{-\psi}}, \qquad \log\frac{\sigma(\psi)}{1-\sigma(\psi)} = \psi,
+  \label{eq:intro-logit}
+\end{equation}
+so the state is the log-odds of recall, and any real value maps to a probability between zero and one.
+
+Predictions are scored with two rules. The log loss is the mean negative log likelihood of the outcomes under the predicted probabilities $p_i$, and the Brier score is the mean squared error of those probabilities,
+\begin{equation}
+  \mathrm{LL} = -\frac{1}{N}\sum_{i=1}^{N}\bigl[\,y_i\log p_i + (1-y_i)\log(1-p_i)\,\bigr],
+  \label{eq:intro-logloss}
+\end{equation}
+\begin{equation}
+  \mathrm{BS} = \frac{1}{N}\sum_{i=1}^{N}(p_i - y_i)^2.
+  \label{eq:intro-brier}
+\end{equation}
+Both are lower-is-better proper scoring rules: each is lowest when the predicted probabilities are both calibrated and sharp. Ranking quality is measured separately by the AUC. The clipping and the remaining metrics are defined in Section~\ref{sec:results-metrics}.
+
+\subsection{Bayes' rule}
+\label{sec:intro-math-bayes}
+
+Let $\theta$ denote the parameters, $\mathcal{D}$ the observed reviews and $p(\theta)$ the prior. Bayes' rule combines the likelihood $p(\mathcal{D}\mid\theta)$ with the prior to give the posterior,
+\begin{equation}
+  p(\theta \mid \mathcal{D}) = \frac{p(\mathcal{D}\mid\theta)\,p(\theta)}{p(\mathcal{D})},
+  \qquad p(\mathcal{D}) = \int p(\mathcal{D}\mid\theta)\,p(\theta)\,\mathrm{d}\theta.
+  \label{eq:intro-bayes}
+\end{equation}
+The integral in the denominator is rarely available in closed form, so the posterior is represented by samples. A prediction is then averaged over the posterior,
+\begin{equation}
+  P(y_{\mathrm{new}}=1 \mid \mathcal{D}) = \int P(y_{\mathrm{new}}=1 \mid \theta)\,p(\theta \mid \mathcal{D})\,\mathrm{d}\theta,
+  \label{eq:intro-predictive}
+\end{equation}
+which lets a prediction reflect the uncertainty about the parameters rather than a single fitted value. Section~\ref{sec:method-prediction} implements this average over posterior draws, and the priors are listed in Table~\ref{tab:priors}.
+
+\subsection{The Ornstein--Uhlenbeck process}
+\label{sec:intro-math-ou}
+
+Between reviews the latent state follows the Ornstein--Uhlenbeck (OU) process of Equation~\eqref{eq:ou}. Its transition over a gap of length $\Delta$ days is Gaussian and has a closed form. Given the state at the start of the gap,
+\begin{equation}
+  \psi(t+\Delta) \mid \psi(t) \;\sim\; \mathcal{N}\!\Bigl(\mu + \bigl(\psi(t)-\mu\bigr)e^{-\lambda\Delta},\
+  \frac{\sigma^2\bigl(1-e^{-2\lambda\Delta}\bigr)}{2\lambda}\Bigr).
+  \label{eq:intro-ou-exact}
+\end{equation}
+Writing the state at successive reviews, with $\Delta = \Delta t_t$ the gap before review $t$, gives a scalar autoregression,
+\begin{equation}
+  \psi_t = \varphi\,\psi_{t-1} + (1-\varphi)\,\mu_t + w_t, \qquad w_t \sim \mathcal{N}(0, q),
+  \label{eq:intro-ar1}
+\end{equation}
+where
+\begin{equation}
+  \varphi = e^{-\lambda\,\Delta t_t}, \qquad q = \frac{\sigma^2\bigl(1-e^{-2\lambda\,\Delta t_t}\bigr)}{2\lambda}.
+  \label{eq:intro-phi-q}
+\end{equation}
+This is exact for an equilibrium mean $\mu_t$ that is constant over the gap, and no time step is needed: one closed-form update covers a gap of any length. The first review of a card has no earlier state, and it is given a prior with mean $\mu$ and unit variance. Section~\ref{sec:method-ou} derives these expressions for the full model.
+
+\subsection{Gibbs sampling and P\'olya--Gamma augmentation}
+\label{sec:intro-math-gibbs}
+
+A Gibbs sampler splits the parameters and the latent states into blocks and cycles through them, drawing each block from its full conditional given the current values of the others,
+\begin{equation}
+  \theta_k^{(s+1)} \sim p\bigl(\theta_k \mid \theta_1^{(s+1)},\dots,\theta_{k-1}^{(s+1)},\,\theta_{k+1}^{(s)},\dots,\theta_K^{(s)},\,\mathcal{D}\bigr).
+  \label{eq:intro-gibbs}
+\end{equation}
+Repeated sweeps produce draws whose distribution approaches the posterior, but only if the chain mixes, and whether it did is checked with the diagnostics of Section~\ref{sec:method-diagnostics}. When a conditional has no standard form, a Metropolis--Hastings step replaces that block's draw.
+
+The logistic likelihood is not conjugate to a Gaussian state. P\'olya--Gamma augmentation \cite{polson2013pg} introduces one latent variable $\omega$ per review. Given $\omega$, the likelihood is Gaussian in $\psi$ through the pseudo-observation
+\begin{equation}
+  z = \frac{y-\tfrac{1}{2}}{\omega}, \qquad z \mid \omega, \psi \;\sim\; \mathcal{N}\!\bigl(\psi,\ \omega^{-1}\bigr),
+  \label{eq:intro-pg}
+\end{equation}
+and given $\psi$, the variable $\omega$ is drawn from a P\'olya--Gamma distribution with parameters $1$ and $\psi$. The state can therefore be drawn, conditional on $\omega$, by a forward-filtering backward-sampling pass (FFBS) \cite{carter1994gibbs,fruhwirth1994data}. Section~\ref{sec:method-pg} gives the augmentation and Section~\ref{sec:method-ffbs} gives the FFBS recursions.
+
+\section{Technical Keywords}
+\label{sec:intro-keywords}
+
+\textbf{Technical keywords:} spaced repetition; memory retention; Bayesian state-space model; Ornstein--Uhlenbeck process; P\'olya--Gamma augmentation; Gibbs sampling; forward filtering backward sampling; FSRS; gradient-boosted trees; Axiom.
+
+\section{Scope and Assumptions}
+\label{sec:intro-scope}
+
+The scope of the work is deliberately narrow. The following choices define it.
+
+\begin{itemize}
+  \item \textbf{Data.} Two datasets are used. The first is the \texttt{anki-revlogs-10k} dataset \cite{ankirevlogs10k}, a gated dataset hosted on Hugging Face, used for the main Anki benchmark (Experiment~2). It contains 100 users, sampled with seed 0, and at most 1000 cards per user. The benchmark holds 99,074 cards and 768,658 review events, of which 95,400 events are scored. The second is the full public Duolingo trace set of Settles and Meeder \cite{settles2016trainable}, with 115,222 users and 1,189,355 scored events (Experiment~3). It is evaluated with the same protocol.
+  \item \textbf{Event rules.} Reviews with rating 0 are dropped because they are manual reschedules.
+    Reviews in filtered decks are kept because they reflect real recall. A card whose first kept
+    review is not a new-card review is dropped.
+  \item \textbf{Binary outcome.} A review counts as recalled when its rating is greater than 1.
+    Multi-grade ordinal outcomes are not modelled. The recall rate on the scored Anki events is 0.831. On Duolingo the outcome is binary by construction, with $y = 1$ when the trace's predicted recall probability is at least 0.5, and the recall rate on the scored events is 0.920.
+  \item \textbf{Scalar state.} The latent state is one-dimensional. Multi-dimensional memory
+    states are not considered.
+  \item \textbf{Time order.} Reviews are assumed to be ordered in time, and gaps are measured in
+    days. Gaps are clipped to the interval $[0.01, 365]$ days. Within-day order is not reliable.
+    Of the 2,348,660 adjacent card intervals examined, 945,560 are same-day ties.
+  \item \textbf{Sampling budget.} The benchmark run uses one chain with seed 0, 2000 iterations, 1000
+    burn-in iterations and thinning by 4, which leaves 250 kept draws. The Duolingo run uses the same seed and iteration counts, with thinning by 10, which leaves 100 kept draws from the GPU port.
+  \item \textbf{Baselines.} FSRS-6 is run in two forms. The default form uses the 21 default
+    parameters of py-fsrs 6.3.2. The optimised form fits parameters per user on the training split
+    and falls back to the defaults when a user has fewer than 512 informative training reviews, which applies to one of the 100 Anki users. On Duolingo the fallback applies to 115,110 of 115,222 users, so the optimised form is effectively the default form there. HLR is a port of the official Duolingo code with the features
+    $\sqrt{1+n_{\text{right}}}$, $\sqrt{1+n_{\text{wrong}}}$ and a bias term. No lexeme features are
+    used.
+  \item \textbf{Experiment 1.} A preliminary run on an earlier pre-processed Anki extract is also
+    reported. Its provenance is not fully authenticated and its chain was run for only 200
+    iterations, so it is treated as preliminary throughout.
+  \item \textbf{Not addressed.} The work does not choose review times, does not run a live study
+    with learners, and does not compare multi-grade or other scheduler objectives.
+\end{itemize}
+
+\section{Contributions}
+\label{sec:intro-contributions}
+
+This work contributes the following items. Each one is something that was built or measured,
+not a claim of superiority.
+
+\begin{enumerate}
+  \item \textbf{A continuous-time model for recall.} A scalar OU latent state with a practice-dependent
+    rate and a lagged-outcome equilibrium mean. The state is discretised in closed form over each
+    gap, which is exact for the OU transition given the parameters. The derivation is in
+    Chapter~\ref{ch:methodology}.
+  \item \textbf{A posterior sampler.} A Metropolis-within-Gibbs sampler that combines P\'olya--Gamma
+    augmentation, a Numba-compiled FFBS kernel, conjugate updates for the effects and variances, and
+    adaptive random-walk Metropolis steps for the rate parameters. It is implemented as a Python
+    package, and its benchmark code is covered by \NumBenchTests{} automated pytest tests for the reported pipeline.
+  \item \textbf{A leakage-free benchmark.} A one-step-ahead evaluation protocol on 100 Anki users and on the full Duolingo traces, with
+    log loss, Brier score, AUC, expected calibration error (ECE), per-gap statistics and
+    user-clustered paired bootstrap intervals. The benchmark compares the model with FSRS-6 (default and optimised) and HLR, and on Duolingo also with a static LagLogit baseline.
+  \item \textbf{A convergence audit.} The sampler did not meet the convergence gate in any reported run, and a separate sampler study on synthetic and real cohorts found no full-model fit that
+    passes the gate. The reported scores are therefore provisional.
+  \item \textbf{An extended comparison.} Experiment 4 adds two MAP variants of the hierarchical model and a gradient-boosted tree model, with a disclosed selection process and a same-session leak that was found and fixed. Among the models compared, the GBDT has the lowest log loss on both datasets, which is a finding about the problem and not about the Bayesian model.
+  \item \textbf{Reference points and external checks.} Experiment 5 adds three constant floors, three Anki samples of 100 users and a comparison under the srs-benchmark protocol on 1,000 of its users. On Duolingo a per-user constant smoothed toward the population rate beats FSRS-6 (optimised). The tree model's advantage holds on each Anki sample. Under the srs-benchmark protocol the tree model is level with RWKV-Curve on the size-weighted measure and behind RWKV-Instant, and its figure is a lower bound.
+\end{enumerate}
+
+The main benchmark result is as follows. The model has a log loss of 0.422, an AUC of 0.692 and an
+ECE of 0.025 on the 95,400 scored events. HLR has a log loss of 0.680, an AUC of 0.555 and an ECE of
+0.146 on the same events. The model is clearly better than HLR on these metrics, with paired
+bootstrap intervals that exclude zero. On the Anki benchmark it is worse than the optimised FSRS-6 model, whose log loss
+is 0.379 and whose AUC is 0.777. On Anki the model also has a higher log loss than the default FSRS-6 model,
+whose log loss is 0.396. On Anki, the log-loss ordering is FSRS-6 optimised, then FSRS-6 default, then the model, then HLR, and this
+ordering is the same in every gap bin.
+
+The work does not claim that the model outperforms FSRS-6 in general. In Experiment 2 on Anki it does not. In Experiment 3 on Duolingo the model has the lowest log loss of the five models of that experiment, at 0.268 against 0.300 for FSRS-6 (optimised). That result rests on FSRS-6 falling back to default weights for nearly all users, on binary outcomes for both models and on unconverged chains (Section~\ref{sec:results-exp3}). It also
+does not claim that the model's inference is exact in the sense of guaranteed convergence, because the
+convergence gate was not met. The contributions are the model, the sampler, the benchmark and the
+diagnostic evidence about where the sampler fails.
+
+Experiment 4 was run after the first three experiments. On both datasets the GBDT, a tree model with no memory equation, has the best value of every metric among the models of this report: its log loss is 0.358 on Anki and 0.259 on Duolingo, against 0.379 and 0.300 for FSRS-6 (optimised). The MAP variants v2 and v3 are level with FSRS-6 (optimised) on Anki and better than it on Duolingo. The title of this report and its main model stay the Bayesian model, which remains the interpretable one, and the conclusion of this work is that, in these experiments, a non-Bayesian predictor is the most accurate. The disclosures of Experiment 4 (a test set looked at twice, many variants tried, one leak found and fixed) are in Section~\ref{sec:results-exp4-disclosures}.
+
+The preliminary Experiment 1 compared the model with a static lagged-logistic baseline, LagLogit+$\Delta t$.
+At gaps of 14 to 60 days the model had a lower log loss (0.273 against 0.346) and a smaller mean bias
+($-0.051$ against $-0.155$). Its AUC was lower than the baseline's in four of the five gap bins, and
+equal in the fifth. HLR had the lowest log loss in the 14--60 day bin (0.266). An ablation with no
+memory state ($\lambda = 5$) matched the learned-rate model overall. These results are discussed in
+Chapter~\ref{ch:results}.
+
+\section{Organisation of the Report}
+\label{sec:intro-organisation}
+
+Figures and tables are numbered by chapter, so Figure~1.1 opens this chapter. Equations
+are numbered in the same way within each chapter. Symbols are listed at the front of the report. Each result file is named after the run that produced it.
+
+The remainder of this report is organised as follows. Chapter~\ref{ch:literature} (Literature Survey) surveys classical schedulers, trainable models, continuous-time memory models and Bayesian methods. Chapter~\ref{ch:dataset} (Details of the Datasets) describes the datasets, the event rules and the leakage-free split. Chapter~\ref{ch:design} (Proposed System) presents the requirements, architecture, data-flow and UML models. Chapter~\ref{ch:methodology} (Algorithms and Mathematics) develops the mathematical model and the inference scheme. Chapter~\ref{ch:results} (Metrics and Comparison) defines the metrics and reports the experiments, the convergence diagnostics and the cost. Chapter~\ref{ch:implementation} (Entire Architecture of Axiom) describes the whole Axiom application, namely its trend engine, content agents, cognitive-load scheduler and research workspace, and then the implementation of the research pipeline. Chapter~\ref{ch:conclusion} (Conclusion) discusses the results, limitations and future work. The bibliography follows, and the appendices give the reproduction commands, the full metric tables, the hyper-parameter defaults and a glossary.

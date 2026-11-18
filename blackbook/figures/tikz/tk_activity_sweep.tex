@@ -1,0 +1,40 @@
+% tk_activity_sweep: one Gibbs sweep, in the order of FACTS.md section 1 (DIAGRAMS.md item 7)
+\begin{tikzpicture}[font=\footnotesize]
+  \tikzset{actstep/.style={box, text width=5.6cm, minimum height=0.7cm, font=\footnotesize}}
+  \node[circle, fill=black, inner sep=0pt, minimum size=3.5mm] (start) at (0,0) {};
+  \node[actstep] (a1) at (0,-1.2) {Compute $\phi$, $q$ (\texttt{\_dyn})};
+  \node[actstep] (a2) at (0,-2.3) {Draw $\omega \sim \mathrm{PG}(1,\psi)$};
+  \node[actstep] (a3) at (0,-3.4) {FFBS: draw $\psi \mid \omega, \theta$};
+  \node[actstep] (a4) at (0,-4.5) {Gaussian draws: $b_0, \alpha, \beta, \gamma, g_0$};
+  \node[actstep] (a5) at (0,-5.6) {Inverse-Gamma draws: $\tau^2_\alpha, \tau^2_\beta, \tau^2_\gamma$};
+  \node[actstep] (a6) at (0,-6.7) {Metropolis--Hastings on $\log\lambda$ (5 proposals)};
+  \node[decision, minimum width=2.8cm, minimum height=0.9cm] (d1) at (0,-7.9) {use $\kappa$?};
+  \node[actstep, text width=3.2cm] (a7) at (5.2,-7.9) {MH on $\kappa$ (5 proposals)};
+  \node[actstep, text width=5.6cm] (a8) at (0,-9.2) {Inverse-Gamma draw $\sigma^2$};
+  \node[decision, minimum width=6.4cm, minimum height=1.2cm] (d2) at (0,-10.7) {it $\ge$ burn-in and\\on thin step?};
+  \node[actstep, text width=3.2cm] (a9) at (6.4,-10.7) {Store draw};
+  \node[decision, minimum width=4.2cm, minimum height=0.9cm] (d3) at (0,-12.7) {more iterations?};
+  \node[circle, draw=black, line width=0.6pt, minimum size=4mm, inner sep=0pt] (end) at (0,-14.2) {};
+  \node[circle, fill=black, minimum size=2mm, inner sep=0pt] at (0,-14.2) {};
+
+  % main flow
+  \draw[arrow] (start) -- (a1);
+  \draw[arrow] (a1) -- (a2);
+  \draw[arrow] (a2) -- (a3);
+  \draw[arrow] (a3) -- (a4);
+  \draw[arrow] (a4) -- (a5);
+  \draw[arrow] (a5) -- (a6);
+  \draw[arrow] (a6) -- (d1);
+  % use kappa? yes -> MH on kappa -> merge into sigma^2 step; no -> straight down
+  \draw[arrow] (d1.east) -- (a7.west) node[above, midway, font=\footnotesize] {yes};
+  \draw[arrow] (a7.south) |- (a8.east);
+  \draw[arrow] (d1.south) -- node[right, font=\footnotesize, xshift=2pt] {no} (a8.north);
+  \draw[arrow] (a8) -- (d2);
+  % burn-in and thin: yes -> store draw; both paths reach "more iterations?"
+  \draw[arrow] (d2.east) -- (a9.west) node[above, midway, font=\footnotesize] {yes};
+  \draw[arrow] (a9.south) |- (d3.east);
+  \draw[arrow] (d2.south) -- node[right, font=\footnotesize, xshift=2pt] {no} (d3.north);
+  % more iterations? yes -> back to the top of the sweep; no -> end
+  \draw[arrow] (d3.south) -- node[right, font=\footnotesize, xshift=2pt] {no} (end);
+  \draw[arrow] (d3.west) -- ++(-2.0,0) node[above, midway, font=\footnotesize] {yes} |- (a1.west);
+\end{tikzpicture}

@@ -1,0 +1,20 @@
+% tk_ffbs: forward filter and backward sampling over psi (DIAGRAMS.md item 27)
+\begin{tikzpicture}[font=\footnotesize]
+  \foreach \i/\x in {1/1.2,2/3.9,3/6.6,4/9.3,5/12.0} {
+    \node[latent] (s\i) at (\x,0) {$\psi_{\i}$};
+    \node[datasq, align=center, minimum width=1.4cm, minimum height=0.9cm, font=\footnotesize] (z\i) at (\x,-3.4) {$z_\i$\\{\footnotesize var $1/\omega_\i$}};
+    \draw[black!60, dotted] (s\i) -- (z\i);
+  }
+  % forward pass (Kalman filter), above the states
+  \foreach \i in {1,2,3,4} {
+    \pgfmathtruncatemacro{\u}{\i+1}
+    \draw[darkblue, -{Stealth[length=2.4mm]}, thick] (s\i.north) to[bend left=40] (s\u.north);
+  }
+  \node[darkblue, font=\footnotesize, align=center] at (6.6,2.1) {forward: Kalman filter\\$a_t,\ R_t,\ m_t,\ P_t$};
+  % backward pass (sampling), below the states
+  \foreach \i in {4,3,2,1} {
+    \pgfmathtruncatemacro{\u}{\i+1}
+    \draw[green!50!black, -{Stealth[length=2.4mm]}, thick] (s\u.south) to[bend left=40] (s\i.south);
+  }
+  \node[green!50!black, font=\footnotesize, align=center, fill=white, inner sep=1pt] at (6.6,-1.45) {backward: sample $\psi_T \sim N(m_T, P_T)$,\\then $\psi_t \mid \psi_{t+1}$};
+\end{tikzpicture}

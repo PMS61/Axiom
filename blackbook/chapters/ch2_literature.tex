@@ -1,0 +1,475 @@
+\chapter{Literature Survey}
+\label{ch:literature}
+
+\section{Introduction}
+\label{sec:lit-introduction}
+
+This chapter reviews the work that the proposed model builds on and compares with. It covers, in
+order, the classical schedulers, the trainable models, the continuous-time memory models, the
+Bayesian inference tools used in this work, and the cognitive-science studies that motivate some
+modelling choices. The chapter ends with a comparison of the methods and a statement of the gap
+that this work addresses.
+
+Figure~\ref{fig:tk_lit_timeline} places the main sources on a single time line, from Ebbinghaus's
+work in 1885 to the benchmark data used in this report. The figure is a chronology only. It does not
+rank the methods.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_lit_timeline}
+  \caption{Milestones in the literature on memory and spaced-repetition models, from 1885 to 2026.
+    The figure orders the sources in time. It does not rank them.}
+  \label{fig:tk_lit_timeline}
+\end{figure}
+
+The review is organised by the role each family plays in this work. The classical schedulers are the
+historical baseline. The trainable models are the baselines that the proposed model is compared with
+directly. The continuous-time models are the closest in structure to the proposed model. The Bayesian
+inference tools are the means by which the proposed model is fitted. The cognitive-science studies are the
+evidence that motivates some of the modelling choices. Each section ends with the consequence for this work.
+
+Two points of terminology are used throughout. A \emph{scheduler} is the rule that decides when an
+item is shown again. A \emph{recall model} is a model that predicts the probability that a learner
+recalls an item at a given time. The schedulers reviewed in Section~\ref{sec:lit-classical} are
+rules. The models in Sections~\ref{sec:lit-trainable} to \ref{sec:lit-bayesian} are fitted to review
+logs and produce recall probabilities.
+
+\section{Classical Schedulers}
+\label{sec:lit-classical}
+
+The earliest spaced-repetition schedulers were fixed rules, designed by hand and applied to every
+learner in the same way. The benefit of spacing was known well before these rules were written.
+Ebbinghaus \cite{ebbinghaus1885memory} showed that retention of newly learned material falls with
+time, and that repetition slows the fall. The schedulers below turn this observation into a rule for
+when to review.
+
+Pimsleur \cite{pimsleur1967} proposed a memory schedule in which the intervals between recalls of an
+item grow in graded steps. The schedule is simple to follow, but it is one fixed sequence for all
+items and learners.
+
+Leitner \cite{leitner1972lernen} introduced a box system for flashcards (Figure~\ref{fig:tk_leitner}).
+Cards are kept in numbered boxes. A correct answer moves the card to the next box, and a wrong answer
+returns it to the first box. Each box is reviewed less often than the one before it, so well-known
+cards are seen less frequently. The system needs no computer and is easy to explain, but it has no
+parameters that depend on the learner, and it gives no probability that an answer is correct.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_leitner}
+  \caption{The Leitner box system. A correct answer moves a card to the next box, and a wrong answer
+    returns it to Box 1 from any box. Boxes with higher numbers are reviewed less often. The intervals of
+    1, 2, 4, 8 and 16 days are an illustrative doubling schedule, not a schedule taken from the source.}
+  \label{fig:tk_leitner}
+\end{figure}
+
+Wozniak \cite{wozniak1990sm2} described the SM-2 algorithm in a master's thesis. SM-2 keeps a
+per-item interval and an ease factor. After each review, the learner's grade changes both quantities
+through fixed update rules. SM-2 is widely used as a reference point in the spaced-repetition
+literature. It adapts to each item, but its update rules are fixed in advance rather than fitted to
+data, and it does not model uncertainty about the learner's state.
+
+The classical schedulers persist for practical reasons. Their rules are short enough to state in a few
+lines, they can be checked by hand, and they require no training data. A rule that is transparent to the
+learner has value of its own, because the learner can see why an item is due. These are the strengths that a
+data-driven model must match before it can replace a rule.
+
+Taken together, the classical schedulers share three limits. Their rules do not estimate parameters
+for a particular learner. They do not produce calibrated probabilities of recall. They do not
+represent the state of memory explicitly, so they cannot say how the state changes between reviews.
+
+\section{Trainable Models}
+\label{sec:lit-trainable}
+
+\paragraph{Half-life regression.}
+Settles and Meeder \cite{settles2016trainable} introduced half-life regression (HLR). The model
+assumes that recall probability decays exponentially with elapsed time $\Delta t$, with a half-life
+$h$ that depends on the learner's history through a weighted sum of features:
+\begin{equation}
+  p = 2^{-\Delta t/h}, \qquad h = 2^{\theta^\top x},
+  \label{eq:hlr}
+\end{equation}
+where $\theta$ is a weight vector and $x$ contains features of the review history. The features are
+transformed counts of correct and incorrect responses. Settles and Meeder minimise a squared loss on the predicted recall
+probability, plus a weighted squared loss on the half-life, with L2 regularisation. They optimise it with
+AdaGrad, a stochastic gradient method. The model was developed for review data from the Duolingo
+language-learning platform.
+Settles and Meeder report an AUC of 0.538 for HLR on that data. The HLR used in this work is a port of
+the official code. It uses the count features and a bias term, and it has no lexeme features.
+
+The main difference between HLR and the later models lies in how the time gap enters. In HLR, elapsed time
+appears only in the exponent of Equation~\eqref{eq:hlr}, so the half-life sets the whole shape of the decay.
+The learner's history affects the half-life through the count features, but it does not change the shape of
+the curve. FSRS uses elapsed time together with a stability value that changes at each review. The present
+model goes further, because its state moves between reviews and its mean depends on the previous outcome.
+
+The HLR AUC reported by Settles and Meeder is not directly comparable with the AUC obtained in this work.
+The two evaluations use different data, different splits and different event rules. On the benchmark used
+here, the HLR port has an AUC of 0.555 (Chapter~\ref{ch:results}), which is a separate result on a separate
+dataset.
+
+HLR is a useful baseline because it is simple and trainable. Its decay curve is fixed for a given
+history, so a learner's state cannot change in a way that the curve does not already describe. It gives
+point predictions without uncertainty. In the benchmark reported in Chapter~\ref{ch:results}, its
+mean bias changes sign between short and long gaps, which is the pattern that motivated this work
+(Section~\ref{sec:intro-motivation}).
+
+\paragraph{Predictive performance equation.}
+Walsh et al.\ \cite{walsh2018ppe} evaluate computational models of the spacing effect. Their
+evaluation includes the predictive performance equation (PPE), a model of learning and forgetting
+over repeated practice. The paper assesses both the theoretical adequacy of such models and their
+applied potential. It is a review of the modelling approach and does not supply data for the present
+work. The PPE is reviewed for context only. It is not compared with the proposed model.
+
+\paragraph{FSRS.}
+Ye, Su and Cao \cite{ye2022stochastic} formulate spaced-repetition scheduling as a stochastic
+shortest-path problem and propose the Free Spaced Repetition Scheduler (FSRS). FSRS couples a memory
+model with a scheduling rule. Its memory model keeps two latent quantities for each card, a
+stability and a difficulty, and predicts recall from the elapsed time and the stability. The parameters
+of the model can be set to defaults or fitted to a learner's own review history. The fitting uses the
+optimiser of the py-fsrs library on the training reviews. A learner with too few informative training
+reviews falls back to the default parameters. The open-source
+implementation \cite{pyfsrs} and the public benchmark dataset \cite{ankirevlogs10k} make FSRS
+reproducible. The current version, FSRS-6, has 21 parameters. In this work, FSRS-6 is run in two
+forms: with the default parameters, and with parameters fitted per user on the training split.
+
+FSRS is the strongest of the established spaced-repetition models in this comparison (the later Experiment 4 adds a stronger tree model), and it is the reference against which the present
+model is judged. Its memory state is updated deterministically once the parameters are fixed. It gives
+point predictions rather than a posterior distribution.
+
+\paragraph{Outcome coding.}
+The trainable models differ in what they take as the outcome. FSRS uses a graded response with four levels,
+which carries more information than a yes-or-no answer. HLR uses counts of correct and incorrect responses.
+The proposed model uses a binary outcome: a review counts as recalled when its rating is greater than one. This
+choice is a limitation. It discards the distinction between the grades above the threshold, and it is the
+reason the proposed model cannot be compared with FSRS-6 on its graded predictions. The binary coding is kept
+because the logistic observation model and the P\'olya--Gamma augmentation are defined for binary outcomes, and
+because it allows a direct comparison of the recall probability with the observed recall indicator.
+
+\paragraph{Static logistic baseline.}
+Experiment 1 uses a static logistic model, LagLogit+$\Delta t$, as a second baseline. Its inputs are
+the outcome of the previous review of the same card and the elapsed time. It has no latent state. It is
+the simplest model in the comparison that uses the same information as the proposed model, and so it
+isolates the effect of the latent state.
+
+\paragraph{Feature-based and tree models.}
+A different line of work does not model the memory state and predicts recall from features of the practice history.
+DASH \cite{lindsey2014improving} and DAS3H \cite{choffin2019das3h} are logistic models of past practice across items and time windows.
+In the Second Language Acquisition Modeling task on Duolingo data \cite{settles2018slam}, the winning entry was an ensemble
+of LightGBM \cite{ke2017lightgbm} and a recurrent network \cite{osika2018slam}, and KARL \cite{shu2024karl} predicts recall with
+knowledge-aware retrieval and learned representations. The open \texttt{srs-benchmark} \cite{srsbenchmark} compares spaced-repetition
+models on about ten thousand Anki users. To our knowledge from that repository, its published models include no tree model, and its best published model, RWKV-Instant, uses
+history across cards \cite{srsbenchmark}. A signal of the learner's overall ability across cards is therefore not new. Experiment 4 uses a gradient-boosted tree model \cite{friedman2001greedy} of this kind as
+a strong, non-Bayesian reference, and Experiment 5 runs it pooled under the benchmark's protocol on 1,000 of its users (Section~\ref{sec:results-exp5-srsb}).
+
+\section{Continuous-Time Memory Models}
+\label{sec:lit-continuous}
+
+Discrete-time models treat each review as a step in a sequence. Continuous-time models treat memory as a
+process that evolves between reviews. The mathematical framework for such models is the linear
+stochastic differential equation (SDE). S\"arkk\"a and Solin \cite{sarkka2019applied} give a
+comprehensive treatment of SDEs and their use in state estimation. The Ornstein--Uhlenbeck (OU) process
+in Equation~\eqref{eq:ou} of Chapter~\ref{ch:introduction} is a linear SDE with mean reversion. For a
+scalar state its transition over a gap of length $\Delta t$ has a closed form, so the process can be
+evaluated exactly between reviews. For a state of dimension greater than one, the transition is
+computed with the matrix exponential, a method described by Van Loan \cite{vanloan1978computing}. The
+proposed model has a scalar state, so the closed form is sufficient and the matrix exponential is not
+needed.
+
+For the OU process the transition over a gap is an autoregression of order one,
+\begin{align}
+  \psi_t &= \phi_t\,\psi_{t-1} + (1-\phi_t)\,\mu_t + w_t, \qquad w_t \sim \mathcal{N}(0, q_t),
+  \label{eq:ar1}\\
+  \phi_t &= e^{-\lambda \Delta t_t}, \qquad
+  q_t = \frac{\sigma^2\bigl(1 - e^{-2\lambda \Delta t_t}\bigr)}{2\lambda}.
+\end{align}
+where $\mu_t$ is the equilibrium mean at review $t$. The coefficient and the noise variance both depend on
+the gap, so a model with irregular gaps must recompute them for each review. A discrete-time model with a
+fixed step uses one coefficient for every gap, which cannot represent the difference between a gap of a
+few hours and a gap of several months. Chapter~\ref{ch:methodology} derives Equation~\eqref{eq:ar1} in full.
+
+Zhou, Tejero-Cantero and Wu \cite{zhou2023houm} proposed a hierarchical Ornstein--Uhlenbeck model (HOUM)
+of learning and memory. The paper was presented at CCN in 2023. This report cites it from its title and venue only. The inference method used in HOUM is not
+described here. The proposed model is related in its use of an OU latent state. Its observation model,
+its lagged-outcome term and its inference scheme are specified in Chapter~\ref{ch:methodology}, and no
+further comparison with HOUM is made.
+
+The rate of mean reversion $\lambda$ has a direct interpretation. When $\lambda$ is close to zero, the state
+hardly reverts to its mean over a typical gap, and the process behaves like a random walk. When $\lambda$ is
+large, the state returns quickly to its equilibrium, so that a previous review has little effect on the next
+one. The equilibrium mean sets the level to which the state returns. In the proposed model it depends on a
+global intercept, a learner effect, a card effect and the outcome of the previous review. The rate itself may
+depend on the number of earlier successful recalls through a term $\kappa$. These choices are specified in
+Chapter~\ref{ch:methodology}. Their interaction contributes to the identifiability problems discussed in
+Chapter~\ref{ch:results}.
+
+Continuous-time models answer a question that the trainable models leave open. They make the state
+change explicit between reviews, so that the effect of a long gap is a property of the dynamics rather
+than of a fitted curve. The price is that the state must be inferred from data, and the inference is the
+main difficulty addressed in the next section.
+
+\section{Bayesian State-Space Inference}
+\label{sec:lit-bayesian}
+
+A state-space model consists of a state equation that describes how a latent state evolves and an
+observation equation that links the state to the data. West and Harrison \cite{west1997bayesian} present
+the dynamic linear model (DLM) as a framework for Bayesian forecasting with such models. For linear
+Gaussian models, the Kalman filter gives the posterior distribution of the state exactly, given the
+parameters. The observation model in this work is not linear Gaussian, because the outcome is binary.
+Several tools are therefore combined.
+
+\paragraph{P\'olya--Gamma augmentation.}
+Polson, Scott and Windle \cite{polson2013pg} show that the logistic likelihood can be written as a
+Gaussian likelihood conditional on latent P\'olya--Gamma variables. For an outcome $y \in \{0,1\}$ and
+a logit $\psi$,
+\begin{equation}
+  \frac{e^{y\psi}}{1 + e^{\psi}}
+  = 2^{-1} e^{(y - \tfrac{1}{2})\psi}
+    \int_0^\infty e^{-\omega\psi^2/2}\, p(\omega \mid 1, 0)\,\mathrm{d}\omega,
+  \qquad \omega \sim \mathrm{PG}(1, 0),
+  \label{eq:pg}
+\end{equation}
+where $\mathrm{PG}(1, 0)$ denotes the P\'olya--Gamma distribution. Conditional on the auxiliary variable
+$\omega$, the outcome acts like a Gaussian observation of the logit with pseudo-response
+$z = (y - \tfrac{1}{2})/\omega$ and variance $1/\omega$. This makes the conditional updates of the state
+and the regression coefficients conjugate. Polson et al.\ give an exact sampler for the augmenting
+variables. The present work uses a truncated series instead, as Chapter~\ref{ch:methodology} explains.
+
+\paragraph{Kalman recursions for a scalar state.}
+For a scalar state with a Gaussian transition and a Gaussian observation, the Kalman filter has two steps at
+each review. The prediction step propagates the current mean and variance through the transition. The update
+step combines the prediction with the new observation, weighted by their variances. The pseudo-observation from
+the P\'olya--Gamma representation fits into the update step, because it is Gaussian conditional on the augmenting
+variable. The filter therefore needs no matrix inversion when the state is scalar, which is one reason the
+scalar case is convenient.
+
+\paragraph{Forward filtering, backward sampling.}
+When the observation model is conditionally Gaussian, the state trajectory can be sampled jointly from
+its posterior. Carter and Kohn \cite{carter1994gibbs} and Fr\"uhwirth-Schnatter \cite{fruhwirth1994data}
+proposed forward-filtering backward-sampling (FFBS) for this purpose. A forward Kalman filter computes the
+filtered distributions, and a backward pass draws the trajectory from them. For a scalar state the
+recursions are short, and their cost grows linearly with the number of reviews. The Gibbs sampler then
+alternates between the state trajectory and the other parameters.
+
+\paragraph{Compilation and sampling.}
+The FFBS recursions are sequential and contain many small operations, so the implementation runs them in
+a compiled kernel. Lam, Pitrou and Seibert \cite{lam2015numba} describe Numba, a just-in-time compiler
+for Python based on LLVM. Some parameters, notably the rate of mean reversion, do not have conjugate
+conditional distributions. For these, a random-walk Metropolis--Hastings step is used inside the Gibbs
+sweep. The combined procedure is Metropolis-within-Gibbs and is not an exact Gibbs sampler.
+
+\paragraph{Convergence diagnostics.}
+A sampler must be checked before its output is used. Gelman and Rubin \cite{gelman1992inference} introduced
+the potential scale reduction factor, $\hat{R}$, which compares the variance within chains with the
+variance between chains. Vehtari et al.\ \cite{vehtari2021rank} improve it with rank normalisation and
+folding, and they recommend a threshold of 1.01 together with an effective sample size (ESS) that is large
+enough for the quantities of interest. This work uses the same two checks, with an ESS of at least 400. A
+sampler that fails them does not provide reliable posterior summaries, and the scores based on it are
+treated as provisional.
+
+\paragraph{Hierarchical priors.}
+A hierarchical model shares information across groups through a common prior. Each learner's effect is drawn
+from a distribution whose spread is itself estimated from the data. When the data for a learner are sparse, the
+estimate is pulled toward the population mean, and when the data are plentiful, it follows the learner. This
+partial pooling is the reason hierarchical models suit learners with different amounts of history. In the
+proposed model the spreads of the learner and card effects receive inverse-gamma priors, which are conjugate
+to the normal distribution of the effects. For a scalar model this is the natural choice, and it avoids the
+matrix-valued priors that a multi-dimensional state would require.
+
+\paragraph{Identifiability.}
+Some parameters enter a model only through a sum. In a model with an intercept and additive learner and card
+effects, a constant can be moved between the intercept and the effects without changing any likelihood value.
+Such a model is not identified, and a sampler will move along the flat direction without converging. Remedies
+include a sum-to-zero constraint, a reparameterisation that removes the redundant direction, and informative
+priors. Each remedy changes what the parameters mean, so the choice should be stated. A related problem occurs
+when a parameter is informed only through a combination of two others. This report returns to both problems in
+Chapter~\ref{ch:results}, where the sampler diagnostics are examined.
+
+\paragraph{Alternatives to sampling.}
+Variational methods and other deterministic approximations to the posterior are faster than sampling, and they
+are attractive for large datasets. Their approximation error is difficult to measure without a reference
+posterior, and a sampler with convergence checks gives a way to see when the approximation is poor. For this
+reason the present work uses a sampler, and it accepts the higher cost. Chapter~\ref{ch:methodology} discusses
+the trade-off in more detail.
+
+\paragraph{Interweaving.}
+Yu and Meng \cite{yu2011interweaving} propose ancillarity--sufficiency interweaving (ASIS), which
+alternates between two parameterisations of a model to improve mixing. An interweaving kernel for this
+model was designed and implemented as a pilot. No results from it are available, and it is listed as
+future work in Chapter~\ref{ch:conclusion}.
+
+\section{Cognitive-Science Evidence}
+\label{sec:lit-cognitive}
+
+The studies in this section are cited to motivate modelling choices. They do not test the proposed model, and
+none of them is used to fix a parameter or to validate a result. Each study is described from its title and
+abstract.
+
+\paragraph{Individual differences in retrieval practice.}
+Fordyce et al.\ \cite{fordyce2025individual} study whether working-memory capacity changes the benefit of
+retrieval practice. Across all three experiments, retrieval outperformed restudying, and the benefit held
+regardless of individual differences in working-memory ability. The authors varied the learning procedure and
+the scoring of working memory to test whether either would produce a moderation effect, and neither did.
+De Lima and Buratto \cite{delima2024retrieval} review the same question. They find no consistent relationship
+between individual-difference variables and the retrieval practice effect, and they attribute the difficulty of
+interpreting the literature to methodological heterogeneity across studies.
+
+Neither source establishes that learners differ in how much they benefit from retrieval practice. Fordyce et al.\
+do not support such variation, and the review finds none that is consistent. The per-user effects $\alpha_u$ and
+$\gamma_u$ in the proposed model are therefore a modelling choice. They are justified by the general heterogeneity
+of learners' data, not by evidence of differential benefit. The proposed model estimates them from the data and
+adds no individual-difference covariates.
+
+\paragraph{Mental effort and load.}
+Evans et al.\ \cite{evans2024cognitive} examine the relation between instructional strategies, cognitive
+load and motivation in a survey of secondary-school students in Australia. Their outcomes are
+load, motivation, engagement and achievement, not memory retention. Endres et al.\ \cite{endres2025developing}
+develop a translingual scale that separates mental effort, which is invested deliberately, from mental load,
+which is perceived passively. Neither study measures recall probability, and neither bears directly on the
+model. They are relevant to a future version of the model that could use effort ratings, since the benchmark
+data contain only recall outcomes and grades. Until such ratings are collected, the scales offer a
+vocabulary for the design of that future study rather than an input to the proposed model.
+
+\paragraph{Retrieval practice in applied settings.}
+Serra et al.\ \cite{serra2025retrieval} review retrieval practice in the health professions, where it is used
+for course and licensing examinations. The review supports the choice of recall as the outcome of interest in
+applied learning. It does not provide a model or parameters.
+
+\paragraph{Spacing in non-neural cells.}
+Kukushkin et al.\ \cite{kukushkin2024massed} show a massed-spaced effect in immortalised, non-neural human cell
+lines. Spaced pulses of stimulation produce a stronger and more sustained response than a single massed pulse,
+and the effect depends on the ERK and CREB signalling pathways. The authors suggest that canonical memory features can be embedded in signalling dynamics without neural
+circuits. The study concerns cell lines, not learners, and it does not transfer any parameter to human
+recall. It is cited only to note that spacing effects have been reported outside neural circuits. It is at
+most a loose analogy for describing spacing through the time between events, as the proposed model does, and
+it does not support any feature of the proposed model.
+
+\paragraph{Consolidation across sleep.}
+Guttesen et al.\ \cite{guttesen2026memory} review the resource reallocation hypothesis, which proposes that
+sleep consolidation frees hippocampal capacity for next-day learning. They conclude that the evidence for this
+hypothesis is not clear. A night between two reviews is therefore a mixture of sleep-related consolidation and
+forgetting. The proposed model treats all gaps in the same way, which is a limitation discussed in
+Chapter~\ref{ch:conclusion}.
+
+\paragraph{Reinforcement learning and memory.}
+Lee and Jung \cite{lee2025memory} present a theoretical perspective in which the hippocampal CA3 region generates
+activity patterns and the CA1 region evaluates and reinforces them, a scheme that parallels the Dyna
+reinforcement-learning algorithm. The perspective contains no data and provides no parameters for the present
+model. It is cited only as an example of a theory that separates generating and evaluating components of memory.
+It does not support any particular feature of the proposed model.
+
+\paragraph{Further sources.}
+Three further sources are cited from their titles and venues only, and no details of their methods or results are
+used. They are Zou et al.\ \cite{zou2025cell}, \emph{Cell Reports}; Yang et al.\ \cite{yang2025commbio},
+\emph{Communications Biology}; and Guttesen et al.\ \cite{guttesen2025cognition}, \emph{Cognition}.
+
+Taken together, these studies are consistent with three design choices: a per-learner component, a recall
+outcome as the target, and a time-dependent state. None of them establishes that any of these choices is correct. Their
+value lies in showing that the choices are reasonable given what is known about learners, and in identifying
+the data that a future study would need to collect, such as effort ratings.
+
+\section{Comparative Summary}
+\label{sec:lit-summary}
+
+Accuracy measures differ across the studies reviewed in this chapter, and a direct comparison of their
+published numbers is therefore difficult. The benchmark in this report therefore uses several measures on the
+same events: log loss, Brier score, AUC, expected calibration error, and the mean bias within each gap bin.
+Chapter~\ref{ch:results} defines them.
+
+Table~\ref{tab:lit_summary} summarises the methods in the trainable and continuous-time families. Figure~\ref{fig:tk_taxonomy}
+places them in a taxonomy. The table records each method's strength and limitation as they bear on the present
+problem. The entry for HOUM is limited to what its title and venue support.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize\setlength{\tabcolsep}{4pt}
+  \caption{Summary of the main methods, their data, their strengths and limitations, and their relation to this work.}
+  \label{tab:lit_summary}
+  \footnotesize
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{3.0cm}@{}}
+    \toprule
+    Source & Approach and data & Strength and limitation & Relation to this work \\
+    \midrule
+    Pimsleur (1967) & Graded interval rule; no data fitted & Simple; one fixed schedule for all learners & Background only \\
+    Leitner (1972) & Box rule for flashcards; no data fitted & Simple and transparent; no learner parameters or probabilities & Background; Figure~\ref{fig:tk_leitner} \\
+    SM-2, Wozniak (1990) & Per-item interval rule with ease factor & Adapts to each item; update rules are fixed, not fitted; no uncertainty & Reference scheduler \\
+    HLR, Settles \& Meeder (2016) & Exponential decay with count-based half-life; learner review data from Duolingo & Trainable and simple; fixed curve, point estimates, AUC 0.538 on its own data & Baseline; ported and evaluated here \\
+    PPE, Walsh et al.\ (2018) & Review of spacing models, including the PPE & Evaluates theoretical and applied value; no new data & Context \\
+    FSRS, Ye et al.\ (2022) & Stochastic shortest-path scheduling with a stability and difficulty memory model; learner review logs & Strongest established model here (Exp.\ 2); point estimates, deterministic state & Baseline in two forms (default, optimised) \\
+    HOUM, Zhou et al.\ (2023) & Hierarchical OU model of learning and memory & Continuous-time latent state; inference method and results not verified & Related; not compared in detail \\
+    FFBS, Carter \& Kohn (1994); Fr\"uhwirth-Schnatter (1994) & Forward filtering and backward sampling for state-space models & Exact for conditionally Gaussian models; needs conjugate structure & Used for the latent state \\
+    P\'olya--Gamma, Polson et al.\ (2013) & Auxiliary-variable representation of the logistic likelihood & Makes conditional updates conjugate; approximation needed in practice & Used; truncated approximation \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_taxonomy}
+  \caption{Families of memory and recall models discussed in this chapter. The shaded box marks the present
+    model. Neural sequence models are mentioned for completeness and are not reviewed.}
+  \label{fig:tk_taxonomy}
+\end{figure}
+
+In short, the table shows three options. Interpretable rules are transparent but cannot be fitted to a
+learner. Fitted point models, such as HLR and FSRS, predict well in practice, and FSRS is the stronger of the two
+on the benchmark used here. A latent-state model gives a principled account of the state and its uncertainty,
+but its inference is costly and must pass convergence checks before its predictions can be trusted. The present
+work takes the third option and tests whether its extra structure pays off.
+
+Table~\ref{tab:feature_comparison} compares the models on the features that matter most for this problem. The
+entries follow the descriptions in the preceding sections. The table is qualitative and does not rank the
+models. It does not include the Experiment~4 models (v2, v3 and the gradient-boosted tree model, Section~\ref{sec:results-exp4}). A model that scores well on every feature need not predict best, and the benchmark results in
+Chapter~\ref{ch:results} are the test of prediction. The table shows which design choices each model makes.
+Two rows deserve comment. The FSRS-6 row marks per-user parameters as present only when they are optimised,
+because the default parameters are shared. The proposed model's row marks the uncertainty as present but
+unverified in convergence, because a posterior that has not converged cannot be relied on for its spread. A cell marked as not verified is one whose
+details were not checked against the source.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize\setlength{\tabcolsep}{4pt}
+  \caption{Feature comparison of SM-2, HLR, FSRS-6, HOUM and the proposed model.}
+  \label{tab:feature_comparison}
+  \footnotesize
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{2.15cm}>{\raggedright\arraybackslash}p{2.15cm}>{\raggedright\arraybackslash}p{2.15cm}>{\raggedright\arraybackslash}p{2.15cm}>{\raggedright\arraybackslash}p{2.15cm}@{}}
+    \toprule
+    Model & Latent state & Continuous time & Uncertainty & Per-user & Graded ratings \\
+    \midrule
+    SM-2 & No (per-item interval) & No (day intervals) & No & No & Yes \\
+    HLR & No & Yes (exponential in $\Delta t$) & No & No (global weights) & No (correct and wrong counts) \\
+    FSRS-6 & Yes (stability, difficulty) & Yes & No (point estimates) & Yes, when optimised & Yes (four grades) \\
+    HOUM & Yes (OU state) & Yes (OU) & Not verified & Not verified & Not verified \\
+    Present model & Yes (scalar $\psi$) & Yes (OU) & Yes (posterior; sampler not converged) & Yes for $\alpha_u$, $\gamma_u$; $\lambda$ and $\kappa$ pooled & No (binary outcome) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Research Gap}
+\label{sec:lit-gap}
+
+The sources reviewed in this chapter suggest three gaps.
+
+\begin{enumerate}
+  \item \textbf{Point estimates.} The classical and trainable models give point predictions and do not
+    represent the state of memory explicitly. A learner's state is either absent or fixed between reviews.
+  \item \textbf{Untested continuous-time models.} The continuous-time memory models reviewed here are not
+    tested on a public, leakage-free benchmark against the strongest established trainable model, to the knowledge of the
+    sources examined in this chapter.
+  \item \textbf{Uncertainty for the strongest established model.} FSRS-6 is fitted per user as a point estimate, and no
+    posterior uncertainty is reported for it. The effect of this on the reliability of its predictions is not
+    established by the sources reviewed.
+\end{enumerate}
+
+Evidence that would close these gaps is specific. For the first, a model must show that an explicit state
+improves prediction, not only that it fits. For the second, the model must be scored on a public benchmark
+with a leakage-free split and compared with the strongest existing model. For the third, the uncertainty of
+the strongest model must be reported and checked against outcomes. A result on one of these points does not
+settle the others.
+
+This work addresses these gaps in part. It builds a continuous-time model with a scalar latent state and a
+Bayesian inference scheme for binary outcomes. It evaluates the model on a public benchmark against FSRS-6 and
+HLR, under the leakage-free protocol described in Chapter~\ref{ch:dataset}. In Experiment 2 on Anki the model is worse than
+FSRS-6 in every gap bin; in Experiment 3 on Duolingo it has the lowest log loss of the five models of that experiment, with the caveats in Section~\ref{sec:results-exp3}. The model is clearly better than HLR on Anki.
+The sampler did not converge, so the scores are provisional. A fourth question arose from these results: how much of the
+error is due to the memory model at all. Experiment 4 therefore adds two MAP variants of the hierarchy and a gradient-boosted tree
+model, and finds that the tree model, which has no memory equation, is the best predictor of the models compared on both datasets (Section~\ref{sec:results-exp4}). Chapter~\ref{ch:dataset} defines the comparison.

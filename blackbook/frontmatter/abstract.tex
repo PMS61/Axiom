@@ -1,0 +1,23 @@
+% Abstract (unnumbered chapter)
+\chapter*{ABSTRACT}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Spaced repetition schedulers need the probability that a learner recalls an item at a given time. This
+report proposes a continuous-time hierarchical Bayesian state-space model for that probability. A scalar
+latent state follows an Ornstein--Uhlenbeck process between reviews, which gives an exact closed-form
+transition over any gap. Recall is a logistic function of the state. Its equilibrium mean combines global, per-user and per-item effects and a lagged outcome, and the decay rate may depend on practice. Posterior inference uses a Metropolis-within-Gibbs sampler with P\'olya--Gamma augmentation, forward filtering and backward
+sampling of the latent states, conjugate updates and random-walk Metropolis steps. One-step-ahead predictions are scored with log loss, the Brier score, the area under the ROC curve,
+expected calibration error and per-gap statistics, with user-clustered paired bootstrap intervals.
+
+The model is compared with FSRS-6, with default and per-user optimised weights, with HLR, and with a static
+lagged-logistic baseline. Five experiments are reported. A preliminary run on an unauthenticated Anki extract is provisional. In Experiment 2, on 100 Anki users with 95,400 scored reviews, optimised FSRS-6
+has the best log loss of the five models, 0.379, against 0.422 for the proposed model and 0.680 for HLR. In Experiment 3, on full Duolingo
+with 1,189,355 scored reviews, the proposed model has the lowest log loss of the five models, 0.268, against 0.300 for optimised
+FSRS-6 and 0.291 for the static baseline. That result rests on FSRS-6 falling back to default weights for nearly all users, on binary outcomes, and on chains that did not
+converge. The convergence gate was not met in any run, so those scores are provisional. Experiment 4 adds two MAP variants and a gradient-boosted tree model with no memory equation. The tree model has the best value of every metric among those compared on both datasets, with log loss 0.358 on Anki and 0.259 on Duolingo, mostly from running
+statistics of the learner's own performance. The Bayesian models remain the interpretable ones. Experiment 5 adds constant floors and checks. On Duolingo a smoothed per-user constant (0.2723) beats FSRS-6 (0.3003). The tree model's advantage holds on three Anki samples, and on the srs-benchmark it beats FSRS-6 and the GRU, ties RWKV-Curve (interval includes zero) and trails RWKV-Instant; its figure is a lower bound.
+Disclosed limits: the test set was looked at twice, many variants were tried, and a leak was fixed. It does not show that the model outperforms FSRS-6 in general.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} spaced repetition; Bayesian state-space model; Ornstein--Uhlenbeck process; P\'olya-Gamma augmentation; Gibbs sampling;
+forward filtering backward sampling; calibration; memory retention.

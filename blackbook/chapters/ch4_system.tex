@@ -1,0 +1,213 @@
+\chapter{Proposed System}
+\label{ch:design}
+
+\section{Requirements}
+\label{sec:design-requirements}
+
+The system has two purposes. The first is to turn a public log of spaced-repetition reviews into a
+leakage-free event table, on which several recall models can be fitted and scored in the same way. The second
+is to run the proposed model's sampler reliably enough that its results can be checked. The requirements below
+follow from these purposes. Each requirement is stated as something the system does, and each one is traceable
+to a function or test in the code base.
+
+Table~\ref{tab:functional} lists the functional requirements. They cover the pipeline from data download to the
+report, and the checks that protect the evaluation from leakage.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{Functional requirements (FR).}
+  \label{tab:functional}
+  \footnotesize
+  \begin{tabular}{@{}p{1.2cm}p{5.3cm}p{7.0cm}@{}}
+    \toprule
+    ID & Requirement & Realised by \\
+    \midrule
+    FR1 & Download the public review logs for a seeded sample of users & \texttt{download\_users(n\_users, seed, out\_dir)} \\
+    FR2 & Load one user's log and apply the event rules & \texttt{load\_user(path)}: drop rating 0; keep state 4; drop cards whose first kept review is not new \\
+    FR3 & Label each review with $y = 1[\text{rating} > 1]$ and recompute gaps from kept rows & \texttt{load\_user(path)}; \texttt{elapsed\_days}, \texttt{dt\_days} \\
+    FR4 & Cap the number of cards per user with a seeded sample & \texttt{make\_split(df, max\_cards, seed)}; the reported run used \texttt{-{}-max\_cards 1000} (CLI default 300) \\
+    FR5 & Split each user's reviews at a per-user time cutoff, and mark train and test events & \texttt{make\_split}: 80th percentile of \texttt{day\_offset} \\
+    FR6 & Mark scored events, and keep same-day and first reviews as history only & \texttt{make\_split}: \texttt{scored} flag \\
+    FR7 & Fit each model on training events only & \texttt{fit(events)} for FSRSModel, HLRModel, OursModel, LagLogitModel and, in Experiment~4, the v2, v3 and GBDT models \\
+    FR8 & Predict one-step-ahead recall probabilities for scored events, with parameters frozen & \texttt{predict(events)} \\
+    FR9 & Compute log loss, Brier score, AUC, ECE, RMSE over bins, mean bias and reliability data & \texttt{metrics.py} \\
+    FR10 & Estimate user-clustered paired bootstrap intervals for metric differences & \texttt{paired\_bootstrap}: 1000 resamples, seed 0 \\
+    FR11 & Save each model's predictions and a record of the run & \texttt{pred\_*.parquet}; \texttt{run\_\allowbreak info.json} \\
+    FR12 & Resume an interrupted run without recomputing finished models & \texttt{-{}-resume}; saved predictions are reused only if their configuration matches \\
+    FR13 & Write the report: metric tables, paired differences, user wins, plots & \texttt{report.py}: \texttt{metrics.csv}, \texttt{paired.csv}, \texttt{user\_wins.csv}, \texttt{report.md} \\
+    FR14 & Report MCMC diagnostics for the sampler & Split $\hat{R}$, effective sample size, acceptance rates in \texttt{diagnostics\_*.json} \\
+    FR15 & Show that flipping test labels does not change predictions & Leakage test in the test suite \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The functional requirements fall into three stages. FR1 to FR5 build the event table from the raw logs. FR6 to FR12
+fit each model on the training events, predict the scored events and save the results. FR13 to FR15 produce the
+report and check the two properties that the evaluation depends on, namely the sampler's diagnostics and the absence
+of leakage.
+
+Table~\ref{tab:nonfunctional} lists the non-functional requirements. Several of them are constraints that the
+system does not fully meet. These are stated as they are, with the measured values. The sampler, in particular,
+is slow and did not converge in the benchmark run.
+
+\begin{table}[!htbp]
+  \centering
+  \footnotesize\setlength{\tabcolsep}{4pt}
+  \caption{Non-functional requirements (NFR). Measured values are from the reported benchmark run.}
+  \label{tab:nonfunctional}
+  \footnotesize
+  \begin{tabular}{@{}p{1.2cm}p{4.1cm}p{8.9cm}@{}}
+    \toprule
+    ID & Requirement & Status and evidence \\
+    \midrule
+    NFR1 & Reproducibility & Met for the given configuration. Card sampling, user sampling, the bootstrap and the sampler are all seeded (seed 0 in the reported run). The run configuration is recorded in \texttt{run\_\allowbreak info.json}. \\
+    NFR2 & Correctness & Checked by \NumBenchTests{} automated pytest tests for the reported pipeline in \texttt{fsrs\_benchmark/\allowbreak tests}. The tests cover the split, the metrics against known values, the leakage check and the report. The \texttt{model\_diagnostics} package has 32 test functions. Four of its files need the optional packages arviz and polyagamma, which are not installed in the main environment, so those tests are not run by default. \\
+    NFR3 & Evaluation cost & Met for the baselines, not for the proposed model. Fit times on the reported run: HLR 45 s, FSRS-6 optimised 653 s, proposed model 27,530 s (about 7.6 h on one core). Prediction for the proposed model takes 1,266 s. \\
+    NFR4 & Memory and time per sampler sweep & Linear in the number of events: $O(N_{\text{events}})$ time and memory for $d = 1$. \\
+    NFR5 & Hardware & A laptop with 8 cores and 19 GB RAM. CPU turbo was disabled for the long runs. \\
+    NFR6 & Recoverability & Partly met. A finished model's predictions are kept, so an interrupted run resumes at the model level. The 8000-iteration sampler run was lost at sweep 1400 when the machine shut down, and it has no result. \\
+    NFR7 & Convergence of the proposed model's sampler & Not met. The gate was a split $\hat{R}$ below 1.01 and an effective sample size (ESS) of at least 400. In the learned-rate run, seven scalars fail the gate: $\lambda$ ($\hat{R}$ 2.44, ESS 3.0), $\sigma^2$ ($\hat{R}$ 2.07, ESS 3.3), $b_0$ ($\hat{R}$ 1.85, ESS 3.9), $\tau^2_\beta$ ($\hat{R}$ 1.88, ESS 4.8), $g_0$ (ESS 80.6), $\tau^2_\alpha$ (ESS 250) and $\tau^2_\gamma$ ($\hat{R}$ 1.06, ESS 143). The $+\kappa$ run also fails, including $\kappa$ ($\hat{R}$ 1.94, ESS 3.5). The scores are therefore provisional. \\
+    NFR8 & Transparency & Met. Every metric is written from scratch and tested against known values. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{System Architecture}
+\label{sec:design-architecture}
+
+The system is organised in four layers, as shown in Figure~\ref{fig:tk_architecture}. Each layer reads
+the output of the layer before it and writes to a store on disk, so that a later layer can be rerun without
+repeating the earlier ones.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_architecture}
+  \caption{Four layers of the benchmark system, with the stores they read and write. Layer 1 downloads and
+    filters the review logs. Layer 2 builds the leakage-free split. Layer 3 fits and predicts with the models of Experiments 2 and 3 (LagLogit is used on Duolingo only), shown in their plot colours; the Experiment 4 models are added to this layer in Chapter~\ref{ch:results}. Layer 4 computes the metrics and the report.}
+  \label{fig:tk_architecture}
+\end{figure}
+
+Layer 1 is the data ingestion layer. It downloads the anki-revlogs-10k dataset from Hugging Face for the Anki benchmark, and it reads the public Duolingo trace file for Experiment~3. It loads each
+user's review file, and applies the event rules. Its output is one table of kept reviews per user. Layer 2
+applies the card cap, computes each user's cutoff, and writes the event table to \texttt{events.parquet}.
+Layer 3 holds the five models of Experiments 2 and 3: FSRS-6 with default parameters, FSRS-6 with optimised parameters, HLR, the
+proposed model with a learned rate, and the proposed model with the practice term $\kappa$ (Duolingo adds a lag-logistic baseline). Each model is fitted
+on the training events and writes its one-step-ahead predictions to a \texttt{pred\_*.parquet} file. Layer 4
+reads the predictions together with the event table, computes the metrics, and produces the paired bootstrap
+intervals and the report. Layer 3 is extended in Experiment~4 by three further models, \texttt{ours\_v2}, \texttt{ours\_v3} and \texttt{gbdt}, which use the same \texttt{fit} and \texttt{predict} interface and write the same prediction files.
+
+The architecture keeps the models separate from the evaluation. A model is any object with the same two
+methods, \texttt{fit} and \texttt{predict}. The evaluation layer never inspects a model's internals, so a new
+model can be added by writing one class and one key.
+
+\section{Data-Flow Diagrams}
+\label{sec:design-dfd}
+
+Figure~\ref{fig:tk_dfd0} is the context diagram. It shows the benchmark system as a single process, with the
+researcher on the left, the Hugging Face dataset above, and a future spaced-repetition application on the right.
+The researcher supplies the configuration as command-line arguments and receives the predictions and report. The
+dataset supplies the review logs. The application is dashed because it is future work, and the recall
+probabilities flowing to it are not implemented.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_dfd0}
+  \caption{Context diagram (level 0). The benchmark system exchanges the configuration, the review logs, the
+    predictions and the report with its environment. The dashed application is future work.}
+  \label{fig:tk_dfd0}
+\end{figure}
+
+Figure~\ref{fig:tk_dfd1} decomposes the system into five processes and four data stores, in the
+Yourdon--DeMarco notation. Processes are circles, data stores are open-ended rectangles, and external entities are
+rectangles. Process 1.0 downloads and cleans the raw revlogs into store D1. Process 2.0 builds the split, and
+writes the event table to store D2. Process 3.0 fits the models on the training events and writes their fitted
+parameters or posterior draws to store D3. Process 4.0 predicts the scored events, using the event table and the
+fitted parameters, and writes the predictions to store D4. Process 5.0 evaluates the predictions against the labels and user identifiers from D2, and writes the report for the researcher.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_dfd1}
+  \caption{Level-1 data-flow diagram. Processes 1.0 to 5.0 correspond to the four layers of
+    Figure~\ref{fig:tk_architecture}. Data stores D1 to D4 hold the raw logs, the event table, the fitted
+    parameters and the predictions.}
+  \label{fig:tk_dfd1}
+\end{figure}
+
+Reading the diagram from the top left, the flow is a pipeline with one branch from process 3.0. The fitted parameters
+from process 3.0 are needed in process 4.0, which is why store D3 feeds back into the prediction step. The
+process 5.0 reads the predictions in D4 and the labels and user identifiers from D2. The evaluation therefore depends on the event table and the predictions, and not on the models themselves. This is the property that keeps the metrics comparable.
+
+\section{Unified Modelling Language Models}
+\label{sec:design-uml}
+
+\subsection{Use cases}
+
+Figure~\ref{fig:tk_usecase} shows the use cases. The system boundary contains eight use cases, from downloading
+the data to generating the report. The researcher is the primary actor and is associated with every use case.
+The dataset provider is associated with the download use case. A learner application is shown dashed, because it
+would consume the predicted recall probabilities in a future version. The use case \emph{Resume interrupted run}
+extends \emph{Fit model}, because it is an optional path that skips a model whose predictions already exist.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_usecase}
+  \caption{Use-case diagram. The researcher uses all eight use cases. The dataset provider supplies the review logs.
+    The learner application is future work. \emph{Resume interrupted run} extends \emph{Fit model}.}
+  \label{fig:tk_usecase}
+\end{figure}
+
+\subsection{Classes}
+
+Figure~\ref{fig:tk_class} shows the main classes. The interface \emph{Model} declares the two methods, \texttt{fit}
+and \texttt{predict}. Four classes realise it: \texttt{FSRSModel}, which has the options \texttt{optimize} and
+\texttt{n\_workers}; \texttt{HLRModel}, with the learning rate and the L2 weight; \texttt{OursModel}, with the
+options that control the sampler, namely the switch \texttt{use\_kappa} for the $+\kappa$ variant, the number of iterations, the burn-in, the thinning, the seed and the number of posterior draws used for prediction; and \texttt{LagLogitModel}, which has one option that selects the
+time term. The realisation arrows are dashed, as UML requires.
+
+\texttt{OursModel} is a composition of \texttt{DynamicRetention\allowbreak{}ModelDT}, which holds the latent state, the
+parameters and the sampler steps. The composition is drawn with a filled diamond. The diagram shows five of the class's methods: \texttt{run}, \texttt{\_ffbs}, \texttt{\_update\_effects}, \texttt{\_update\_lam\allowbreak\_sigma2} and \texttt{predict}. This class uses the P\'olya--Gamma sampler \texttt{sample\allowbreak\_pg1}
+and the Numba kernel \texttt{\allowbreak\_ffbs\allowbreak\_step\allowbreak\_numba}. These dependencies are drawn as dashed arrows, because they are
+calls rather than owned parts.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_class}
+  \caption[Class diagram of the model classes]{Class diagram of the models of Experiments 2 and 3 (the Experiment~4 models share the same interface and are not drawn). Four model classes realise the \emph{Model} interface. \texttt{OursModel} is a composition
+    of \texttt{DynamicRetention\allowbreak ModelDT}, which uses the P\'olya--Gamma sampler and FFBS.}
+  \label{fig:tk_class}
+\end{figure}
+
+\subsection{Run-time sequence}
+
+Figure~\ref{fig:tk_sequence} shows the run-time sequence of \texttt{run.py}. The researcher calls \texttt{run} with the
+arguments. The run loads the event source and builds the event table through the split module. It then loops over the
+model keys. For each key it creates the model, fits it on the training events, predicts the scored events, and saves
+the predictions. The loop is skipped for a key whose file already exists when \texttt{-{}-resume} is given. Finally the
+run builds the report, which writes \texttt{metrics.csv}, \texttt{paired.csv} and \texttt{report.md}.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_sequence}
+  \caption{Sequence diagram of \texttt{run.py}. The loop over models is the only repeated part. The optional
+    \emph{skip if -{}-resume} guard avoids refitting a model whose predictions exist.}
+  \label{fig:tk_sequence}
+\end{figure}
+
+\subsection{Gibbs sweep}
+
+Figure~\ref{fig:tk_activity_sweep} is the activity diagram of one sweep of the sampler. The order of the steps is the
+order in which \texttt{run()} executes them. The sweep first computes the transition coefficients $\phi$ and $q$ for
+each gap. It then draws the P\'olya--Gamma variables, the latent state by FFBS, the Gaussian effects, the learner and
+card variances, and the rate $\lambda$ by a Metropolis--Hastings step on $\log\lambda$. If the practice term is
+used, a Metropolis--Hastings step on $\kappa$ follows. The sweep ends with the draw of $\sigma^2$. A draw is stored
+only after burn-in and only on a thinning step. The loop continues until the requested number of iterations is
+reached.
+
+\begin{figure}[htbp]
+  \centering
+  \input{figures/tikz/tk_activity_sweep}
+  \caption{Activity diagram of one Gibbs sweep of the proposed model. The order matches the implementation. The
+    $\kappa$ step is taken only in the variant with the practice term. Draws are stored after burn-in on thinning
+    steps.}
+  \label{fig:tk_activity_sweep}
+\end{figure}

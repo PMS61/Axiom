@@ -1,0 +1,329 @@
+% Appendices (main.tex calls \appendix before this file)
+
+\chapter{Reproduction Commands and Environment}
+\label{app:reproduction}
+
+This appendix lists the commands that produced the results and the environment they ran in. All commands are
+run from the repository root, \texttt{/home/amal/fyp/\allowbreak Axiom}, with the project virtual environment at \texttt{.venv}.
+The Python version was 3.12.13. The packages recorded in the run information of the Duolingo run were
+py-fsrs 6.3.2, NumPy 2.5.4, pandas 3.0.6, PyTorch 2.14.1 (CPU build), and Numba 0.68.0. The Anki benchmark
+needs access to the gated Hugging Face dataset \texttt{open-spaced-repetition/\allowbreak anki-revlogs-10k}. The Duolingo run needs the
+public trace file \texttt{settles.acl16.\allowbreak learning\_traces.13m.csv.gz}, which is not included in the repository.
+
+\section{Hardware}
+
+The Anki benchmark ran on a laptop with 8 cores and 19 GB of RAM, with turbo disabled for the long runs. The Duolingo run
+was executed in a separate session on Kaggle, with a T4 GPU for the proposed model.
+
+\section{Anki benchmark (Experiment 2)}
+
+\begingroup\footnotesize\begin{verbatim}
+.venv/bin/python -m fsrs_benchmark.run --n_users 100 --max_cards 1000 \
+    --seed 0 --iters 2000 --burn 1000 --workers 8 \
+    --run_name full_u100_c1000
+.venv/bin/python -m fsrs_benchmark.report --run_dir results/full_u100_c1000
+.venv/bin/python -m pytest fsrs_benchmark/tests -q
+\end{verbatim}
+\endgroup
+
+The run writes the predictions, the metrics, the paired bootstrap results and the diagnostics into
+\texttt{results/full\_u100\_c1000}. The report step writes \texttt{metrics.csv}, \texttt{paired.csv} and
+\texttt{user\_wins.csv} there. The reported pipeline has \NumBenchTests{} automated tests.
+
+\section{Duolingo benchmark (Experiment 3)}
+
+The arguments of the Duolingo run are recorded in \texttt{results/duolingo\_full/\allowbreak run\_info.json}. The command below
+reproduces them. The proposed model was run on the GPU through the \texttt{-{}-device auto} option.
+
+\begingroup\footnotesize\begin{verbatim}
+.venv/bin/python -m fsrs_benchmark.run --dataset duolingo \
+    --duolingo_path data/duolingo/settles.acl16.learning_traces.13m.csv.gz \
+    --n_users 0 --max_cards 1000000000 --min_user_rows 1 \
+    --models ours_gpu,hlr,laglogit,fsrs_default,fsrs_opt \
+    --iters 2000 --burn 1000 --thin 10 --device auto --seed 0 --workers 1 \
+    --resume --run_name duolingo_full
+.venv/bin/python -m fsrs_benchmark.report --run_dir results/duolingo_full
+\end{verbatim}
+\endgroup
+
+Setting \texttt{-{}-n\_users 0} uses all 115,222 users. The run directory contains \texttt{run\_info.json}, which records
+the counts, the arguments and the package versions. The run was resumable, and \texttt{-{}-resume} reuses finished predictions.
+
+\section{Final runs with the improved models (Experiment 4)}
+
+Experiment~4 used one final run per dataset. Each run fits the earlier models again together with v2, v3 and the GBDT, and its
+arguments are recorded in \texttt{run\_info.json} of the run directory. The packages needed beyond those above include
+LightGBM 4.6.0. The commands are those of the project's final report.
+
+\begingroup\footnotesize\begin{verbatim}
+uv pip install --python .venv/bin/python numpy pandas pyarrow numba scipy \
+    matplotlib pytest huggingface_hub "fsrs[optimizer]" torch lightgbm==4.6.0
+.venv/bin/python -m fsrs_benchmark.run --n_users 100 --max_cards 1000 \
+    --seed 0 --iters 2000 --burn 1000 --resume \
+    --run_name full_u100_c1000_final \
+    --models fsrs_default,fsrs_opt,hlr,ours,ours_kappa,ours_v2,ours_v3,gbdt
+.venv/bin/python -m fsrs_benchmark.run --dataset duolingo --n_users 0 \
+    --min_user_rows 1 --max_cards 1000000000 --seed 0 --iters 2000 \
+    --burn 1000 --thin 10 --run_name duolingo_final \
+    --models ours_gpu,hlr,laglogit,fsrs_default,fsrs_opt,ours_v2,ours_v3,gbdt \
+    --device auto --resume
+.venv/bin/python -m fsrs_benchmark.report \
+    --run_dir results/full_u100_c1000_final
+.venv/bin/python -m fsrs_benchmark.report \
+    --run_dir results/duolingo_final
+\end{verbatim}
+\endgroup
+
+The proposed model on Anki takes about 7.6 hours on one CPU core (27,530 seconds), and on full Duolingo it needs a GPU (about 40 minutes on a Kaggle T4). On full
+Duolingo the FSRS prediction takes about 40 minutes per variant on four CPUs, v3 fits in about 13 minutes and the GBDT in about 5 minutes. Full Duolingo needs about 6--9 GB of RAM, so only one heavy
+job should run at a time on a laptop. The recorded runs used \texttt{-{}-resume}, which reuses finished models, and the device setting \texttt{auto}, which uses the GPU when one is present; the project's final report writes \texttt{-{}-device cuda}. The validation experiments that chose the configurations are in
+\texttt{fsrs\_benchmark/experiments}. The tests of the benchmark package should be run one file at a time, because PyTorch and Numba together in one pytest process can hang.
+
+\section{Constant floors, Anki seeds and srs-benchmark (Experiment 5)}
+
+The constant floors are computed by the report step from the predictions of the final runs, and they are the rows \texttt{const\_global}, \texttt{const\_user} and \texttt{const\_user\_smooth} of \texttt{metrics.csv}. The paper export writes the tables and the FACTS values from the same directories.
+
+\begingroup\footnotesize\begin{verbatim}
+.venv/bin/python -m fsrs_benchmark.report --run_dir results/paper_anki
+.venv/bin/python -m fsrs_benchmark.report --run_dir results/paper_duolingo
+.venv/bin/python -m fsrs_benchmark.paper_export \
+    --run_dir results/paper_anki --name anki --out paper/data
+.venv/bin/python -m fsrs_benchmark.paper_export \
+    --run_dir results/paper_duolingo --name duolingo --out paper/data
+\end{verbatim}
+\endgroup
+
+The Anki robustness samples use the same settings as the main Anki run, with seeds 1 and 2 and the models listed in their \texttt{run\_info.json}. The proposed model (v1) was not re-run on them.
+
+\begingroup\footnotesize\begin{verbatim}
+.venv/bin/python -m fsrs_benchmark.run --n_users 100 --max_cards 1000 \
+    --seed 1 --iters 2000 --burn 1000 --workers 4 --resume \
+    --run_name anki_u100_c1000_seed1 \
+    --models fsrs_default,fsrs_opt,hlr,ours_v3,gbdt
+.venv/bin/python -m fsrs_benchmark.run --n_users 100 --max_cards 1000 \
+    --seed 2 --iters 2000 --burn 1000 --workers 4 --resume \
+    --run_name anki_u100_c1000_seed2 \
+    --models fsrs_default,fsrs_opt,hlr,ours_v3,gbdt
+.venv/bin/python -m fsrs_benchmark.report \
+    --run_dir results/anki_u100_c1000_seed1
+.venv/bin/python -m fsrs_benchmark.report \
+    --run_dir results/anki_u100_c1000_seed2
+\end{verbatim}
+\endgroup
+
+The srs-benchmark comparison is a pooled GBDT trained on users 9001 to 9500 and evaluated on users 1 to 1000 with the benchmark's own test folds. The driver's usage line is given first, then the comparison. The training ids are in \texttt{results/srsb\_1000/train\_users\_requested.txt} and the evaluation ids in \texttt{results/srsb\_1000/eval\_users.txt}. The run used the srs-benchmark data directory from the Kaggle dataset recorded in \texttt{results/srsb\_1000/run\_info.json}, so the data path below must point to a local copy of \texttt{anki-revlogs-10k}.
+
+\begingroup\footnotesize\begin{verbatim}
+.venv/bin/python -m fsrs_benchmark.srsb.run_gbdt --data data/anki10k \
+    --train_users results/srsb_1000/train_users_requested.txt \
+    --eval_users results/srsb_1000/eval_users.txt \
+    --out results/srsb_1000/GBDT-short.jsonl \
+    --max_train_rows 20000000
+.venv/bin/python -m fsrs_benchmark.srsb.compare \
+    --ours results/srsb_1000/GBDT-short.jsonl \
+    --users results/srsb_1000/eval_users.txt --ci 0.99
+\end{verbatim}
+\endgroup
+
+The published srs-benchmark results for the other models are read by \texttt{compare} from the benchmark's result directory, which is its default. The pooled model's boosting cap of 2000 rounds is the frozen setting, and the run's \texttt{run\_info.json} records it as reached.
+
+\section{Figures and tables}
+
+Every data figure is generated from the result files by one script:
+
+\begingroup\footnotesize\begin{verbatim}
+.venv/bin/python blackbook/scripts/make_figures.py
+\end{verbatim}
+\endgroup
+
+The script writes the PDFs and \texttt{figures/data/SOURCES.md}, and it checks the key values against the FACTS
+document. The book is built with \texttt{blackbook/build.sh}, which runs \texttt{latexmk}, and the test suite of the
+book is run with \texttt{cd blackbook \&\& ../.venv/bin/python -m pytest tests -q}.
+
+\chapter{Full Metric Table per Gap}
+\label{app:metrics}
+
+The tables below give every metric in \texttt{metrics.csv} for both benchmarks. Each row is one model in one gap bin, or the
+overall row. Log loss, Brier score, ECE and RMSE over bins are lower-is-better, AUC is higher-is-better, and the mean bias
+is the predicted recall minus the observed recall. The Duolingo benchmark has no scored reviews at 15 days or
+longer, so those rows are empty.
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize\setlength{\tabcolsep}{3pt}
+  \caption[Experiment 2: per-gap metrics]{Experiment 2 (Anki): overall and per-gap metrics, from \texttt{metrics.csv}.}
+  \label{tab:appB-anki}
+  \begin{tabular}{@{}llrccccccc@{}}
+    \toprule
+    Model & Gap & $n$ & Log loss & Brier & AUC & ECE & RMSE$_{\mathrm{bins}}$ & Mean bias \\
+    \midrule
+    FSRS-6 (default) & overall & 95,400 & 0.396 & 0.121 & 0.745 & 0.012 & 0.017 & +0.011 \\
+    FSRS-6 (default) & 1 d & 16,983 & 0.409 & 0.126 & 0.748 & 0.020 & 0.026 & +0.017 \\
+    FSRS-6 (default) & 2--3 d & 16,080 & 0.402 & 0.124 & 0.730 & 0.021 & 0.027 & +0.016 \\
+    FSRS-6 (default) & 4--14 d & 29,204 & 0.369 & 0.110 & 0.737 & 0.017 & 0.029 & +0.006 \\
+    FSRS-6 (default) & 15--60 d & 15,626 & 0.401 & 0.121 & 0.725 & 0.026 & 0.040 & +0.021 \\
+    FSRS-6 (default) & 61 d+ & 17,507 & 0.418 & 0.130 & 0.771 & 0.011 & 0.029 & +0.002 \\
+    \midrule
+    FSRS-6 (optimised) & overall & 95,400 & 0.379 & 0.117 & 0.777 & 0.009 & 0.014 & $-$0.002 \\
+    FSRS-6 (optimised) & 1 d & 16,983 & 0.396 & 0.122 & 0.769 & 0.017 & 0.022 & +0.010 \\
+    FSRS-6 (optimised) & 2--3 d & 16,080 & 0.389 & 0.121 & 0.755 & 0.013 & 0.027 & $-$0.006 \\
+    FSRS-6 (optimised) & 4--14 d & 29,204 & 0.361 & 0.109 & 0.760 & 0.017 & 0.022 & $-$0.015 \\
+    FSRS-6 (optimised) & 15--60 d & 15,626 & 0.374 & 0.114 & 0.781 & 0.009 & 0.021 & +0.008 \\
+    FSRS-6 (optimised) & 61 d+ & 17,507 & 0.389 & 0.124 & 0.817 & 0.027 & 0.038 & +0.003 \\
+    \midrule
+    HLR & overall & 95,400 & 0.680 & 0.170 & 0.555 & 0.146 & 0.176 & +0.060 \\
+    HLR & 1 d & 16,983 & 0.942 & 0.172 & 0.658 & 0.170 & 0.172 & +0.170 \\
+    HLR & 2--3 d & 16,080 & 0.734 & 0.160 & 0.637 & 0.153 & 0.156 & +0.153 \\
+    HLR & 4--14 d & 29,204 & 0.555 & 0.141 & 0.616 & 0.123 & 0.132 & +0.123 \\
+    HLR & 15--60 d & 15,626 & 0.473 & 0.143 & 0.599 & 0.076 & 0.081 & +0.075 \\
+    HLR & 61 d+ & 17,507 & 0.771 & 0.248 & 0.628 & 0.249 & 0.311 & $-$0.249 \\
+    \midrule
+    Ours & overall & 95,400 & 0.422 & 0.131 & 0.692 & 0.025 & 0.032 & +0.011 \\
+    Ours & 1 d & 16,983 & 0.423 & 0.133 & 0.708 & 0.024 & 0.040 & $-$0.006 \\
+    Ours & 2--3 d & 16,080 & 0.426 & 0.134 & 0.676 & 0.033 & 0.063 & $-$0.027 \\
+    Ours & 4--14 d & 29,204 & 0.398 & 0.121 & 0.680 & 0.020 & 0.043 & $-$0.020 \\
+    Ours & 15--60 d & 15,626 & 0.419 & 0.130 & 0.703 & 0.040 & 0.051 & +0.036 \\
+    Ours & 61 d+ & 17,507 & 0.460 & 0.145 & 0.763 & 0.090 & 0.107 & +0.090 \\
+    \midrule
+    Ours (+$\kappa$) & overall & 95,400 & 0.422 & 0.131 & 0.693 & 0.026 & 0.032 & +0.011 \\
+    Ours (+$\kappa$) & 1 d & 16,983 & 0.423 & 0.133 & 0.708 & 0.025 & 0.041 & $-$0.005 \\
+    Ours (+$\kappa$) & 2--3 d & 16,080 & 0.426 & 0.134 & 0.677 & 0.035 & 0.064 & $-$0.027 \\
+    Ours (+$\kappa$) & 4--14 d & 29,204 & 0.398 & 0.121 & 0.681 & 0.020 & 0.044 & $-$0.020 \\
+    Ours (+$\kappa$) & 15--60 d & 15,626 & 0.419 & 0.130 & 0.705 & 0.040 & 0.054 & +0.036 \\
+    Ours (+$\kappa$) & 61 d+ & 17,507 & 0.460 & 0.145 & 0.764 & 0.090 & 0.108 & +0.090 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \footnotesize\setlength{\tabcolsep}{3pt}
+  \caption[Experiment 3: per-gap metrics]{Experiment 3 (Duolingo): overall and per-gap metrics, from \texttt{metrics.csv}. Gap bins without scored reviews are empty.}
+  \label{tab:appB-duo}
+  \begin{tabular}{@{}llrccccccc@{}}
+    \toprule
+    Model & Gap & $n$ & Log loss & Brier & AUC & ECE & RMSE$_{\mathrm{bins}}$ & Mean bias \\
+    \midrule
+    FSRS-6 (default) & overall & 1,189,355 & 0.302 & 0.078 & 0.566 & 0.051 & 0.070 & $-$0.025 \\
+    FSRS-6 (default) & 1 d & 444,662 & 0.290 & 0.072 & 0.580 & 0.031 & 0.039 & +0.021 \\
+    FSRS-6 (default) & 2--3 d & 376,692 & 0.293 & 0.076 & 0.564 & 0.032 & 0.054 & $-$0.018 \\
+    FSRS-6 (default) & 4--14 d & 368,001 & 0.325 & 0.087 & 0.554 & 0.095 & 0.111 & $-$0.088 \\
+    FSRS-6 (default) & 15--60 d & 0 & -- & -- & -- & -- & -- & -- \\
+    FSRS-6 (default) & 61 d+ & 0 & -- & -- & -- & -- & -- & -- \\
+    \midrule
+    FSRS-6 (optimised) & overall & 1,189,355 & 0.300 & 0.078 & 0.570 & 0.050 & 0.070 & $-$0.026 \\
+    FSRS-6 (optimised) & 1 d & 444,662 & 0.288 & 0.072 & 0.584 & 0.031 & 0.039 & +0.020 \\
+    FSRS-6 (optimised) & 2--3 d & 376,692 & 0.292 & 0.076 & 0.567 & 0.031 & 0.054 & $-$0.019 \\
+    FSRS-6 (optimised) & 4--14 d & 368,001 & 0.324 & 0.087 & 0.556 & 0.094 & 0.110 & $-$0.088 \\
+    FSRS-6 (optimised) & 15--60 d & 0 & -- & -- & -- & -- & -- & -- \\
+    FSRS-6 (optimised) & 61 d+ & 0 & -- & -- & -- & -- & -- & -- \\
+    \midrule
+    HLR & overall & 1,189,355 & 0.418 & 0.079 & 0.521 & 0.072 & 0.072 & +0.072 \\
+    HLR & 1 d & 444,662 & 0.481 & 0.077 & 0.543 & 0.075 & 0.075 & +0.075 \\
+    HLR & 2--3 d & 376,692 & 0.407 & 0.079 & 0.530 & 0.074 & 0.074 & +0.074 \\
+    HLR & 4--14 d & 368,001 & 0.353 & 0.080 & 0.522 & 0.065 & 0.065 & +0.065 \\
+    HLR & 15--60 d & 0 & -- & -- & -- & -- & -- & -- \\
+    HLR & 61 d+ & 0 & -- & -- & -- & -- & -- & -- \\
+    \midrule
+    LagLogit+$\Delta t$ & overall & 1,189,355 & 0.291 & 0.076 & 0.653 & 0.020 & 0.068 & $-$0.001 \\
+    LagLogit+$\Delta t$ & 1 d & 444,662 & 0.290 & 0.075 & 0.652 & 0.021 & 0.074 & +0.001 \\
+    LagLogit+$\Delta t$ & 2--3 d & 376,692 & 0.291 & 0.076 & 0.650 & 0.019 & 0.067 & 0.000 \\
+    LagLogit+$\Delta t$ & 4--14 d & 368,001 & 0.292 & 0.077 & 0.658 & 0.020 & 0.061 & $-$0.005 \\
+    LagLogit+$\Delta t$ & 15--60 d & 0 & -- & -- & -- & -- & -- & -- \\
+    LagLogit+$\Delta t$ & 61 d+ & 0 & -- & -- & -- & -- & -- & -- \\
+    \midrule
+    Ours (GPU) & overall & 1,189,355 & 0.268 & 0.071 & 0.656 & 0.014 & 0.017 & +0.004 \\
+    Ours (GPU) & 1 d & 444,662 & 0.261 & 0.069 & 0.660 & 0.013 & 0.016 & +0.002 \\
+    Ours (GPU) & 2--3 d & 376,692 & 0.270 & 0.072 & 0.652 & 0.014 & 0.017 & +0.004 \\
+    Ours (GPU) & 4--14 d & 368,001 & 0.275 & 0.074 & 0.655 & 0.016 & 0.019 & +0.006 \\
+    Ours (GPU) & 15--60 d & 0 & -- & -- & -- & -- & -- & -- \\
+    Ours (GPU) & 61 d+ & 0 & -- & -- & -- & -- & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\chapter{Hyper-parameter and Prior Defaults}
+\label{app:priors}
+
+Table~\ref{tab:appC-priors} gives the priors and the defaults used for every reported run. The priors are the code defaults of the
+sampler. Each model's own settings are listed in Table~\ref{tab:appC-run}.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Priors and state defaults]{Priors and state defaults of the proposed model. IG is the inverse-gamma distribution.
+    The $\kappa$ prior applies only to the $\text{Ours}+\kappa$ variant.}
+  \label{tab:appC-priors}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{5.0cm}>{\raggedright\arraybackslash}p{5.0cm}@{}}
+    \toprule
+    Parameter & Prior or default & Notes \\
+    \midrule
+    $b_0$ & $\mathcal N(0, 100)$ & Global intercept \\
+    $\alpha_u$ & $\mathcal N(0, \tau^2_\alpha)$ & User effect \\
+    $\beta_i$ & $\mathcal N(0, \tau^2_\beta)$ & Item effect \\
+    $\gamma_u$ & $\mathcal N(g_0, \tau^2_\gamma)$ & User slope on the lagged outcome \\
+    $g_0$ & $\mathcal N(0, 100)$ & Hyper-mean of $\gamma_u$ \\
+    $\tau^2_\alpha$, $\tau^2_\beta$, $\tau^2_\gamma$ & IG$(2, 1)$ each & Hierarchical variances \\
+    $\sigma^2$ & IG$(2, 0.5)$ & Diffusion variance \\
+    $\log\lambda$ & $\mathcal N(\log 0.05,\ 1.5^2)$, $\lambda \in (10^{-4}, 20)$ & Rate, random-walk MH \\
+    $\kappa$ & $\mathcal N(0, 1)$, $\lvert\kappa\rvert < 3$ & Practice coefficient, random-walk MH \\
+    First review & $\varphi = 0$, $q = 1$ & Prior $\mathcal N(\mu_{n,1}, 1)$ for the state \\
+    Time gap & clipped to $[0.01, 365]$ days & Applied before $\varphi$ and $q$ are computed \\
+    PG series & 200 terms & Truncated P\'olya--Gamma sampler \\
+    FFBS variance floor & $10^{-12}$ & Scalar Kalman filter \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption[Run settings]{Settings of the sampler, the prediction and the evaluation for each benchmark.}
+  \label{tab:appC-run}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{4.8cm}>{\raggedright\arraybackslash}p{4.8cm}@{}}
+    \toprule
+    Setting & Anki benchmark & Duolingo benchmark \\
+    \midrule
+    Sweeps; burn-in & 2000; 1000 & 2000; 1000 \\
+    Thinning; kept draws & 4; 250 & 10; 100 \\
+    Seed; chains & 0; 1 & 0; 1 \\
+    Rate proposals per sweep & 5 (step adapted toward 30\% acceptance) & 5 \\
+    Prediction draws & up to 100, evenly spaced over the kept draws & 100 \\
+    Backend & Numba CPU kernel & PyTorch GPU port \\
+    FSRS-6 (optimised) fallback & fewer than 512 informative training reviews & fewer than 512 informative training reviews \\
+    Convergence gate & split $\hat R < 1.01$, ESS $\ge 400$ & split $\hat R < 1.01$, ESS $\ge 400$ \\
+    Log loss clip & $10^{-6}$ & $10^{-6}$ \\
+    Calibration bins & 10 (ECE); 20 (RMSE) & 10 (ECE); 20 (RMSE) \\
+    Bootstrap & 1000 user resamples, seed 0 & 1000 user resamples, seed 0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\chapter{Glossary}
+\label{app:glossary}
+
+\begin{description}
+  \item[AUC] Area under the ROC curve: the probability that a recalled review gets a higher predicted recall than a forgotten one.
+  \item[Brier score] The mean squared error between predicted probability and the 0/1 outcome.
+  \item[Calibration] Agreement between predicted probabilities and observed frequencies.
+  \item[Cold card] A card with no training reviews, for which the prediction restarts the latent state (Section~\ref{sec:method-prediction}).
+  \item[ECE] Expected calibration error: the bin-size-weighted mean absolute gap between predicted and observed recall.
+  \item[ESS] Effective sample size of an MCMC chain, a measure of how many independent draws it is worth.
+  \item[FFBS] Forward filtering and backward sampling, which draws the whole latent path given the observations.
+  \item[FSRS-6] The sixth version of the Free Spaced Repetition Scheduler, a deterministic memory model with per-user parameters.
+  \item[Gibbs sampling] MCMC that updates each block of parameters in turn from its conditional distribution.
+  \item[HLR] Half-life regression, which predicts recall from a half-life that depends on review counts.
+  \item[LagLogit+$\Delta t$] A static logistic baseline with the lagged outcome and the gap as inputs.
+  \item[Lagged outcome] The recall outcome of the previous review of the same card.
+  \item[Latent state] The unobserved scalar $\psi_{n,t}$, the logit of recall, which evolves between reviews.
+  \item[Log loss] The mean negative log likelihood of the outcomes under the predicted probabilities.
+  \item[MCMC] Markov chain Monte Carlo, a method for drawing from a posterior distribution.
+  \item[Metropolis-within-Gibbs] A sampler that uses Metropolis steps for some parameters and Gibbs steps for the others.
+  \item[OU process] The Ornstein--Uhlenbeck process, a mean-reverting diffusion, here in the latent state.
+  \item[P\'olya--Gamma augmentation] A data-augmentation trick that makes the logistic likelihood conditionally Gaussian.
+  \item[Reliability diagram] A plot of observed recall rate against predicted probability, per bin.
+  \item[Split $\hat R$] The potential scale reduction factor computed on split chains, a convergence diagnostic.
+  \item[Warm card] A card with training reviews, whose prediction starts from its last training state draw.
+  \item[$\kappa$] The practice coefficient in $\lambda_{n,t} = \lambda\,e^{-\kappa C_{n,t}}$, where $C_{n,t}$ is the logarithm of one plus the number of successful recalls before review $t$.
+  \item[$\lambda$] The base rate at which the latent state is pulled back toward its equilibrium mean.
+  \item[$\sigma^2$] The diffusion variance of the latent state.
+\end{description}
