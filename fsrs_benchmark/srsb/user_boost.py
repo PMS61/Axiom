@@ -40,7 +40,8 @@ from fsrs_benchmark.srsb.features_plus import plus_features
 
 P_CLIP = 1e-6
 MIN_ROWS = 100                                  # labelled past rows before the first refit
-REFIT_ROWS = 200                                # at most one refit per this many rows
+REFIT_ROWS = 500                                # at most one refit per this many rows
+MAX_FIT_ROWS = 4000                             # each refit trains on the most recent this many labelled rows
 SUBSET = ("log_el_frac", "f_logitR", "card_n", "state", "rate_today", "ewm50", "g1", "card_rate",
           "dur_card_last_rel")                  # plus the margin m itself (appended last)
 ROUNDS_GRID = (10, 20, 40)                      # selection grid: at most 3 settings
@@ -87,7 +88,8 @@ def _fit(X, init, y, rounds, leaves):
     return lgb.train(params, ds, num_boost_round=int(rounds))
 
 
-def boost_predict(margin, sub, y, labelled, day, rounds, leaves, refit_rows=REFIT_ROWS, min_rows=MIN_ROWS):
+def boost_predict(margin, sub, y, labelled, day, rounds, leaves, refit_rows=REFIT_ROWS, min_rows=MIN_ROWS,
+                  max_fit_rows=MAX_FIT_ROWS):
     """Per-row logit delta over the whole stream (n,) and the number of refits.
     margin: global GBDT raw margin m (n,); sub: SUBSET features (n, k); y: labels (n,) (used on labelled
     rows < refit point only); labelled: bool (n,); day: day_offset (n,).
@@ -100,7 +102,9 @@ def boost_predict(margin, sub, y, labelled, day, rounds, leaves, refit_rows=REFI
     labelled = np.asarray(labelled, dtype=bool)
     bounds = pts + [n]
     for a, b in zip(pts, bounds[1:]):
-        train = np.flatnonzero(labelled[:a])
+        train = np.flatnonzero(labelled[:a])            # labelled rows < a only (leak rule)
+        if len(train) > max_fit_rows:
+            train = train[-max_fit_rows:]               # the most recent ones
         booster = _fit(X[train], margin[train], np.asarray(y, dtype=np.float64)[train], rounds, leaves)
         delta[a:b] = booster.predict(X[a:b], raw_score=True)
     return delta, len(pts)
@@ -114,12 +118,12 @@ def settings_grid(rounds_list=ROUNDS_GRID, leaves=LEAVES):
     return grid
 
 
-def predict_stream(arr, settings, refit_rows=REFIT_ROWS):
+def predict_stream(arr, settings, refit_rows=REFIT_ROWS, max_fit_rows=MAX_FIT_ROWS):
     """{name: (p over the whole stream, n_refits)} for one user's arrays (from user_arrays)."""
     out = {}
     for name, (rounds, leaves) in settings.items():
         delta, nref = boost_predict(arr["margin"], arr["sub"], arr["y"], arr["labelled"], arr["day"],
-                                    rounds, leaves, refit_rows=refit_rows)
+                                    rounds, leaves, refit_rows=refit_rows, max_fit_rows=max_fit_rows)
         out[name] = (_sigmoid(arr["margin"] + delta), nref)
     return out
 
@@ -163,7 +167,7 @@ def _auc(y, p):
     return a if np.isfinite(a) else None
 
 
-def summarise_user(arr, settings, refit_rows=REFIT_ROWS):
+def summarise_user(arr, settings, refit_rows=REFIT_ROWS, max_fit_rows=MAX_FIT_ROWS):
     """Test-row results for one user: size, labels, review_th, GBDT and each setting's probabilities."""
     t = arr["test"]
     pe = arr["pos"][t]
@@ -172,7 +176,7 @@ def summarise_user(arr, settings, refit_rows=REFIT_ROWS):
     y = arr["y_eval"][t]
     gb_ll = _ll(y, p_gb)
     preds, refits = {}, {}
-    for name, (p_full, nref) in predict_stream(arr, settings, refit_rows).items():
+    for name, (p_full, nref) in predict_stream(arr, settings, refit_rows, max_fit_rows).items():
         preds[name] = np.clip(p_full[pe], P_CLIP, 1 - P_CLIP)
         refits[name] = int(nref)
     return dict(uid=arr["uid"], size=int(t.sum()), y=y, review_th=arr["keys"][t].astype(np.int64),
@@ -182,19 +186,23 @@ def summarise_user(arr, settings, refit_rows=REFIT_ROWS):
 _BW: dict = {}
 
 
-def _init_worker(model_path, names, best_iter, data_dir, settings, refit_rows):
+def _init_worker(model_path, names, best_iter, data_dir, settings, refit_rows, max_fit_rows):
     import lightgbm as lgb
     V._init(str(data_dir), names)
     _BW.update(booster=lgb.Booster(model_file=str(model_path)), names=list(names), best_iter=int(best_iter),
-               data_dir=Path(data_dir), settings=settings, refit_rows=refit_rows)
+               data_dir=Path(data_dir), settings=settings, refit_rows=refit_rows, max_fit_rows=max_fit_rows)
 
 
 def _task(uid):
     try:
         b = _BW
+        t0 = time.time()
         arr = user_arrays(uid, b["booster"], b["names"], b["best_iter"], V._W["loader"], V._W["cfg"],
                           b["data_dir"])
-        return summarise_user(arr, b["settings"], b["refit_rows"])
+        res = summarise_user(arr, b["settings"], b["refit_rows"], b["max_fit_rows"])
+        res["stream_rows"] = int(len(arr["y"]))
+        res["seconds"] = round(time.time() - t0, 1)
+        return res
     except Exception:
         raise RuntimeError(f"user {uid} failed:\n{traceback.format_exc()}")
 
@@ -299,9 +307,17 @@ def _pub_summary(results, users, pub):
     return out
 
 
+def _progress(r, i, n, t0, big=False):
+    """One line per finished user: uid, stream rows, seconds of its work, and the running total."""
+    tag = "big " if big else ""
+    where = "" if i is None else f" ({i}/{n})"
+    print(f"{tag}user {r['uid']}{where} rows {r['stream_rows']} seconds {r['seconds']} "
+          f"total_elapsed {time.time() - t0:.0f}s", flush=True)
+
+
 def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAULT_RESULT_DIR, users=ALL_USERS,
         rounds_list=ROUNDS_GRID, leaves=LEAVES, refit_rows=REFIT_ROWS, workers=4, dump_preds=None,
-        big_rows=BIG_ROWS):
+        big_rows=BIG_ROWS, max_fit_rows=MAX_FIT_ROWS):
     data_dir = Path(data_dir)
     info = json.loads(Path(run_info_path).read_text(encoding="utf-8"))
     names, best_iter = info["features"], info["best_iter"]
@@ -310,7 +326,7 @@ def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAU
     pub = {k: C.load_rows(Path(result_dir) / f"{f}.jsonl") for k, f in V.PUBLISHED.items()}
     users = [int(u) for u in users]
     t0 = time.time()
-    args = (str(model_path), names, best_iter, str(data_dir), settings, refit_rows)
+    args = (str(model_path), names, best_iter, str(data_dir), settings, refit_rows, max_fit_rows)
     results = {}
     # Featurizing a user takes RAM in proportion to its stream length (about 10 KB per row). Big users run one
     # at a time in this process after the pool has finished; the small ones share the pool.
@@ -320,19 +336,18 @@ def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAU
         _init_worker(*args)
         for i, u in enumerate(small, 1):
             results[u] = _task(u)
-            print(f"user {u} ({i}/{len(small)}) refits {results[u]['refits']}, elapsed {time.time() - t0:.0f}s",
-                  flush=True)
+            _progress(results[u], i, len(small), t0)
     else:
         ctx = mp.get_context("fork")
         with ctx.Pool(workers, initializer=_init_worker, initargs=args) as pool:
             for i, r in enumerate(pool.imap(_task, small, chunksize=1), 1):
                 results[r["uid"]] = r
-                print(f"user {r['uid']} ({i}/{len(small)}), elapsed {time.time() - t0:.0f}s", flush=True)
+                _progress(r, i, len(small), t0)
     if big:
         _init_worker(*args)
         for u in big:
             results[u] = _task(u)
-            print(f"big user {u} (sequential), elapsed {time.time() - t0:.0f}s", flush=True)
+            _progress(results[u], None, None, t0, big=True)
     for u in users:
         _check_gbdt(dict(results[u], uid=u), gb)
     names_s = list(settings)
@@ -373,8 +388,12 @@ def main(argv=None):
     ap.add_argument("--rounds", default=",".join(str(r) for r in ROUNDS_GRID),
                     help="comma list of n_rounds to try (at most 3)")
     ap.add_argument("--leaves", type=int, default=LEAVES)
+    ap.add_argument("--max_fit_rows", type=int, default=MAX_FIT_ROWS,
+                    help="each refit trains on the most recent N labelled past rows")
     ap.add_argument("--workers", type=int, default=4, help="parallel users")
-    ap.add_argument("--users", default=None, help="ids (comma separated) or a file; default 8001-8100")
+    ap.add_argument("--users", default=None,
+                    help="ids (comma separated) or a file (one id per line or JSON list); default 8001-8100. "
+                         "Split a run by giving each part its own --users and --out")
     ap.add_argument("--result_dir", default=str(C.DEFAULT_RESULT_DIR))
     ap.add_argument("--big_rows", type=int, default=BIG_ROWS,
                     help="users with more raw revlog rows run sequentially (RAM guard)")
@@ -383,7 +402,8 @@ def main(argv=None):
     users = ALL_USERS if args.users is None else R.load_ids(args.users)
     report = run(args.model, args.run_info, args.data, args.gbdt_jsonl, args.out, result_dir=args.result_dir,
                  users=users, rounds_list=rounds, leaves=args.leaves, refit_rows=args.refit_rows,
-                 workers=args.workers, dump_preds=args.dump_preds, big_rows=args.big_rows)
+                 workers=args.workers, dump_preds=args.dump_preds, big_rows=args.big_rows,
+                 max_fit_rows=args.max_fit_rows)
     print(json.dumps(report, indent=1, default=str))
     return report
 

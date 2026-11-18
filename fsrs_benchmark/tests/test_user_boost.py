@@ -65,7 +65,10 @@ def test_labels_at_and_after_t_do_not_change_predictions_up_to_t():
         y2[k:] = 1.0 - y2[k:]                                # flip every label from row k on
         other, _ = U.boost_predict(margin, sub, y2, labelled, day, rounds=20, leaves=4)
         assert np.array_equal(base[:k], other[:k]), f"prediction before row {k} changed"
-        assert not np.array_equal(base[k:], other[k:])       # the change is visible later
+        later = [t for t in U.refit_points(day, labelled) if t >= k]
+        if later:                                            # visible from the next refit after k on
+            t = later[0]
+            assert not np.array_equal(base[t:], other[t:])
 
 
 def test_features_and_margin_of_later_rows_do_not_change_earlier_predictions():
@@ -145,3 +148,16 @@ def test_real_user_leak_rule_on_durations(real, uid):
     assert before.any() and (~before).any()
     assert np.array_equal(pa[before], pb[before])
     assert not np.array_equal(pa[~before], pb[~before])
+
+
+def test_leak_rule_holds_with_a_small_fit_cap():
+    """With max_fit_rows binding (only the most recent rows are used), labels from row k on still never
+    change the predictions before k."""
+    margin, sub, y, labelled, day = _synthetic()
+    base, nref = U.boost_predict(margin, sub, y, labelled, day, rounds=20, leaves=4, max_fit_rows=150)
+    assert nref >= 3
+    for k in (400, 900):
+        y2 = y.copy()
+        y2[k:] = 1.0 - y2[k:]
+        other, _ = U.boost_predict(margin, sub, y2, labelled, day, rounds=20, leaves=4, max_fit_rows=150)
+        assert np.array_equal(base[:k], other[:k])
