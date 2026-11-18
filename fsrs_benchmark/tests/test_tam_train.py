@@ -99,10 +99,13 @@ def test_end_to_end_cpu_writes_valid_jsonl_and_parquet_and_resumes(tmp_path):
     assert len(run_info["train"]["history"]) >= 1
     assert Path(str(out) + ".ckpt.pt").exists()
 
-    # resume 1: nothing left to score, the trained model is reloaded and nothing is rewritten
+    # resume 1: nothing left to score, the trained model is reloaded (checkpoint not rewritten)
+    ck = Path(str(out) + ".ckpt.pt")
+    mtime = ck.stat().st_mtime_ns
     before = out.read_text()
     TT.main(_args(tmp_path, train, ev, out))
     assert out.read_text() == before
+    assert ck.stat().st_mtime_ns == mtime
 
     # resume 2: drop the eval line and rerun; it is rescored from the saved checkpoint, same metrics
     out.write_text("")
@@ -110,3 +113,10 @@ def test_end_to_end_cpu_writes_valid_jsonl_and_parquet_and_resumes(tmp_path):
     again = [json.loads(x) for x in out.read_text().splitlines() if x.strip()]
     assert [x["user"] for x in again] == [ev]
     assert again[0]["metrics"]["LogLoss"] == pytest.approx(m["LogLoss"], abs=1e-6)
+
+    # eval only: no training at all, the same scores from the checkpoint
+    out.write_text("")
+    TT.main(_args(tmp_path, train, ev, out) + ["--eval_only"])
+    assert ck.stat().st_mtime_ns == mtime
+    only = [json.loads(x) for x in out.read_text().splitlines() if x.strip()]
+    assert only[0]["metrics"]["LogLoss"] == pytest.approx(m["LogLoss"], abs=1e-6)

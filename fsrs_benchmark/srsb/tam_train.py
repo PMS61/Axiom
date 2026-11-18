@@ -141,6 +141,27 @@ def _loss_on(model, tp: T.TorchPool, batch: int) -> float:
     return float(-np.mean(y * np.log(p) + (1 - y) * np.log(1 - p)))
 
 
+def save_ckpt(model, scaler: T.QueryScaler, path: Path) -> None:
+    state = {k: v.detach().cpu() for k, v in model.state_dict().items()}
+    torch.save(dict(model=state, scaler_mean=torch.from_numpy(scaler.mean),
+                    scaler_std=torch.from_numpy(scaler.std)), path)
+
+
+def load_model(path: Path, device, scaler: T.QueryScaler | None = None):
+    """Model from a checkpoint. New checkpoints carry the scaler; for a legacy bare state dict the scaler
+    argument (fit on the training users) is used."""
+    obj = torch.load(path, map_location=device)
+    if isinstance(obj, dict) and "model" in obj:
+        state = obj["model"]
+        scaler = T.QueryScaler(obj["scaler_mean"].numpy(), obj["scaler_std"].numpy())
+    else:
+        state = obj
+    model = T.TAM(2 * len(T.QUERY_COLS)).to(device)
+    model.load_state_dict(state)
+    model.eval()
+    return model, scaler
+
+
 def train_model(train_arrs: list[dict], hold_arrs: list[dict], args, device, ckpt: Path):
     """Train with AdamW + cosine; keep the best epoch by holdout log loss. Returns (model, info)."""
     scaler = T.QueryScaler.fit(train_arrs)
@@ -194,15 +215,14 @@ def train_model(train_arrs: list[dict], hold_arrs: list[dict], args, device, ckp
         score = hold_ll if hold_ll is not None else train_ll
         if score < best:
             best, best_ep, bad = score, ep, 0
-            torch.save({k: v.detach().cpu() for k, v in model.state_dict().items()}, ckpt)
+            save_ckpt(model, scaler, ckpt)
         else:
             bad += 1
             if hp is not None and bad >= args.patience:
                 break
         if hp is None:
             best_ep = ep
-    model.load_state_dict(torch.load(ckpt, map_location=device))
-    model.eval()
+    model, _ = load_model(ckpt, device, scaler)
     info = dict(params=n_params, n_train_targets=int(n), train_users=len(train_arrs),
                 holdout_users=len(hold_arrs), best_epoch=best_ep, best_score=round(best, 6),
                 history=history)
@@ -216,15 +236,18 @@ def eval_users(model, scaler, uids, data_dir: Path, cache_dir, out: Path, device
     parts = Path(str(out) + ".preds")
     parts.mkdir(parents=True, exist_ok=True)
     done = R._load_done(out)
+    todo = [u for u in sorted(uids) if u not in done]
     skipped, no_test = [], []
+    ll_sum, rows_sum = 0.0, 0
+    t_start = time.time()
     with open(out, "a", encoding="utf-8") as f:
-        for uid in sorted(uids):
-            if uid in done:
-                continue
+        for i, uid in enumerate(todo, 1):
+            t0 = time.time()
             try:
                 u = T.build_user_tensors(uid, str(data_dir), cache_dir)
             except Exception as e:
                 skipped.append((uid, f"{type(e).__name__}: {str(e)[:100]}"))
+                print(f"eval {i}/{len(todo)} user {uid}: skipped ({skipped[-1][1]})", flush=True)
                 continue
             test_pos = np.flatnonzero(u["test"])
             if len(test_pos) == 0:
@@ -234,6 +257,8 @@ def eval_users(model, scaler, uids, data_dir: Path, cache_dir, out: Path, device
             pool = T.build_pool([u], scaler, rows="test")
             p = np.clip(T.predict(model, pool, None, batch).astype(np.float64), T.P_CLIP, 1 - T.P_CLIP)
             y = u["y"][test_pos].astype(np.float64)
+            ll_sum += float(-np.sum(y * np.log(p) + (1 - y) * np.log(1 - p)))
+            rows_sum += len(y)
             meta = pd.DataFrame({"y": y, "elapsed_days": u["meta_gap"][test_pos],
                                  "i": u["meta_i"][test_pos], "rmse_bins_lapse": u["meta_rmse"][test_pos]})
             line = {"metrics": R.user_metrics(y, p, meta), "user": int(uid), "size": int(len(y))}
@@ -241,6 +266,8 @@ def eval_users(model, scaler, uids, data_dir: Path, cache_dir, out: Path, device
             f.flush()
             pd.DataFrame({"uid": np.full(len(y), uid, np.int64), "review_th": u["review_th"][test_pos],
                           "p": p}).to_parquet(parts / f"{uid}.parquet", index=False)
+            print(f"eval {i}/{len(todo)} user {uid}: {len(y)} test rows, {time.time() - t0:.1f}s, "
+                  f"running LogLoss {ll_sum / rows_sum:.5f} (elapsed {time.time() - t_start:.0f}s)", flush=True)
             del u, pool, p, y, meta
             gc.collect()
         f.flush()
@@ -269,34 +296,43 @@ def run(args) -> dict:
     device = pick_device(args.device)
     print(f"device {device}, amp {bool(args.amp and device.type == 'cuda')}", flush=True)
 
+    eval_batch = args.eval_batch or (512 if device.type == "cuda" else args.batch)
+    ckpt = Path(str(out) + ".ckpt.pt")
+    info_path = Path(str(out) + ".run_info.json")
+    resume = ckpt.exists() and info_path.exists() and "train" in json.loads(info_path.read_text(encoding="utf-8"))
+    if args.eval_only and not ckpt.exists():
+        raise SystemExit(f"--eval_only: no checkpoint at {ckpt}")
+
     hold_uids = R.holdout_users(train_uids)
     hold_set = set(hold_uids)
     fit_uids = [u for u in train_uids if u not in hold_set]
-    users, skipped = build_users(sorted(set(train_uids)), data_dir, cache, args.workers, keep=TRAIN_KEEP_ROWS)
-    report_skipped("train users", skipped)
-    fit_arrs = [users[u] for u in fit_uids if u in users]
-    hold_arrs = [users[u] for u in hold_uids if u in users]
-    if not fit_arrs:
-        raise SystemExit(f"no train users loaded ({len(skipped)} skipped); see the errors above")
-    print(f"loaded {len(fit_arrs)} train + {len(hold_arrs)} holdout users, peak RSS {peak_rss_mb()} MB",
-          flush=True)
-
-    ckpt = Path(str(out) + ".ckpt.pt")
-    info_path = Path(str(out) + ".run_info.json")
-    if ckpt.exists() and info_path.exists():
-        prev = json.loads(info_path.read_text(encoding="utf-8"))
-        scaler = T.QueryScaler.fit(fit_arrs)
-        model = T.TAM(2 * len(T.QUERY_COLS)).to(device)
-        model.load_state_dict(torch.load(ckpt, map_location=device))
-        model.eval()
-        info = prev["train"]
-        print("resumed: trained model loaded from", ckpt, flush=True)
+    skipped = []
+    if args.eval_only or resume:
+        # scaler comes from the checkpoint; train users are only needed for a legacy checkpoint
+        model, scaler = load_model(ckpt, device)
+        info = json.loads(info_path.read_text(encoding="utf-8"))["train"] if info_path.exists() else {}
+        if scaler is None:
+            users, skipped = build_users(sorted(set(train_uids)), data_dir, cache, args.workers, keep=TRAIN_KEEP_ROWS)
+            scaler = T.QueryScaler.fit([users[u] for u in fit_uids if u in users])
+            del users
+        print(f"loaded checkpoint {ckpt} (no training)", flush=True)
     else:
+        users, skipped = build_users(sorted(set(train_uids)), data_dir, cache, args.workers, keep=TRAIN_KEEP_ROWS)
+        report_skipped("train users", skipped)
+        fit_arrs = [users[u] for u in fit_uids if u in users]
+        hold_arrs = [users[u] for u in hold_uids if u in users]
+        if not fit_arrs:
+            raise SystemExit(f"no train users loaded ({len(skipped)} skipped); see the errors above")
+        print(f"loaded {len(fit_arrs)} train + {len(hold_arrs)} holdout users, peak RSS {peak_rss_mb()} MB",
+              flush=True)
         model, scaler, info = train_model(fit_arrs, hold_arrs, args, device, ckpt)
-    del users, fit_arrs, hold_arrs
-    gc.collect()
+        # write the training part now: a restart after this point reloads the checkpoint, not retrains
+        info_path.write_text(json.dumps(dict(train=info, args=vars(args)), indent=1, default=str),
+                             encoding="utf-8")
+        del users, fit_arrs, hold_arrs
+        gc.collect()
 
-    ev = eval_users(model, scaler, eval_uids, data_dir, cache, out, device, args.batch)
+    ev = eval_users(model, scaler, eval_uids, data_dir, cache, out, device, eval_batch)
     report_skipped("eval users", ev["eval_skipped"])
     cmp = V.compare_published(out)
     V._print_comparison(cmp)
@@ -327,6 +363,9 @@ def main(argv=None):
     ap.add_argument("--device", default="auto", help="auto (cuda if available), cpu or cuda")
     ap.add_argument("--amp", action="store_true", help="fp16 autocast on cuda")
     ap.add_argument("--workers", type=int, default=1, help="parallel user featurization processes")
+    ap.add_argument("--eval_batch", type=int, default=None,
+                    help="targets per scoring batch (default 512 on cuda, --batch on cpu)")
+    ap.add_argument("--eval_only", action="store_true", help="load the checkpoint and score; no training")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--final", action="store_true", help="allow users 1-1000 and 8001-8300 (task 6.5 only)")
     args = ap.parse_args(argv)
