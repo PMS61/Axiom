@@ -292,7 +292,26 @@ A correct answer raises ability and makes the card look easier. A card's step si
 
 The take-home: **FSRS is over-confident for weak learners and too pessimistic for strong ones; our model corrects both.** Weak learners are also where we lose most to RWKV.
 
-**The Elo-expert experiment** trained separate GBDTs per Elo band, with hard cut-offs or soft overlapping cut-offs, and with or without FSRS inputs. Result: *pending*. Early signs suggest the fine-tuned experts add little: their early stopping picked very few extra trees for strong bands.
+**The Elo-expert experiment** (100 validation users). We split learners into 3 or 5 equal-size Elo bands and trained one GBDT per band, in 8 versions:
+
+- 3 or 5 bands;
+- trained from scratch, or fine-tuned from the main GBDT;
+- **hard** cut-offs (each band has its own model), or **soft** cut-offs (each band also trains on a 25% overlap into the neighbouring bands only, and predictions in the overlap blend the two neighbouring models).
+
+**Result: no useful gain.** Weighted log loss on the 100 validation users (lower is better):
+
+| Model | GBDT only | With online layer |
+|---|---|---|
+| Main GBDT (our final model) | 0.31360 | **0.30945** |
+| Best expert version (5 bands, fine-tuned, soft) | 0.31358 | 0.30941 (−0.00004) |
+| 3 bands, from scratch, soft | 0.31340 | 0.30940 (−0.00005, not significant) |
+| 5 bands, from scratch, hard | 0.31437 | 0.31073 (**+0.0013, worse**) |
+
+- Soft cut-offs beat hard ones every time. Hard bands lose data at the edges.
+- Fine-tuned experts stopped after 1–12 extra trees in most bands: there was almost nothing band-specific left to learn.
+- The best gain, 0.00004, is about 300 times smaller than the online layer's gain.
+
+**Conclusion:** one global GBDT already handles learner strength. Elo bands, like the user-type experts and the MoE gates, add nothing. (The no-FSRS and mixed variants are still running.)
 
 # 9. How models are scored
 
@@ -431,22 +450,34 @@ The GBDT won on 82 of 100 Anki users and was the best on every metric on both da
 | Mixture-of-experts gates (incl. a 3×3 form × gap grid) | tie or slightly worse | same reason |
 | Elo ratings as features | negative | ewm50 already carries that information |
 | Learning FSRS weights inside the GBDT | tie or worse | FSRS was never the bottleneck |
-| Elo-band experts | *pending* | — |
+| Elo-band experts (3 or 5 bands, hard or soft) | best −0.00004 (negligible); hard 5-band +0.0013 | the global GBDT already models learner strength |
 
 **The message:** we hit the ceiling of hand-made features. The remaining gap is RWKV reading the **raw sequence** at large scale.
 
 # 14. Size, cost and speed
 
+## Big picture
+
+Our model is far smaller and about **1,000 times faster per prediction** than RWKV-Instant, and it needs no GPU.
+
+## Detailed picture
+
 | | Our final model | RWKV-Instant |
 |---|---|---|
 | Stored numbers | about 196k (1,047 trees) + 6 per user | 2.76M parameters |
 | Training data | 270 users (10.4M reviews) | 5,000 users |
-| Hardware | 4 CPU cores, about 47 min | GPU |
-| Time per review (local test, busy PC) | about 0.55 ms | about 156 ms (CPU, step by step) |
+| Training hardware | 4 CPU cores, about 47 min | GPU |
+| **Time per prediction** (measured on Kaggle) | **about 0.09 ms** (CPU) | **about 96 ms** (CPU), **about 106 ms** (GPU T4) |
+| Peak memory during the test | about 1.3 GB | about 1.3 GB |
 
-The speed numbers are preliminary. A clean Kaggle measurement on idle machines (with RWKV also on GPU) is *pending*. One caveat to state honestly: we compute features in a batch per user, while RWKV was stepped review by review.
+## Very detailed picture: how speed was measured
 
-**Your line:** *"Second place with about 14 times fewer stored numbers, no GPU, and less than 1/18 of the training users."*
+- **Setup.** Same Kaggle machine, same 10 validation users, the first 2,000 reviews of each. Each timing was run twice and the faster kept, after a warm-up.
+- **Our time splits into three parts:** building the features about 45 µs, GBDT about 44 µs, online layer about 0.5 µs, for a total of about 90 µs per review.
+- **RWKV was run as srs-benchmark ships it for live use:** one review at a time, as a recurrent network. On a GPU it is no faster, because each single step is too small to benefit.
+- **Caveat to state honestly:** our features were computed in one batch per user. RWKV could also be run faster in batch mode over a whole history. The fair claim is *"much faster for live, one-review-at-a-time prediction"*, not an exact ratio.
+
+**Your line:** *"Second place with about 14 times fewer stored numbers, no GPU, under 1/18 of the training users, and roughly a thousand times faster per prediction in live use."*
 
 # 15. Likely questions and short answers
 
@@ -475,7 +506,7 @@ Weighted counts heavy users more. Both are reported, and we are 2nd on both.
 The 99% paired bootstrap intervals exclude zero against every model except RWKV-Instant. A second fresh test set (users 1001–2000) is *pending* as an extra check.
 
 **Q: What does it cost to run in an app?**
-A CPU-only model of a few MB. Features update incrementally per review, and the online layer is 6 multiply-adds.
+A CPU-only model of a few MB, about 0.09 ms per prediction (measured), versus about 100 ms for RWKV-Instant run one review at a time.
 
 **Q: Limitations?**
 - Elo cold start (100–200 reviews).
