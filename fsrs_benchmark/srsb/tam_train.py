@@ -153,7 +153,7 @@ def load_model(path: Path, device, scaler: T.QueryScaler | None = None):
     obj = torch.load(path, map_location=device)
     if isinstance(obj, dict) and "model" in obj:
         state = obj["model"]
-        scaler = T.QueryScaler(obj["scaler_mean"].numpy(), obj["scaler_std"].numpy())
+        scaler = T.QueryScaler(obj["scaler_mean"].cpu().numpy(), obj["scaler_std"].cpu().numpy())
     else:
         state = obj
     model = T.TAM(2 * len(T.QUERY_COLS)).to(device)
