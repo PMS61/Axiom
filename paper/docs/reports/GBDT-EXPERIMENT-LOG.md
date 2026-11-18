@@ -1,6 +1,7 @@
 # GBDT experiment log: everything tested since the GBDT began (as of 2026-11-18 ~19:40 IST)
 
 Covers three places:
+
 - **A. Phase 7** on branch `BayesianScheduler` (the GBDT was born here; our own Anki and Duolingo splits).
 - **B. Paper Phase 2** on `BayesianScheduler` (first srs-benchmark comparison).
 - **C. Branch `exp/gbdt-learned-fsrs`** (learning FSRS weights inside the GBDT).
@@ -40,6 +41,7 @@ Most of the gain comes from running user performance, not from FSRS.
 GBDT was best on every metric on both datasets.
 
 **Robustness and overfitting checks.**
+
 - Anki seeds 1 and 2: GBDT − FSRS-opt = −0.0226 and −0.0210.
 - Validation → test: Anki 0.3614 → 0.3584; Duolingo 0.2578 → 0.2588.
 - Train vs test on Anki: 0.3467 vs 0.3584.
@@ -60,6 +62,7 @@ Pooled GBDT, RWKV-style protocol: trained on users 9001–9500, evaluated on tes
 | FSRS-6 | 0.3580 |
 
 Size-weighted paired differences, GBDT minus:
+
 - FSRS-6: −0.0235 [−0.0286, −0.0183]
 - RWKV-Instant: +0.0320 [+0.0287, +0.0358]
 - RWKV-Curve: +0.0006 (a tie)
@@ -83,6 +86,7 @@ Conclusion: learning FSRS weights does not help the GBDT. Report: `paper/docs/re
 ## D. Branch exp/srsb-beat: trying to beat RWKV-Instant (2026-11-17 to 18)
 
 **Protocol.**
+
 - Validation users 8001–8100. Settings are chosen on 8001–8050 and reported on 8051–8100 and on all 100.
 - Training users come from 2001–8000.
 - Test users 1–1000 are touched once, at the end, for the pre-registered model only.
@@ -120,6 +124,7 @@ Conclusion: learning FSRS weights does not help the GBDT. Report: `paper/docs/re
 ### D4. Data analysis (validation users)
 
 **Who we lose to RWKV-Instant on.** Spearman correlation of the per-user gap with:
+
 - retention: −0.72 (lowest-retention quarter gap 0.026 vs highest 0.007);
 - same-day review share: +0.49;
 - FSRS-6's own gap: +0.75;
@@ -128,6 +133,7 @@ Conclusion: learning FSRS weights does not help the GBDT. Report: `paper/docs/re
 We beat RWKV-Instant on only 2/100 users (99.6%+ retention). RWKV covers all 9,999 users, with test sizes identical to FSRS-6.
 
 **Error memory after the online layer.** Correlation of the current error with earlier errors:
+
 - same user: +0.013;
 - same card: −0.001;
 - same deck: +0.019;
@@ -138,6 +144,7 @@ Almost nothing is left for more Elo-style terms.
 **Calibration.** Predicted vs actual recall is within ±0.006 in every gap, card-age, state and probability bucket. The remaining gap is ranking (AUC), not calibration or drift.
 
 **New-attribute probe** (gain on top of the GBDT, cross-fit by user on 8001–8050):
+
 - user running model-error EWMA: +0.0021 (the same signal as the online layer);
 - learning history, last-study-day stats, session position: ≈0;
 - Elo user/card ratings: negative.
@@ -147,6 +154,7 @@ Conclusion: the feature approach is at its ceiling.
 **Feature importance.** By gain: `ewm50` 24%, `f_el_over_S` 14%, FSRS R features about 23%, user recency about 15%. The model is essentially user form × FSRS curve.
 
 ### D5. Final model and the one-shot test (pre-registered 2026-11-18 ~19:00, commit 38c1199)
+
 - **Final model:** GBDT `results/srsb_beat/sweep_a_l63_side.jsonl.model.txt` (1047 trees, about 196k stored numbers, 78 features, trained on 270 users / 10.4M reviews in about 47 min on 4 CPU cores) plus the Elo online layer (variant B, lr 0.003; 6 weights per user).
 - **Validation:**
 
@@ -159,6 +167,7 @@ Conclusion: the feature approach is at its ceiling.
 - **Test on users 1–1000:** running (stage 1 GBDT, then stage 2 online layer). Results will go in `results/srsb_beat/final/` and in this file.
 
 ### D6. Infrastructure lessons (also in memory note `colab-kaggle-runbook`)
+
 - Pin package versions on Kaggle and Colab. srs-benchmark needs fsrs-optimizer and shape_extensions; pandas 2.x breaks it.
 - Dry-run the exact remote command locally first.
 - Kaggle hides the logs of failed versions, so wrap cells in try/except.
