@@ -23,7 +23,7 @@ Read the big pictures first (about 10 minutes), then go deeper where you feel un
 1. **The problem.** A flashcard app (Anki) must decide *when* to show each card again. To do that it needs the **probability that the learner still remembers the card today**.
 2. **The team's starting point.** A Bayesian memory model (v1, MCMC) and FSRS, the algorithm Anki actually uses, as the standard baseline.
 3. **My part: a GBDT.** A gradient-boosted decision-tree model that reads a learner's past reviews and outputs the recall probability. On our own Anki and Duolingo tests it **beat both** FSRS and the Bayesian model on every metric.
-4. **The public test: srs-benchmark.** It has 10,000 Anki users and about 727M reviews, and every published memory model is scored on it. Our first GBDT came **2nd**: it beat FSRS, GRU, LSTM and RWKV-Curve, but not **RWKV-Instant**, a 2.76M-parameter neural network.
+4. **The public test: srs-benchmark.** It has 10,000 Anki users and about 727M reviews, and every published memory model is scored on it. Our first GBDT came **2nd**: it beat FSRS, GRU, LSTM and RWKV-Curve, but not **RWKV-Instant**, a 2.76M-parameter neural network. (Ours is an *Instant*-type model; see 0c.)
 5. **Improvements:**
    - more input features: exact time gaps, today's session, answer times, user and card "memory";
    - an **Elo-style online layer** that adjusts 6 numbers per user after every review.
@@ -33,6 +33,93 @@ Read the big pictures first (about 10 minutes), then go deeper where you feel un
    - behind RWKV-Instant;
    - about 14 times fewer stored numbers than RWKV;
    - CPU only.
+
+# 0b. Your pitch (what to say, and what not to say)
+
+## The one-liner
+
+> *"We built a memory-prediction model that comes **2nd of all published models** on the public srs-benchmark. It beats FSRS, the algorithm Anki ships, by a clear margin, and gets within reach of the top neural network (RWKV-Instant), while being **about 14 times smaller, CPU-only, trained on 1/18 of the data, and about 1,000 times faster per live prediction**."*
+
+## What backs each claim
+
+| Claim | Evidence |
+|---|---|
+| "2nd of all published models" | final test on 1,000 unseen users, model frozen beforehand; significant wins over every model except RWKV-Instant |
+| "Clearly beats FSRS" | −0.033 log loss [−0.039, −0.028], 99% interval |
+| "Near the top" | +0.02 log loss, −0.03 AUC behind RWKV-Instant. Say *"close"*, never *"equal"* |
+| "About 14 times smaller" | about 196k stored numbers vs 2.76M parameters |
+| "CPU-only, 1/18 of the data" | 47 min on 4 CPU cores, 270 training users vs RWKV's 5,000 |
+| "About 1,000 times faster" | measured on Kaggle: 0.09 ms vs about 96 ms per live prediction |
+
+## Three things not to say
+
+1. **"We beat RWKV."** We beat **RWKV-Curve**, but that is a different category (see 0c). Say *"2nd overall, behind RWKV-Instant."*
+2. **"Exactly 1,000 times faster."** Say *"roughly a thousand times faster for live, one-at-a-time prediction"*. RWKV run in batch over a whole history would be faster.
+3. **"Same accuracy as RWKV."** There is a real, significant gap. Say it is smaller than our lead over FSRS.
+
+## If someone says "RWKV is still better, why use yours?"
+
+> *"For a phone, or a server handling millions of learners, a CPU model that is about 1,000 times faster and much smaller, at 2nd-best accuracy, is the practical choice. And it improves on what Anki uses today by more than it trails the research leader."*
+
+# 0c. Instant vs Curve models (important for honest claims)
+
+## Big picture
+
+srs-benchmark has two kinds of model:
+
+- An **Instant** model predicts "just before the review", using everything known at that moment.
+- A **Curve** model fixes the card's state at its *previous* review and outputs a forgetting curve: recall as a function of elapsed time only, and recall can only fall.
+
+**Our final model is an Instant model.** Its fair rival is **RWKV-Instant**.
+
+## Detailed picture
+
+Our model uses things that happen *after* the card's previous review: today's session (`rate_today`, `n_today`), the learner's latest form (`ewm50`, updated by other cards' reviews), and online-layer weights updated by those reviews. A Curve model may not. So:
+
+| Our model | Fair rival | Result |
+|---|---|---|
+| GBDT + online (Instant) | RWKV-Instant | we lose by about 0.02 log loss |
+| GBDT-Curve (built 19 Nov, being validated) | RWKV-Curve | *pending* |
+
+**Wording.** "We beat RWKV-Curve, LSTM, GRU and FSRS" is true on the leaderboard, but those are curve-type models, so it is a **cross-category** comparison. The safe phrase is **"2nd of all published models"**, which is literally what the leaderboard shows.
+
+## Very detailed picture: the GBDT-Curve
+
+- Features: the card's own history up to its previous review j; the learner, today, deck and sibling features *as they were at j*; plus elapsed time.
+- A monotone constraint makes predicted recall non-increasing as time grows.
+- The online layer's weights are frozen at j, with no time terms, and the weight on the GBDT's margin is kept ≥ 0.
+- **Leak-checked by an independent verifier:** changing every later review, or every other card's review, changed none of its inputs.
+- It is trained on users 2001–2300 and compared with RWKV-Curve on validation users 8001–8100. It goes to the test users only if it wins there.
+
+# 0d. How big is our gap to RWKV-Instant, and is it significant?
+
+**Validation (users 8001–8100), full final model (GBDT + online):**
+
+| | Log loss, weighted | Log loss, unweighted | AUC, weighted | AUC, unweighted |
+|---|---|---|---|---|
+| RWKV-Instant | 0.2966 | 0.2683 | 0.796 | 0.826 |
+| Ours | 0.3098 | 0.2843 | 0.766 | 0.795 |
+| Difference | **+0.0132** | +0.0160 | **−0.030** | −0.031 |
+
+**Test (users 1–1,000), GBDT alone:** log loss +0.0224 [+0.0198, +0.0253]; AUC 0.790 vs 0.827 (−0.037). The final model with the online layer is *pending*; expect about +0.018.
+
+**Statistically significant?** Yes. The 99% paired interval for log loss is +0.0129 [+0.0106, +0.0165], entirely above zero. The AUC gap (0.03–0.04) is about 10 times the leaderboard's uncertainty for AUC (about ±0.002).
+
+**How big in practice?**
+
+- **Log loss:** about 4–8% worse than RWKV. That is about the same size as the leaderboard gap between LSTM and FSRS-6 (0.010): noticeable, not huge.
+- **AUC 0.766 vs 0.796:** take one remembered and one forgotten review. RWKV orders them correctly 79.6% of the time, we do 76.6%: 3 more correct pairs per 100.
+
+**For scale** (same test users, log-loss gap):
+
+| Comparison | Gap |
+|---|---|
+| ours vs RWKV-Instant | +0.022 (we lose) |
+| ours vs RWKV-Curve | −0.009 (we win; cross-category) |
+| ours vs FSRS-6 | **−0.033** (we win) |
+| FSRS-6 vs Anki's default scheduler | −0.18 |
+
+**Your line:** *"RWKV-Instant is significantly better than us, by about 0.02 log loss and 0.03 AUC. But that is a smaller gap than our lead over FSRS, the algorithm Anki actually ships."*
 
 # 1. The problem: spaced repetition
 
@@ -513,6 +600,15 @@ A CPU-only model of a few MB, about 0.09 ms per prediction (measured), versus ab
 - srs-benchmark results are Anki-only; Duolingo was tested on our own split.
 - We have not built a scheduler or run a user study: we predict, we don't schedule.
 
+**Q: If ratings are in the data, why use Elo?**
+We do use the ratings directly: most of the 78 inputs are built from them (the last 3 ratings, rating counts, lapses, success rates overall, recently and today). Elo answers a different question. It summarises *all* ratings into learner ability and card difficulty, each adjusted for the other (90% success on easy cards is not 90% on hard ones). We used Elo (1) to analyse learners by strength, which is where we found FSRS's bias, (2) as extra features, which didn't help because `ewm50` already carries it, and (3) for per-band experts, also no gain. The "Elo-style" online layer is not Elo ratings: it borrows Elo's update rule (nudge by outcome minus prediction) to personalise each learner.
+
+**Q: Is your model Instant or Curve?**
+Instant: it predicts just before the review using everything known then. That's why RWKV-Instant is our fair rival. A Curve version (state frozen at the card's previous review) has been built and leak-checked, and is being validated against RWKV-Curve.
+
+**Q: Is the gap to RWKV significant?**
+Yes. Log loss +0.013 [+0.011, +0.017] (99%, validation) and AUC −0.03. It is real but modest: smaller than our lead over FSRS (0.033).
+
 # 16. Glossary
 
 - **Recall probability:** the chance the learner remembers the card right now.
@@ -524,4 +620,5 @@ A CPU-only model of a few MB, about 0.09 ms per prediction (measured), versus ab
 - **Past-only:** a feature uses only data from before the review being predicted.
 - **Pre-registration:** writing down the final model before testing, so it can't be changed after seeing results.
 - **Bootstrap CI:** resampling users to measure how much a result could vary by chance.
-- **RWKV:** a recurrent neural network architecture. RWKV-Instant predicts from the full sequence including timing; RWKV-Curve outputs a forgetting curve.
+- **RWKV:** a recurrent neural network architecture. RWKV-Instant predicts just before each review from everything known then; RWKV-Curve outputs a forgetting curve fixed at the card's previous review.
+- **Instant vs Curve model:** see section 0c.
