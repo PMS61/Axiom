@@ -31,7 +31,33 @@ The second is the full Duolingo benchmark of Experiment~3, built from the half-l
   \end{tabular}
 \end{table}
 
-The srs-benchmark project \cite{srsbenchmark} is not a collection of its own. It is a benchmark that evaluates recall models on the \texttt{anki-revlogs-10k} collection, which has 9,999 users. The 100-user sample of Experiment~2 is drawn from the same collection, but the srs-benchmark numbers are not directly comparable with Table~\ref{tab:exp4-anki}, because they come from a different sample. Experiment~5 (Section~\ref{sec:results-exp5-srsb}) runs a pooled GBDT under the benchmark's protocol and reports its results against the benchmark's own models.
+The srs-benchmark project \cite{srsbenchmark} is not a collection of its own. It is a benchmark that evaluates recall models on the \texttt{anki-revlogs-10k} collection, which has 9,999 users. The 100-user sample of Experiment~2 is drawn from the same collection, but the srs-benchmark numbers are not directly comparable with Table~\ref{tab:exp4-anki}, because they come from a different sample. Experiment~5 (Section~\ref{sec:results-exp5-srsb}) runs a pooled GBDT under the benchmark's protocol and reports its results against the benchmark's own models, and Experiment~6 (Section~\ref{sec:results-exp6}) extends that model.
+
+\subsection{The srs-benchmark protocol}
+\label{sec:design-srsb}
+
+The srs-benchmark is maintained by the authors of FSRS and is the main public leaderboard for recall models. It is built on
+\texttt{anki-revlogs-10k}, a collection of the review logs of 9,999 Anki users with about 727 million reviews. Each review
+row gives the card, the day, the grade (Again, Hard, Good or Easy), the card's state, the answer time and the time since the
+card's previous review in days and in seconds. Side tables give each card's note, so that cards made from the same note can
+be grouped as siblings, and each card's deck and deck preset.
+
+The benchmark turns the problem into binary prediction. A review graded Again is a failure ($y=0$) and any other grade is a
+success ($y=1$), and a model outputs the probability of success. A review is scored only if at least one day has passed
+since the card's previous review and it is not the card's first review. Same-day reviews are not scored, but they stay in the
+history that a model may use. Each user's scored reviews are split in time order into five folds
+(\texttt{TimeSeriesSplit}), and every model is always tested on reviews that come after the reviews it learned from. The
+leaderboard reports log loss, a binned RMSE and AUC, averaged over users both unweighted and weighted by each user's
+number of test reviews.
+
+The published models range from the default Anki scheduler, HLR and FSRS versions 4.5 to 7, to logistic and DASH models, a
+GRU, an LSTM and two versions of RWKV \cite{peng2023rwkv}, a recurrent network with 2.76 million parameters that reads the
+whole review history of a user across all cards. The two RWKV versions differ in what they are allowed to know. RWKV-Instant
+predicts the outcome just before a review, using everything known at that moment. RWKV-Curve fixes a card's memory state at
+the card's previous review and outputs a forgetting curve, the probability of recall as a function of the time since that
+review. FSRS, HLR, the GRU and the LSTM are curve-type models in this sense. An Instant model can use more recent
+information than a Curve model, so the fair comparison for an Instant model is another Instant model. The GBDT of
+Experiments~5 and~6 is an Instant model.
 
 \section{Data Pipeline and Event Definition}
 \label{sec:design-pipeline}

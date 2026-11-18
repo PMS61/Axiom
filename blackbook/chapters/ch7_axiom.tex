@@ -390,6 +390,22 @@ The group \texttt{userprior} is left out of the final GBDT, which is the setting
 Chapter~\ref{ch:results}. The three models fit in seconds on the Anki benchmark and in minutes on Duolingo, and
 none of them uses the Numba sampler.
 
+\section{srs-benchmark Modules (Experiment 6)}
+\label{sec:impl-srsb}
+
+The Experiment~6 code is in \texttt{fsrs\_benchmark/\allowbreak srsb/} on the experiment branch \texttt{exp/srsb-beat}.
+\texttt{features\_plus.py} computes the new feature groups of Table~\ref{tab:gbdt-ext-features} from a learner's review stream
+and the card and deck side tables. \texttt{val\_plus.py} trains the pooled GBDT on the training users, scores the
+evaluation users on the benchmark's folds and writes results in the benchmark's own format; it caches each user's feature
+table, refuses the test users 1 to 1000 unless run with \texttt{--final}, and refuses validation users as training users.
+\texttt{online\_adapt.py} holds the online layer of Section~\ref{sec:method-online} as a Numba kernel, and its final mode
+applies the frozen setting to the test users. \texttt{compare.py} reads the published result files and computes the paired
+bootstrap intervals. \texttt{ablate\_fsrs.py}, \texttt{type\_experts.py}, \texttt{moe.py}, \texttt{moe\_grid.py},
+\texttt{elo\_experts.py}, \texttt{kalman\_layer.py}, \texttt{tam.py}, \texttt{resid\_gru.py} and \texttt{user\_boost.py}
+implement the ablation and the ideas of Table~\ref{tab:exp6-negative}, and \texttt{speed\_bench.py} measures the prediction
+times of Table~\ref{tab:exp6-cost}. Each module has leak tests that change future reviews and check that no feature or
+prediction changes.
+
 \section{Metrics Module}
 \label{sec:impl-metrics}
 

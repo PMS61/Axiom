@@ -1,12 +1,12 @@
 \chapter{Metrics and Comparison}
 \label{ch:results}
 
-This chapter reports five experiments and the diagnostics that accompany them. Experiment~1 is a
+This chapter reports six experiments and the diagnostics that accompany them. Experiment~1 is a
 preliminary run on a pre-processed Anki extract (Section~\ref{sec:results-exp1}). Experiment~2 is the
 main benchmark on 100 Anki users (Section~\ref{sec:results-exp2}). Experiment~3 is a full Duolingo
 benchmark (Section~\ref{sec:results-exp3}). Experiment~4 adds the improved models v2, v3 and a gradient-boosted tree model to both benchmarks
 (Section~\ref{sec:results-exp4}). Experiment~5 adds constant floors, three further Anki samples and the srs-benchmark protocol
-(Section~\ref{sec:results-exp5}). Section~\ref{sec:results-cross} compares the datasets. The remaining sections cover the MCMC diagnostics, the Task~3 sampler study, the
+(Section~\ref{sec:results-exp5}). Experiment~6 extends the GBDT and tests it once on the srs-benchmark's users (Section~\ref{sec:results-exp6}). Section~\ref{sec:results-cross} compares the datasets. The remaining sections cover the MCMC diagnostics, the Task~3 sampler study, the
 computational cost, and a summary. Section~\ref{sec:results-metrics} defines the metrics used
 throughout. Every model is evaluated in the same way: it predicts each scored review from the
 history before that review, and the predictions are scored against the recorded outcome.
@@ -977,6 +977,186 @@ GBDT scored 0.2473 with that leak and 0.2578 once same-timestamp rows were group
 Figure~\ref{fig:fig_exp5_floors} is the grouped version, and the leaky value should not be read as a result. The srs-benchmark run
 uses past-only features.
 
+\section{Experiment 6: Closing the Gap on srs-benchmark}
+\label{sec:results-exp6}
+
+Experiment~5 left the pooled GBDT behind RWKV-Instant, the best published model on the srs-benchmark, by $0.032$ in weighted
+log loss. Experiment~6 asks how far that gap can be closed with the extended features and the online layer of
+Section~\ref{sec:method-gbdt-ext}, and what does and does not help. All protocol rules of the benchmark
+(Section~\ref{sec:design-srsb}) are kept.
+
+\subsection{Protocol and honesty rules}
+\label{sec:results-exp6-protocol}
+
+Training users were taken from ids 2001 to 2300 (270 users for fitting and 30 for early stopping, 10.4 million reviews).
+Validation users were 8001 to 8100: every setting was chosen on users 8001 to 8050 and reported on 8051 to 8100 and on all
+100. The benchmark's test users 1 to 1000 were not touched during development. The final model was written down and
+committed before the test (pre-registration), and it was then scored once on users 1 to 1000. Every comparison uses the
+benchmark's own folds, and each user's number of test reviews equals that of the published result files. Differences are
+paired, size-weighted, with 99\% user-clustered bootstrap intervals (1000 resamples).
+
+\subsection{Development on the validation users}
+\label{sec:results-exp6-dev}
+
+Table~\ref{tab:exp6-dev} lists the steps that changed the gap to RWKV-Instant on the validation users. The largest single gains
+came from the new feature groups and from the online layer. Training on five times more users (1,500) improved the GBDT by
+only about 0.002, at six hours of compute, and was not kept.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Experiment 6: development steps]{Experiment 6: weighted log-loss gap to RWKV-Instant on the validation users
+    (positive means RWKV-Instant is better), with 99\% paired intervals where computed.}
+  \label{tab:exp6-dev}
+  \begin{tabular}{@{}lc@{}}
+    \toprule
+    Step & Gap to RWKV-Instant \\
+    \midrule
+    New feature groups (exact gaps, today, answer times, grades, state, siblings, decks) & $+0.0218$ $[+0.018, +0.028]$ \\
+    + learner and card memory features & $+0.0180$ $[+0.015, +0.022]$ \\
+    63 leaves, learning rate 0.05 & $+0.0174$ $[+0.014, +0.022]$ \\
+    Same model trained on 1,500 users (not kept) & $+0.0151$ $[+0.012, +0.019]$ \\
+    \textbf{+ online layer (final model)} & $\mathbf{+0.0133}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+On the validation users the online layer lowered the GBDT's weighted log loss by $0.0042$, with interval $[-0.0063, -0.0027]$.
+The final model has weighted log loss 0.3098 and AUC 0.766 there, against 0.2966 and 0.796 for RWKV-Instant; unweighted, the
+values are 0.2843 and 0.795 against 0.2683 and 0.826.
+
+\subsection{Final test on the benchmark's users}
+\label{sec:results-exp6-test}
+
+Table~\ref{tab:exp6-test} adds the extended GBDT, scored once on test users 1 to 1000 (32,668,830 test reviews), to the
+models of Table~\ref{tab:exp5-srsb}. Table~\ref{tab:exp6-paired} gives the paired differences.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Experiment 6: srs-benchmark test]{Experiment 6: log loss and AUC on the srs-benchmark's 1000 test users. The
+    Experiment~5 GBDT and the published models are repeated from Table~\ref{tab:exp5-srsb}. Bold marks the best value in each column.}
+  \label{tab:exp6-test}
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    & \multicolumn{2}{c}{Log loss} & \multicolumn{2}{c}{AUC} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+    Model & Unweighted & Weighted & Unweighted & Weighted \\
+    \midrule
+    RWKV-Instant & \textbf{0.2860} & \textbf{0.2828} & \textbf{0.8319} & \textbf{0.8265} \\
+    \textbf{GBDT, extended (Experiment 6)} & 0.3088 & 0.3051 & 0.7996 & 0.7900 \\
+    GBDT, pooled (Experiment 5) & 0.3211 & 0.3148 & 0.7780 & 0.7666 \\
+    RWKV-Curve & 0.3302 & 0.3143 & 0.7665 & 0.7712 \\
+    GRU & 0.3441 & 0.3271 & 0.7298 & 0.7337 \\
+    LSTM & 0.3445 & 0.3271 & 0.7311 & 0.7358 \\
+    FSRS-7 (recency) & 0.3485 & 0.3308 & 0.7208 & 0.7243 \\
+    FSRS-6 & 0.3580 & 0.3383 & 0.6994 & 0.7061 \\
+    HLR & 0.4877 & 0.4479 & 0.6352 & 0.6299 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \caption[Experiment 6: paired differences]{Experiment 6: extended GBDT minus each model, size-weighted log loss, 99\% user-clustered
+    bootstrap intervals on the same 1000 users. Negative favours the GBDT. An asterisk marks an interval that excludes zero.}
+  \label{tab:exp6-paired}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    Model & Difference & 99\% interval \\
+    \midrule
+    RWKV-Instant & $+0.0224$ & $[+0.0198, +0.0253]^{*}$ \\
+    RWKV-Curve & $-0.0091$ & $[-0.0141, -0.0045]^{*}$ \\
+    FSRS-6 & $-0.0332$ & $[-0.0387, -0.0285]^{*}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The extended GBDT is second of all models in Table~\ref{tab:exp6-test} on both log-loss measures and both AUC measures. It
+improves on the Experiment~5 GBDT by about 0.01 in log loss, and it is better than RWKV-Curve, the LSTM, the GRU and every
+FSRS version, with intervals that exclude zero. It remains behind RWKV-Instant, by 0.022 in weighted log loss and 0.037 in
+weighted AUC. The gap is mainly in ranking (AUC): the GBDT's predictions are well calibrated, within $\pm 0.006$ of the
+observed recall in every bucket of gap, card age, card state and predicted probability on the validation users.
+
+Two points matter for reading these numbers. First, the GBDT is an Instant model (Section~\ref{sec:design-srsb}): it uses
+information from after the card's previous review, such as today's session. Its wins over RWKV-Curve, the LSTM, the GRU and
+FSRS are therefore comparisons across the two categories, and the like-for-like rival is RWKV-Instant. Second, the online
+layer was selected and measured on the validation users, where it lowered log loss by 0.0042.
+
+\subsection{Where the gain comes from}
+\label{sec:results-exp6-where}
+
+\paragraph{FSRS features.} Removing every FSRS-derived feature (stability, difficulty, recall and the error-against-FSRS
+features) and retraining raised the weighted validation log loss by $0.0016$ $[+0.0008, +0.0025]$ for the GBDT and by
+$0.0009$ $[+0.0003, +0.0014]$ with the online layer. The gain is largest for low-retention learners ($0.0022$), and the FSRS
+features take under 0.3\% of the compute. By the model's own gain measure, the learner's recent success rate is the most
+important feature (24\%), followed by the gap relative to FSRS stability (14\%).
+
+\paragraph{Learner strength.} Splitting the 100 validation learners into five equal Elo bands
+(Section~\ref{sec:method-elo}) shows how differently the problem behaves across learners. From the weakest band to the
+strongest, the final model's log loss falls from 0.549 to 0.084 and the online layer's gain falls from 0.0085 to 0.0016.
+AUC is about 0.73 in the four lower bands and 0.84 in the strongest. FSRS-6 is over-confident for the weakest learners,
+predicting recall 9.2 percentage points above what they achieve, and too pessimistic for the strongest, by 5.7 points. The
+remaining gap to RWKV-Instant is also concentrated on low-retention learners and on learners with many same-day reviews: the
+per-user gap correlates with retention at $-0.72$ (Spearman) and with the share of same-day reviews at $+0.49$.
+
+\subsection{What did not help}
+\label{sec:results-exp6-negative}
+
+Table~\ref{tab:exp6-negative} lists the other ideas tried on the validation users. None improved on the GBDT with the online
+layer by a useful amount, which suggests that the hand-made features are close to their limit.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Experiment 6: ideas that did not help]{Experiment 6: ideas tried on the validation users that did not improve the final model.}
+  \label{tab:exp6-negative}
+  \begin{tabular}{@{}p{5.6cm}p{4.4cm}p{4.2cm}@{}}
+    \toprule
+    Idea & Result & Likely reason \\
+    \midrule
+    Per-user boosting (a small GBDT per learner) & much worse (0.314 to 0.37) & too little data per learner \\
+    Kalman filter for learner drift & worse; some settings diverged & over-reacts after study breaks \\
+    Attention model over the last 256 reviews (0.63M parameters) & gap $+0.0218$ & needs far more data and GPU time \\
+    Residual GRU over the review stream & $-0.0014$ vs GBDT, below the online layer & small and under-trained \\
+    Experts by learner type (weak, middle, strong) & no gain & the global GBDT already models learner type \\
+    Mixture-of-experts gates, including a learner form $\times$ gap grid & tie or slightly worse & same reason \\
+    Elo ratings as features & slightly worse & recent success rate carries the same signal \\
+    Elo-band experts (3 or 5 bands, hard or overlapping) & best $-0.00004$; hard 5-band $+0.0013$ & same reason \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+For the Elo-band experts, overlapping bands, where each band's model also trains on a margin of its neighbours' reviews and
+predictions in the overlap blend the two models, were better than hard bands in every setting, because hard bands lose data at
+their edges. Experts fine-tuned from the global GBDT stopped after 1 to 12 extra trees in most bands, so there was almost
+nothing band-specific left to learn.
+
+\subsection{Size and speed}
+\label{sec:results-exp6-cost}
+
+Table~\ref{tab:exp6-cost} compares the cost of the final model with that of RWKV-Instant. Speed was measured on one Kaggle
+machine for both models, on the same ten validation users and the first 2000 reviews of each, after a warm-up, keeping the
+faster of two passes.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Experiment 6: size and speed]{Experiment 6: size, training data and prediction time of the final model and RWKV-Instant.}
+  \label{tab:exp6-cost}
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    & GBDT + online layer & RWKV-Instant \\
+    \midrule
+    Stored numbers & about 196,000 + 6 per learner & 2,762,884 \\
+    Training users & 270 (10.4M reviews) & 5,000 \\
+    Training hardware & 4 CPU cores, about 47 minutes & GPU \\
+    Prediction time per review & about 0.09 ms (CPU) & about 96 ms (CPU), about 106 ms (T4 GPU) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The GBDT's time splits into about 45\,$\mu$s for the features, 44\,$\mu$s for the trees and 0.5\,$\mu$s for the online
+layer. RWKV-Instant was run as the benchmark ships it for live use, one review at a time, and in that mode a GPU does not help.
+The GBDT's features were computed in one pass per learner, and RWKV could also be run faster over a whole history at once, so
+the comparison supports a claim of roughly a thousand times faster live prediction and not an exact ratio.
+
 \section{Cross-Dataset Comparison}
 \label{sec:results-cross}
 
@@ -1278,4 +1458,8 @@ The main findings of this chapter are as follows.
   \item On Duolingo, the smoothed per-user constant floor, which has no memory model, has log loss 0.2723. It beats FSRS-6 (optimised) at 0.3003, the MAP variants, LagLogit+$\Delta t$ and HLR. Only the GBDT (0.2588) and the proposed model (v1, 0.2682) beat it. The margin of v1 is $-0.0040$, with interval $[-0.0045, -0.0035]$. HLR is worse than the global constant on both datasets (Section~\ref{sec:results-exp5-floors}).
   \item On two more Anki samples of 100 users (seeds 1 and 2), the models that were re-run keep the same order. The GBDT has the lowest log loss on each one, and its log loss minus that of FSRS-6 (optimised) is $-0.0210$, $-0.0226$ and $-0.0210$, and each interval excludes zero. The proposed model (v1) was not re-run on these samples (Section~\ref{sec:results-exp5-seeds}).
   \item On the srs-benchmark protocol, with the pooled GBDT trained on other users and evaluated on 1000 users with the benchmark's own folds, the GBDT has unweighted log loss 0.3211, against 0.3580 for FSRS-6 and 0.2860 for RWKV-Instant. Weighted, it is level with RWKV-Curve (0.3143) and behind RWKV-Instant (0.2828). Its boosting reached the 2000-round cap, so this is a lower bound (Section~\ref{sec:results-exp5-srsb}).
+  \item In Experiment~6 the extended GBDT, frozen before the test and scored once on the srs-benchmark's 1000 test users, has weighted log loss 0.3051 and AUC 0.790. It is second of all published models, better than RWKV-Curve ($-0.0091$), the LSTM, the GRU and FSRS-6 ($-0.0332$), with intervals that exclude zero, and behind RWKV-Instant ($+0.0224$, AUC $-0.037$). It is an Instant model, so its like-for-like rival is RWKV-Instant (Section~\ref{sec:results-exp6}).
+  \item The per-learner online layer lowered validation log loss by 0.0042, and the remaining gap to RWKV-Instant is in ranking, not calibration. It is concentrated on low-retention learners and learners with many same-day reviews.
+  \item Learner-type experts, mixture-of-experts gates, Elo-band experts, per-user boosting, a Kalman filter, an attention model and a residual GRU did not improve the final model.
+  \item The final model stores about 196,000 numbers plus six per learner, against 2.76 million parameters for RWKV-Instant, trains in about 47 minutes on four CPU cores, and predicts a review in about 0.09 ms against about 96 ms for RWKV-Instant run one review at a time.
 \end{enumerate}

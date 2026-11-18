@@ -697,6 +697,83 @@ The GBDT is a pure predictor: it has no stability or difficulty state, so it can
 scheduler. The Bayesian models and v2 and v3 keep an interpretable memory state. Experiment~4 therefore
 compares models of two kinds, and Chapter~\ref{ch:conclusion} discusses the trade-off.
 
+\section{The Extended GBDT and the Online Layer (Experiment 6)}
+\label{sec:method-gbdt-ext}
+
+Experiment~6 extends the pooled GBDT of Experiment~5 in two ways, so that it can be compared with the strongest model on
+the srs-benchmark. The first is a richer, still past-only, description of each review. The second is a small per-learner
+model on top of the GBDT that is updated after every review. Together they form the final model of Experiment~6.
+
+\subsection{Extended features}
+\label{sec:method-gbdt-ext-features}
+
+The extended GBDT has 78 features in the groups of Table~\ref{tab:gbdt-ext-features}. Each one is computed from reviews that
+come before the scored review, and every new group was checked with a leak test that changes the future and verifies that
+no feature changes.
+
+\begin{table}[htbp]
+  \centering
+  \caption[Feature groups of the extended GBDT]{Feature groups of the extended GBDT (Experiment~6). All features are past-only.}
+  \label{tab:gbdt-ext-features}
+  \begin{tabular}{@{}p{3.6cm}p{10.6cm}@{}}
+    \toprule
+    Group & What it describes \\
+    \midrule
+    Gap & days since the card's previous review, its logarithm, the exact gap in seconds and the gap relative to the card's history \\
+    Card history & number of reviews and lapses, success rate, the last three grades, outcomes and gaps, longest gap, card age \\
+    FSRS state & stability, difficulty and predicted recall of FSRS-6 with default weights, replayed over the card's history \\
+    Learner & number of reviews, running success rate, recent success, days since last study \\
+    Learner memory & exponentially weighted success rates over about the last 10, 50, 200 and 1000 reviews, and the learner's success rate in the same gap range, card age, last grade and card state \\
+    Today & reviews and new cards so far today, today's success rate and lapses \\
+    Answer time & the card's last and mean answer time, the learner's mean answer time, and their ratio \\
+    Grades & counts of each grade on the card \\
+    Siblings and decks & reviews and success rates of cards from the same note, deck, preset and parent deck \\
+    Model error & running mean of the learner's error against FSRS, overall and in the same gap range \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The trees use LightGBM \cite{ke2017lightgbm} with 63 leaves per tree, learning rate 0.05, at least 200 reviews per leaf,
+80\% feature and row sampling and L2 regularisation 1.0, with early stopping on held-out training users. The final model has
+1,047 trees with 65,961 leaves, about 196,000 stored numbers in all (a feature index and a threshold for each split and a
+value for each leaf).
+
+\subsection{The online layer}
+\label{sec:method-online}
+
+The GBDT is the same for every learner. The online layer gives each learner six weights $w$ that start at a neutral value and
+move a little after every review. For a review it forms
+\begin{equation}
+  x = \Big[\, z,\; 1,\; \tfrac{\ell}{3},\; 4(e_{50} - 0.5),\; \tfrac{r_F}{3},\; 4(t_{\mathrm{day}} - 0.5) \,\Big],
+  \qquad p = \sigma(w^{\top} x),
+  \label{eq:online-design}
+\end{equation}
+where $z$ is the GBDT's margin (its logit), $\ell$ is the logarithm of the relative gap, $e_{50}$ is the learner's recent
+success rate, $r_F$ is the FSRS logit of recall and $t_{\mathrm{day}}$ is today's success rate. After the outcome $y$ is
+known, one gradient step is taken,
+\begin{equation}
+  w_j \leftarrow w_j - \eta \big[ (p - y)\, x_j + \lambda\, (w_j - w_{0,j}) \big],
+  \label{eq:online-update}
+\end{equation}
+with $w_0 = (1, 0, 0, 0, 0, 0)$, so that a new learner gets exactly the GBDT's prediction, $\eta = 0.003$ and
+$\lambda = 0.001$. The prediction for a review is made before its own update, so the layer stays past-only. The update has the
+form of an Elo update \cite{pelanek2016elo}: it moves the learner's parameters in proportion to the prediction error. There is
+no rating shared between learners; each learner's six weights see only that learner's reviews.
+
+\subsection{Elo ratings for analysis}
+\label{sec:method-elo}
+
+To analyse learners by strength, Experiment~6 also computes a standard learner--card Elo rating on each review stream. The
+probability of success is $\sigma(\theta - d)$, where $\theta$ is the learner's ability and $d$ is the card's difficulty, and
+after each review that is not a card's first
+\begin{equation}
+  \theta \leftarrow \theta + 0.05\,(y - p), \qquad d \leftarrow d - \frac{0.4}{1 + 0.05\, n_{\mathrm{card}}}\,(y - p),
+  \label{eq:elo}
+\end{equation}
+where $n_{\mathrm{card}}$ is the number of earlier updates of the card. Both start at zero, which corresponds to a predicted
+recall of 50\% against a typical recall of about 88\%, so a learner's rating needs roughly 100 to 200 reviews to settle.
+This cold start is a known limitation of the analysis.
+
 \section{Summary}
 \label{sec:method-summary}
 
@@ -710,4 +787,4 @@ conjugately. The rate $\lambda$ and, in one variant, the coefficient $\kappa$ ar
 Metropolis--Hastings. Prediction averages per-draw probit approximations after an approximate
 P\'olya--Gamma update. The approximations, the truncated series and the single unconverged chain are
 the main limitations of this chapter's scheme, and they are the basis for the caveats in
-Chapter~\ref{ch:results}. Section~\ref{sec:method-improved} adds three later models, two MAP variants of the hierarchy (v2, v3) and a gradient-boosted tree model (GBDT) with no memory equation, which Experiment~4 evaluates. Chapter~\ref{ch:implementation} describes how the code implements these steps.
+Chapter~\ref{ch:results}. Section~\ref{sec:method-improved} adds three later models, two MAP variants of the hierarchy (v2, v3) and a gradient-boosted tree model (GBDT) with no memory equation, which Experiment~4 evaluates. Section~\ref{sec:method-gbdt-ext} extends the GBDT with richer features and a per-learner online layer for Experiment~6. Chapter~\ref{ch:implementation} describes how the code implements these steps.

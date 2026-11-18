@@ -71,6 +71,19 @@ The Bayesian models are the interpretable ones. They keep a latent memory state,
 
 Experiment~5 (Section~\ref{sec:results-exp5}) adds three reference points. On Duolingo the per-user constant smoothed toward the population rate has log loss 0.2723, which beats FSRS-6 (optimised) at 0.3003. Only the GBDT (0.2588) and the proposed model (0.2682) beat that floor, and the proposed model's margin over it is $-0.0040$ with an interval that excludes zero. On Anki the GBDT's paired difference from FSRS-6 (optimised) is $-0.0210$, $-0.0226$ and $-0.0210$ on three independent 100-user samples, and each interval excludes zero. Under the srs-benchmark protocol, on 1,000 of its users, the pooled GBDT has log loss 0.3211 against 0.3580 for FSRS-6 and 0.3441 for the GRU, it is level with RWKV-Curve on the size-weighted measure (paired interval includes zero), and it trails RWKV-Instant at 0.2860. These results strengthen the finding that a tree model is more accurate than the models of this report. They do not make it the most accurate model on the srs-benchmark, and its srs-benchmark figure is a lower bound.
 
+\subsection*{What Experiment 6 adds}
+
+Experiment~6 (Section~\ref{sec:results-exp6}) asks how close a tree model can get to the best published model on the
+srs-benchmark. With richer past-only features, the extended GBDT, frozen before the test and scored once on the benchmark's
+1000 test users, is second of all published models. It is ahead of FSRS-6 by 0.033 in weighted log loss and ahead of RWKV-Curve,
+the LSTM and the GRU, and it is behind RWKV-Instant by 0.022 in log loss and 0.037 in AUC. Its lead over FSRS, the scheduler
+Anki ships, is larger than its gap to the best neural network. It reaches that position with about 196,000 stored numbers
+against 2.76 million, trained on 270 users rather than 5,000 and on CPU only, and it predicts a review roughly a thousand
+times faster than RWKV-Instant run one review at a time. A per-learner online layer, an Elo-style update of six weights,
+added a further 0.004 on the validation users. Many other ideas, from learner-type experts and gates to a Kalman filter and an
+attention model, did not help, and the remaining gap is in ranking rather than calibration, concentrated on learners with low
+retention.
+
 \subsection*{What the preliminary run adds}
 
 Experiment~1 gave a first look at the latent state. At gaps of 14 to 60 days the dynamic model had a log loss of 0.273
@@ -130,6 +143,12 @@ The test set was looked at twice, many variants were tried, and the v2 and v3 mo
 \paragraph{Limits of Experiment 5.}
 The srs-benchmark comparison uses 1,000 of the 9,999 users of the collection. Its boosting run reached the cap of 2000 rounds, so the GBDT figure is a lower bound, and the other models' values are the benchmark's own runs. The seed checks cover three Anki samples of 100 users and only the frozen models other than v1. The constant floors are reference points, not models, and only six paired srs-benchmark differences are reported.
 
+\paragraph{Limits of Experiment 6.}
+The extended GBDT is an Instant model, so its wins over RWKV-Curve, the GRU, the LSTM and FSRS compare two categories of
+model, and its like-for-like rival, RWKV-Instant, remains better. The online layer was selected and measured on 100
+validation users. The Elo ratings used in the analysis start at zero and need about 100 to 200 reviews to settle. All
+srs-benchmark results are on Anki data only. The speed comparison uses ten users and RWKV's one-review-at-a-time mode.
+
 \paragraph{The Duolingo fallback.}
 Because FSRS-6 (optimised) fell back to default weights for almost all users, the Duolingo comparison with FSRS-6
 does not test per-user optimisation. The evaluation on Duolingo also has no scored reviews beyond 14 days, so the
@@ -145,7 +164,7 @@ caveats in Section~\ref{sec:concl-discussion}. The second question asked whether
 calibration at long gaps. The preliminary run suggests that it does at gaps of 14 to 60 days, but the run is too short and
 too weakly documented to answer the question. The no-memory ablation matched the learned-rate model. The third question asked
 whether the sampler converges within a practical budget. It did not, in any of the reported runs, and this affects how the
-scores should be read. The fourth question asked how much of the remaining error is due to the memory model. In Experiment~4 a gradient-boosted tree model with no memory equation has the lowest log loss on both datasets, 0.358 on Anki and 0.259 on Duolingo, with paired intervals against FSRS-6 (optimised) that exclude zero. The honest answer is that a non-Bayesian predictor is the most accurate in these experiments, and that its advantage comes mainly from running statistics of the learner's performance and not from a memory model. The Bayesian models, which are the subject of this report, are the interpretable ones, and the MAP variants are a cheap approximation that ties FSRS-6 (optimised) on Anki and beats it on Duolingo. The fifth question asked whether these results survive reference points and external checks. Experiment~5 answers that a constant floor beats FSRS-6 (optimised) on Duolingo, that the tree model's advantage holds on three further Anki samples, and that under the srs-benchmark protocol the tree model trails RWKV-Instant.
+scores should be read. The fourth question asked how much of the remaining error is due to the memory model. In Experiment~4 a gradient-boosted tree model with no memory equation has the lowest log loss on both datasets, 0.358 on Anki and 0.259 on Duolingo, with paired intervals against FSRS-6 (optimised) that exclude zero. The honest answer is that a non-Bayesian predictor is the most accurate in these experiments, and that its advantage comes mainly from running statistics of the learner's performance and not from a memory model. The Bayesian models, which are the subject of this report, are the interpretable ones, and the MAP variants are a cheap approximation that ties FSRS-6 (optimised) on Anki and beats it on Duolingo. The fifth question asked whether these results survive reference points and external checks. Experiment~5 answers that a constant floor beats FSRS-6 (optimised) on Duolingo, that the tree model's advantage holds on three further Anki samples, and that under the srs-benchmark protocol the tree model trails RWKV-Instant. Experiment~6 then shows that an extended tree model with a per-learner online layer, tested once on the benchmark's users, is second of all published models, behind only RWKV-Instant, at a small fraction of its size and cost.
 
 The contribution of the work is the model, the sampler, the benchmark and the diagnostics. The model is a scalar
 Ornstein--Uhlenbeck state with an exact closed-form transition over any gap, and it has a practice-dependent rate and a
@@ -160,7 +179,7 @@ Figure~\ref{fig:tk_roadmap} groups the future work into three horizons. The shor
 direct. Multi-chain long runs, on a machine with more time or on a cloud GPU, are the only way to test whether the
 convergence gate can be met with the current model. A fixed cold-card filter, which keeps the latent state across
 the test reviews of cold cards, would remove the implementation limitation that Section~\ref{sec:concl-limitations}
-describes. The pooled GBDT should be run with more boosting rounds and on more of the 9,999 users of the srs-benchmark collection, because the 1,000-user run reached its round cap. That would tighten the lower bound and test whether the comparison with the sequence models holds on the full collection. A GRU model and an ensemble of the proposed model with v2 should also be completed. A scheduling simulation would test whether better prediction gives better schedules. A paper based on this work is prepared for submission to EDM 2027.
+describes. The extended GBDT of Experiment~6 should be tested on more of the 9,999 users of the srs-benchmark collection, and a curve version of it, whose state is fixed at a card's previous review, would give a like-for-like comparison with RWKV-Curve and the other curve-type models. Closing the remaining gap to RWKV-Instant probably needs a sequence model that reads the raw review history at scale. A GRU model and an ensemble of the proposed model with v2 should also be completed. A scheduling simulation would test whether better prediction gives better schedules. A paper based on this work is prepared for submission to EDM 2027.
 
 \begin{figure}[htbp]
   \centering

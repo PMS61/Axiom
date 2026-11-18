@@ -127,6 +127,30 @@ The srs-benchmark comparison is a pooled GBDT trained on users 9001 to 9500 and 
 
 The published srs-benchmark results for the other models are read by \texttt{compare} from the benchmark's result directory, which is its default. The pooled model's boosting cap of 2000 rounds is the frozen setting, and the run's \texttt{run\_info.json} records it as reached.
 
+\section{Extended GBDT on srs-benchmark (Experiment 6)}
+
+The Experiment~6 runs use the branch \texttt{exp/srsb-beat}. Training ids 2001 to 2300 are in
+\texttt{results/srsb\_beat/final/train\_ids.txt} and test ids 1 to 1000 in \texttt{results/srsb\_beat/final/test\_ids.txt}.
+The first command scores the frozen GBDT, and the second applies the frozen online layer to its predictions.
+
+\begingroup\footnotesize\begin{verbatim}
+.venv/bin/python -m fsrs_benchmark.srsb.val_plus --data data/anki10k --final \
+    --train_users results/srsb_beat/final/train_ids.txt \
+    --eval_users results/srsb_beat/final/test_ids.txt \
+    --out results/srsb_beat/final/gbdt_test1000.jsonl --workers 4 \
+    --num_leaves 63 --lr 0.05 --min_data_in_leaf 200 \
+    --max_rounds 10000 --max_train_rows 12000000
+.venv/bin/python -m fsrs_benchmark.srsb.online_adapt --final \
+    --users results/srsb_beat/final/test_ids.txt --workers 4 \
+    --gbdt_jsonl results/srsb_beat/final/gbdt_test1000.jsonl \
+    --out results/srsb_beat/final/online_test1000.jsonl
+.venv/bin/python -m fsrs_benchmark.srsb.speed_bench --data data/anki10k \
+    --users 8001,8002,8005,8010,8019,8023,8031,8047,8060,8077 \
+    --threads 4 --max_reviews 2000 --repeats 2 --device cpu \
+    --out results/srsb_beat/speed/speed_cpu.txt
+\end{verbatim}
+\endgroup
+
 \section{Figures and tables}
 
 Every data figure is generated from the result files by one script:

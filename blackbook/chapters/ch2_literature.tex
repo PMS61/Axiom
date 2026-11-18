@@ -161,6 +161,15 @@ models on about ten thousand Anki users. To our knowledge from that repository, 
 history across cards \cite{srsbenchmark}. A signal of the learner's overall ability across cards is therefore not new. Experiment 4 uses a gradient-boosted tree model \cite{friedman2001greedy} of this kind as
 a strong, non-Bayesian reference, and Experiment 5 runs it pooled under the benchmark's protocol on 1,000 of its users (Section~\ref{sec:results-exp5-srsb}).
 
+\paragraph{Sequence models and online learner ratings.}
+The strongest published models on the srs-benchmark are neural sequence models. RWKV \cite{peng2023rwkv} is a recurrent
+architecture with the training efficiency of a Transformer, and the benchmark's RWKV models read every review of a user,
+across all cards, with their timing, grades and answer times. A much older and lighter way of tracking a learner is the Elo
+rating system. Pel\'anek \cite{pelanek2016elo} reviews its use in adaptive educational systems: each learner has an ability
+and each item a difficulty, the predicted probability of success is a logistic function of their difference, and both are
+nudged after every answer by the prediction error. Experiment~6 uses Elo ratings to analyse learners by strength, and an
+Elo-style online update to adjust the GBDT's prediction for each learner (Section~\ref{sec:method-gbdt-ext}).
+
 \section{Continuous-Time Memory Models}
 \label{sec:lit-continuous}
 
