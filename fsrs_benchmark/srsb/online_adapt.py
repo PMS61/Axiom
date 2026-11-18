@@ -35,6 +35,7 @@ SEL_USERS = range(8001, 8051)                   # selection
 REP_USERS = range(8051, 8101)                   # report
 ALL_USERS = range(8001, 8101)
 EXTRA = ("log_el_frac", "ewm50", "f_logitR", "rate_today")
+CTX = ("log_el_frac", "card_n", "u_n", "state", "rate_today", "ewm50", "u_last5", "f_R")   # gate context (6.7)
 VARIANTS = {"A": (), "B": EXTRA}
 
 
@@ -92,8 +93,9 @@ def user_arrays(uid, booster, names, best_iter, loader, cfg, data_dir: Path):
     if (pos < 0).any():
         raise RuntimeError(f"user {uid}: scored rows not in the stream")
     extra = {c: feats[c].to_numpy(np.float64) for c in EXTRA}
-    return dict(uid=uid, margin=margin, extra=extra, y=(st["rating"].to_numpy() > 1).astype(np.float64),
-                labelled=~first, pos=pos, test=test, y_eval=ds["y"].to_numpy(np.float64))
+    ctx = {c: feats[c].to_numpy(np.float64) for c in CTX}
+    return dict(uid=uid, margin=margin, extra=extra, ctx=ctx, y=(st["rating"].to_numpy() > 1).astype(np.float64),
+                labelled=~first, pos=pos, test=test, y_eval=ds["y"].to_numpy(np.float64), keys=keys)
 
 
 def eval_user(arr, variant, lr):
@@ -112,7 +114,8 @@ def gbdt_check(arr):
     return np.clip(p, P_CLIP, 1 - P_CLIP)
 
 
-def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAULT_RESULT_DIR, users=ALL_USERS):
+def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAULT_RESULT_DIR, users=ALL_USERS,
+        dump_preds=None):
     import lightgbm as lgb
     from sklearn.metrics import log_loss
 
@@ -137,10 +140,13 @@ def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAU
             raise RuntimeError(f"user {u}: GBDT check failed ({ref} vs {gb[u]['metrics']['LogLoss']})")
 
     grid = {}
+    pe_all = {}
     for variant in VARIANTS:
         for lr in LRS:
             name = f"{variant}_lr{lr}"
-            grid[name] = {u: eval_user(arrays[u], variant, lr)[:2] for u in users}
+            res = {u: eval_user(arrays[u], variant, lr) for u in users}
+            grid[name] = {u: res[u][:2] for u in users}
+            pe_all[name] = {u: res[u][2] for u in users}
     rows = {"GBDT": {u: (gb[u]["metrics"]["LogLoss"], gb[u]["size"]) for u in users}}
     rows.update(grid)
     sel = {k: _wmean(v, SEL_USERS) for k, v in grid.items()}
@@ -165,6 +171,8 @@ def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAU
                 diff = [grid[chosen][u][0] - diff_base[u][0] for u in common]
             report[label][f"diff_vs_{ref_name}"] = C.paired_bootstrap(diff, sizes, n_boot=1000, ci=0.99)
         report[label]["n_users"] = len(us)
+    if dump_preds:
+        dump_expert_preds(dump_preds, arrays, pe_all[chosen], users)
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", encoding="utf-8") as f:
@@ -174,6 +182,27 @@ def run(model_path, run_info_path, data_dir, gbdt_jsonl, out, result_dir=C.DEFAU
                                     chosen=chosen)) + "\n")
     Path(str(out) + ".report.json").write_text(json.dumps(report, indent=1, default=str), encoding="utf-8")
     return report, rows
+
+
+def dump_expert_preds(path, arrays, pe_chosen, users):
+    """Per-row TEST predictions of the GBDT, the GBDT+online layer and FSRS-6 (f_R), with the gate context.
+    One row per scored test row: uid, review_th, y, p_gbdt, p_online, f_R and the context columns."""
+    frames = []
+    for u in users:
+        a = arrays[u]
+        t = a["test"]
+        keys = a["keys"][t]
+        pg = 1.0 / (1.0 + np.exp(-a["margin"][a["pos"]][t]))
+        df = pd.DataFrame({"uid": np.full(len(keys), int(u), np.int64), "review_th": keys.astype(np.int64),
+                           "y": a["y_eval"][t], "p_gbdt": np.clip(pg, P_CLIP, 1 - P_CLIP),
+                           "p_online": pe_chosen[u]})
+        for c in CTX:
+            df[c] = a["ctx"][c][a["pos"]][t]
+        frames.append(df)
+    out = pd.concat(frames, ignore_index=True)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    out.to_parquet(path, index=False)
+    return out
 
 
 def _wmean(grid_users, users):
@@ -188,8 +217,9 @@ def main(argv=None):
     ap.add_argument("--gbdt_jsonl", default="results/srsb_beat/sweep_a_l63.jsonl")
     ap.add_argument("--data", default="data/anki10k")
     ap.add_argument("--out", default="results/srsb_beat/online_adapt.jsonl")
+    ap.add_argument("--dump_preds", default=None, help="parquet of per-row test predictions (uid, review_th, y, ...)")
     args = ap.parse_args(argv)
-    report, _ = run(args.model, args.run_info, args.data, args.gbdt_jsonl, args.out)
+    report, _ = run(args.model, args.run_info, args.data, args.gbdt_jsonl, args.out, dump_preds=args.dump_preds)
     print(json.dumps(report, indent=1, default=str))
     return report
 

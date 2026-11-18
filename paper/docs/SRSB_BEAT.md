@@ -65,3 +65,6 @@ only).
   something beats RWKV-Instant on validation; final 1-1000 test waits for the user's OK. If nothing beats it, freely
   improvise (tune, fix the side-table bug, new features, blends, other small architectures). In the morning: print the
   final results table; write it to paper/docs/reports/SRSB-BEAT-RESULTS.md.
+- 2026-11-18 ~14:30 (user travelling ~1 h): paused. Running: TAM eval-only on Kaggle notebook3f6f101d42 v7 (GPU,
+  ~19/100 users at 14:20, running LogLoss 0.2704 vs GBDT 0.2627 / RWKV-Instant 0.2464 on 8001-8019). Builder
+  writing fsrs_benchmark/srsb/moe.py (mixture of experts, user-half cross-fit); heavy runs wait for go.
