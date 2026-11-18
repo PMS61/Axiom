@@ -17,7 +17,8 @@ RWKV-Instant, size-weighted log loss, paired user bootstrap 99% CI. Negative wou
 
 Online layer vs plain GBDT: -0.0042 [-0.0063, -0.0027] (all 100).
 
-Pending: TAM (attention model, Colab; training done, best holdout 0.2785 at epoch 6; validation scoring),
+Pending: TAM (attention model): Colab training done (best holdout 0.2785 at epoch 6 on 15 train-pool holdout users)
+but the Colab runtime disconnected during validation scoring, so there is no validation result yet; rerun planned on Kaggle GPU.
 GBDT 1500 train users (Kaggle, ~4 h in), residual GRU (Kaggle attempt failed: HF 401 on notebook 2's secret;
 will run locally when the PC is free).
 

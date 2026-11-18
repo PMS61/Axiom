@@ -159,7 +159,7 @@ def prepare_user_raw(raw, ds, cfg, cards, decks, booster, best_iter, check_y=Tru
 def prepare_user(uid, loader, cfg, data_dir: Path, booster, best_iter) -> dict:
     ds = loader.load_user_data(uid)
     raw = pd.read_parquet(data_dir / "revlogs" / f"user_id={uid}")
-    # Side tables are loaded exactly as val_plus._full_table does, so the margins match the sweep GBDT.
+    # Side tables are read by val_plus._read_opt (the fixed per-user directory reader), as in val_plus._full_table.
     cards = V._read_opt(data_dir / "cards" / f"user_id={uid}")
     decks = V._read_opt(data_dir / "decks" / f"user_id={uid}")
     return prepare_user_raw(raw, ds, cfg, cards, decks, booster, best_iter)
