@@ -217,3 +217,24 @@ def test_cli_refuses_test_set_users(tmp_path):
 def test_load_users_accepts_ranges_and_lists():
     assert K.load_users("2001-2003,2010") == [2001, 2002, 2003, 2010]
     assert K.load_users("8001 8002") == [8001, 8002]
+
+
+# ---- training variants -------------------------------------------------------------------------------------
+
+def test_variants_parse_and_base_reproduces_old_params(tmp_path):
+    from pathlib import Path
+    assert K.parse_variants("base,adv") == ["base", "adv"]
+    assert K.parse_variants(" adv , nomono,adv ") == ["adv", "nomono"]
+    assert K.parse_variants("") == ["base"] and K.parse_variants(None) == ["base"]
+    with pytest.raises(ValueError, match="unknown variant"):
+        K.parse_variants("base,bogus")
+    old = dict(R.LGB_PARAMS, num_leaves=63, learning_rate=0.05, min_data_in_leaf=200, feature_fraction=0.8,
+               bagging_fraction=0.8, bagging_freq=1, lambda_l2=1.0, monotone_constraints=K.MONOTONE)
+    assert K.variant_params("base") == old
+    assert K.variant_params("adv")["monotone_constraints_method"] == "advanced"
+    assert K.variant_params("adv")["monotone_constraints"] == K.MONOTONE
+    assert "monotone_constraints" not in K.variant_params("nomono")
+    assert K.variant_params("adv_lr02")["learning_rate"] == 0.02
+    assert K.variant_max_rounds("adv_lr02", 2000) == 10000 and K.variant_max_rounds("adv", 2000) == 2000
+    assert K.variant_out(Path("a/curve.jsonl"), "adv") == Path("a/curve_adv.jsonl")
+    assert K.online_path(K.variant_out(Path("a/curve.jsonl"), "adv")) == Path("a/curve_adv_online.jsonl")

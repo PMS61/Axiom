@@ -17,6 +17,10 @@ Curve online layer: per-user logistic layer on [z, 1, ewm50_j, rate_today_j] wit
 w[0] >= 0 after every update. The curve emitted at review j uses the weights after the last update at a scored
 row with stream index <= j.
 
+Several training variants can run in one invocation with --variants (comma list of base, adv, nomono,
+adv_lr02); the train rows are built once and each variant writes <out stem>_<variant>.jsonl and
+<out stem>_<variant>_online.jsonl. Default --variants base.
+
 Usage (repo root):
   PYTHONPATH=. .venv/bin/python -m fsrs_benchmark.srsb.curve --data data/anki10k \
       --train_users 2001-2300 --eval_users 8001-8100 --out result/curve/curve.jsonl --workers 4
@@ -353,6 +357,49 @@ def _map(task, items, data_dir: Path, workers: int, cache_dir=None):
         yield from pool.imap(task, items, chunksize=1)
 
 
+# ---- variants ----------------------------------------------------------------------------------------------
+
+VARIANTS = ("base", "adv", "nomono", "adv_lr02")
+VARIANT_MAX_ROUNDS = {"adv_lr02": 10000}
+
+
+def parse_variants(spec):
+    """Comma list of variant names -> list (order kept, duplicates dropped). Empty -> ["base"]."""
+    names = []
+    for tok in (spec or "").split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        if tok not in VARIANTS:
+            raise ValueError(f"unknown variant {tok!r}; choose from {', '.join(VARIANTS)}")
+        if tok not in names:
+            names.append(tok)
+    return names or ["base"]
+
+
+def variant_params(name):
+    """LightGBM params of a variant. base is CURVE_PARAMS unchanged."""
+    if name == "base":
+        return dict(CURVE_PARAMS)
+    if name == "adv":
+        return dict(CURVE_PARAMS, monotone_constraints_method="advanced")
+    if name == "nomono":
+        return {k: v for k, v in CURVE_PARAMS.items() if k != "monotone_constraints"}
+    if name == "adv_lr02":
+        return dict(CURVE_PARAMS, monotone_constraints_method="advanced", learning_rate=0.02)
+    raise ValueError(f"unknown variant {name!r}")
+
+
+def variant_max_rounds(name, max_rounds):
+    return VARIANT_MAX_ROUNDS.get(name, max_rounds)
+
+
+def variant_out(out, name) -> Path:
+    """<stem>_<variant><suffix>; the curve+online file of it is online_path(variant_out(out, name))."""
+    out = Path(out)
+    return out.with_name(f"{out.stem}_{name}{out.suffix}")
+
+
 # ---- run ---------------------------------------------------------------------------------------------------
 
 def online_path(out) -> Path:
@@ -360,112 +407,141 @@ def online_path(out) -> Path:
     return out.with_name(out.stem + "_online" + out.suffix)
 
 
+def _build_train_pool(train_uids, data_dir: Path, workers, cache_dir, max_train_rows, rows_per_user):
+    """Train rows of all variants, built once: counted, subsampled to the plan, written into presized arrays.
+    Returns (pool, plan, skipped, users without side tables)."""
+    counts, skipped, no_side = {}, [], []
+    for r in _map(_task_count, train_uids, data_dir, workers, cache_dir):
+        if "error" in r:
+            skipped.append((r["uid"], r["error"]))
+        else:
+            counts[r["uid"]] = r["n"]
+    quotas = V.plan_quotas(counts, max_train_rows, rows_per_user)
+    planned = list(quotas)
+    hold = set(R.holdout_users(planned))
+    cap = {"val": sum(quotas[u] for u in planned if u in hold),
+           "fit": sum(quotas[u] for u in planned if u not in hold)}
+    plan = dict(scored_rows_total=int(sum(counts.values())), train_users_counted=len(counts),
+                train_users_planned=len(planned), rows_planned=int(cap["fit"] + cap["val"]),
+                n_feat=len(CURVE_COLS))
+    pool = V.PresizedPool(hold, cap, len(CURVE_COLS))
+    for r in _map(_task_train, [(u, quotas[u]) for u in planned], data_dir, workers, cache_dir):
+        if "error" in r:
+            skipped.append((r["uid"], r["error"]))
+            continue
+        if not r["side"]:
+            no_side.append(r["uid"])
+        pool.add(r["uid"], r["X"], r["y"])
+    return pool, plan, skipped, no_side
+
+
 def run(train_uids, eval_uids, data_dir, out, final=False, workers=1, cache=True, cache_root=None,
         max_rounds=DEFAULT_MAX_ROUNDS, max_train_rows=DEFAULT_MAX_TRAIN_ROWS, rows_per_user=None,
-        result_dir=C.DEFAULT_RESULT_DIR):
-    """Train the curve GBDT on train_uids (or reuse <out>.model.txt when the fingerprint matches), write the
-    curve and curve+online jsonl for eval_uids (resumable), and return the run_info dict."""
-    V.check_users(train_uids, eval_uids, final)
+        result_dir=C.DEFAULT_RESULT_DIR, variants=("base",)):
+    """For each variant: train the curve GBDT on train_uids (or reuse <stem>_<variant>.model.txt when its
+    fingerprint matches), then write <stem>_<variant>.jsonl (curve) and <stem>_<variant>_online.jsonl
+    (curve+online) for eval_uids (resumable) and print its comparison. The train rows are built once and shared;
+    each booster is freed before the next variant. Returns {variant: run_info}."""
+    import gc
     import lightgbm as lgb
 
+    variants = parse_variants(",".join(variants))
+    V.check_users(train_uids, eval_uids, final)
     t0 = time.time()
     data_dir, out = Path(data_dir), Path(out)
-    out_on = online_path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     cache_dir = None
     if cache:
         root = Path(cache_root) if cache_root else data_dir / "feat_cache_curve"
         cache_dir = str(root / code_hash())
-    model_txt = Path(str(out) + ".model.txt")
-    model_json = Path(str(out) + ".model.json")
-    info_path = Path(str(out) + ".run_info.json")
-    fp = V._fingerprint(CURVE_COLS, CURVE_PARAMS, ["curve"], train_uids, max_rounds, R.PATIENCE,
-                        max_train_rows, rows_per_user)
-    skipped, no_side = [], {"train": [], "eval": []}
-    plan = {}
+    pool, shared = None, dict(plan={}, skipped=[], no_side_train=[])
+    run_infos = {}
 
-    if model_txt.exists() and model_json.exists():
-        saved = json.loads(model_json.read_text(encoding="utf-8"))
-        if saved.get("fingerprint") != fp:
-            diff = sorted(k for k in set(fp) | set(saved.get("fingerprint", {}))
-                          if fp.get(k) != saved.get("fingerprint", {}).get(k))
-            raise RuntimeError(f"saved model in {model_txt} was trained with other settings ({diff}); "
-                               "use a new --out")
-        booster = lgb.Booster(model_file=str(model_txt))
-        best_iter, info = saved["best_iter"], saved["info"]
-        plan = saved.get("plan", {})
-        trained_now = False
-    else:
-        counts = {}
-        for r in _map(_task_count, train_uids, data_dir, workers, cache_dir):
-            if "error" in r:
-                skipped.append((r["uid"], r["error"]))
-            else:
-                counts[r["uid"]] = r["n"]
-        quotas = V.plan_quotas(counts, max_train_rows, rows_per_user)
-        planned = list(quotas)
-        hold = set(R.holdout_users(planned))
-        cap = {"val": sum(quotas[u] for u in planned if u in hold),
-               "fit": sum(quotas[u] for u in planned if u not in hold)}
-        plan = dict(scored_rows_total=int(sum(counts.values())), train_users_counted=len(counts),
-                    train_users_planned=len(planned), rows_planned=int(cap["fit"] + cap["val"]),
-                    n_feat=len(CURVE_COLS))
-        pool = V.PresizedPool(hold, cap, len(CURVE_COLS))
-        for r in _map(_task_train, [(u, quotas[u]) for u in planned], data_dir, workers, cache_dir):
-            if "error" in r:
-                skipped.append((r["uid"], r["error"]))
-                continue
-            if not r["side"]:
-                no_side["train"].append(r["uid"])
-            pool.add(r["uid"], r["X"], r["y"])
-        booster, best_iter, info = R.fit_from_pool(pool, max_rounds, R.PATIENCE, max_train_rows,
-                                                   names=CURVE_COLS, params=CURVE_PARAMS)
-        booster.save_model(str(model_txt))
-        model_json.write_text(json.dumps(dict(best_iter=int(best_iter), info=info, plan=plan,
-                                              fingerprint=fp)), encoding="utf-8")
-        trained_now = True
+    for name in variants:
+        t_v = time.time()
+        params = variant_params(name)
+        mr = variant_max_rounds(name, max_rounds)
+        curve_path = variant_out(out, name)
+        out_on = online_path(curve_path)
+        model_txt = Path(str(curve_path) + ".model.txt")
+        model_json = Path(str(curve_path) + ".model.json")
+        info_path = Path(str(curve_path) + ".run_info.json")
+        fp = V._fingerprint(CURVE_COLS, params, ["curve"], train_uids, mr, R.PATIENCE,
+                            max_train_rows, rows_per_user)
+        if model_txt.exists() and model_json.exists():
+            saved = json.loads(model_json.read_text(encoding="utf-8"))
+            if saved.get("fingerprint") != fp:
+                diff = sorted(k for k in set(fp) | set(saved.get("fingerprint", {}))
+                              if fp.get(k) != saved.get("fingerprint", {}).get(k))
+                raise RuntimeError(f"saved model in {model_txt} was trained with other settings ({diff}); "
+                                   "use a new --out")
+            booster = lgb.Booster(model_file=str(model_txt))
+            best_iter, info = saved["best_iter"], saved["info"]
+            plan = saved.get("plan", {})
+            trained_now = False
+        else:
+            if pool is None:
+                pool, plan, skipped, no_side_train = _build_train_pool(
+                    train_uids, data_dir, workers, cache_dir, max_train_rows, rows_per_user)
+                shared = dict(plan=plan, skipped=skipped, no_side_train=no_side_train)
+            plan = shared["plan"]
+            booster, best_iter, info = R.fit_from_pool(pool, mr, R.PATIENCE, max_train_rows,
+                                                       names=CURVE_COLS, params=params)
+            booster.save_model(str(model_txt))
+            model_json.write_text(json.dumps(dict(best_iter=int(best_iter), info=info, plan=plan,
+                                                  fingerprint=fp)), encoding="utf-8")
+            trained_now = True
 
-    done = R._load_done(out) & R._load_done(out_on)
-    pending = list(dict.fromkeys(u for u in eval_uids if u not in done))
-    written = 0
-    with open(out, "a", encoding="utf-8") as fc, open(out_on, "a", encoding="utf-8") as fo:
-        for r in _map(_task_eval, pending, data_dir, workers, cache_dir):
-            if "error" in r:
-                skipped.append((r["uid"], r["error"]))
-                continue
-            if not r["side"]:
-                no_side["eval"].append(r["uid"])
-            X, y, th, prev = r["X"], r["y"], r["th"], r["prev_th"]
-            z = booster.predict(X, raw_score=True, num_iteration=best_iter)
-            p_curve = _sigmoid(z)
-            p_on = curve_online(z, X[:, EWM50_IX], X[:, RATE_IX], y, th, prev)
-            m = r["test"]
-            yt = y[m].astype(np.float64)
-            meta = r["meta"][m].reset_index(drop=True)
-            for f, p in ((fc, p_curve), (fo, p_on)):
-                pt = np.clip(p[m], G.P_CLIP, 1 - G.P_CLIP)
-                line = {"metrics": R.user_metrics(yt, pt, meta), "user": int(r["uid"]), "size": int(len(yt))}
-                f.write(json.dumps(line, ensure_ascii=False) + "\n")
-                f.flush()
-            written += 1
-    R._sort_file(out)
-    R._sort_file(out_on)
-    cmp = compare_curve(out, out_on, result_dir)
-    run_info = dict(
-        fingerprint=fp, plan=plan, info=info, best_iter=int(best_iter), trained_now=trained_now,
-        features=CURVE_COLS, monotone=MONOTONE, params=CURVE_PARAMS, max_rounds=max_rounds,
-        patience=R.PATIENCE, max_train_rows=max_train_rows, rows_per_user=rows_per_user, cache=cache,
-        elapsed_min=round((time.time() - t0) / 60, 2), final=final,
-        train_users=sorted(int(u) for u in train_uids), eval_users=sorted(int(u) for u in eval_uids),
-        new_eval_users=written, skipped=skipped, train_users_without_side_tables=no_side["train"],
-        eval_users_without_side_tables=no_side["eval"], out=str(out), out_online=str(out_on), comparison=cmp,
-    )
-    info_path.write_text(json.dumps(run_info, indent=1, default=str), encoding="utf-8")
-    print(json.dumps({k: v for k, v in run_info.items()
-                      if k not in ("train_users", "eval_users", "comparison", "fingerprint", "features",
-                                   "monotone", "params")}, indent=1, default=str))
-    print_comparison(cmp)
-    return run_info
+        done = R._load_done(curve_path) & R._load_done(out_on)
+        pending = list(dict.fromkeys(u for u in eval_uids if u not in done))
+        written, skipped_eval, no_side_eval = 0, [], []
+        with open(curve_path, "a", encoding="utf-8") as fc, open(out_on, "a", encoding="utf-8") as fo:
+            for r in _map(_task_eval, pending, data_dir, workers, cache_dir):
+                if "error" in r:
+                    skipped_eval.append((r["uid"], r["error"]))
+                    continue
+                if not r["side"]:
+                    no_side_eval.append(r["uid"])
+                X, y, th, prev = r["X"], r["y"], r["th"], r["prev_th"]
+                z = booster.predict(X, raw_score=True, num_iteration=best_iter)
+                p_curve = _sigmoid(z)
+                p_on = curve_online(z, X[:, EWM50_IX], X[:, RATE_IX], y, th, prev)
+                m = r["test"]
+                yt = y[m].astype(np.float64)
+                meta = r["meta"][m].reset_index(drop=True)
+                for f, p in ((fc, p_curve), (fo, p_on)):
+                    pt = np.clip(p[m], G.P_CLIP, 1 - G.P_CLIP)
+                    line = {"metrics": R.user_metrics(yt, pt, meta), "user": int(r["uid"]), "size": int(len(yt))}
+                    f.write(json.dumps(line, ensure_ascii=False) + "\n")
+                    f.flush()
+                written += 1
+        R._sort_file(curve_path)
+        R._sort_file(out_on)
+        cmp = compare_curve(curve_path, out_on, result_dir)
+        run_info = dict(
+            variant=name, fingerprint=fp, plan=plan, info=info, best_iter=int(best_iter), trained_now=trained_now,
+            features=CURVE_COLS, monotone=MONOTONE if "monotone_constraints" in params else None, params=params,
+            max_rounds=mr, patience=R.PATIENCE, max_train_rows=max_train_rows, rows_per_user=rows_per_user,
+            cache=cache, elapsed_min=round((time.time() - t_v) / 60, 2), final=final,
+            train_users=sorted(int(u) for u in train_uids), eval_users=sorted(int(u) for u in eval_uids),
+            new_eval_users=written, skipped=shared["skipped"] + skipped_eval,
+            train_users_without_side_tables=shared["no_side_train"],
+            eval_users_without_side_tables=no_side_eval, out=str(curve_path), out_online=str(out_on),
+            comparison=cmp,
+        )
+        info_path.write_text(json.dumps(run_info, indent=1, default=str), encoding="utf-8")
+        print(f"===== variant {name} (best_iter {int(best_iter)}, trained now: {trained_now}) =====")
+        print(json.dumps({k: v for k, v in run_info.items()
+                          if k not in ("train_users", "eval_users", "comparison", "fingerprint", "features",
+                                       "monotone", "params")}, indent=1, default=str))
+        print_comparison(cmp, label=name)
+        run_infos[name] = run_info
+        del booster
+        gc.collect()
+    del pool
+    gc.collect()
+    print(f"done {len(variants)} variant(s) in {(time.time() - t0) / 60:.1f} min")
+    return run_infos
 
 
 # ---- comparison --------------------------------------------------------------------------------------------
@@ -504,11 +580,12 @@ def compare_curve(curve_path, online_path, result_dir=C.DEFAULT_RESULT_DIR, ci=0
     return dict(n_users=len(users), users=users, n_rows=int(sum(sizes)), table=table, bootstrap=boots, ci=ci)
 
 
-def print_comparison(cmp):
+def print_comparison(cmp, label=None):
+    tag = f"[{label}] " if label else ""
     if not cmp or not cmp.get("n_users"):
-        print("comparison: no eval users with a published result of the same size")
+        print(f"{tag}comparison: no eval users with a published result of the same size")
         return
-    print(f"comparison on {cmp['n_users']} users ({cmp['n_rows']} test rows)")
+    print(f"{tag}comparison on {cmp['n_users']} users ({cmp['n_rows']} test rows)")
     for name, t in cmp["table"].items():
         print(f"  {name:22s} LogLoss unweighted {t['LL_unweighted']:.5f} weighted {t['LL_weighted']:.5f}"
               f"  AUC unweighted {t['AUC_unweighted']} weighted {t['AUC_weighted']}")
@@ -532,7 +609,10 @@ def main(argv=None):
     ap.add_argument("--quick", action="store_true", help="first 3 train users and first 2 eval users")
     ap.add_argument("--final", action="store_true", help="allow users 1-1000 (task 6.5 only)")
     ap.add_argument("--result_dir", default=str(C.DEFAULT_RESULT_DIR))
+    ap.add_argument("--variants", default="base",
+                    help=f"comma list of training variants, one run each ({', '.join(VARIANTS)}); default base")
     args = ap.parse_args(argv)
+    variants = parse_variants(args.variants)
 
     train_uids = load_users(args.train_users)
     eval_uids = load_users(args.eval_users)
@@ -542,7 +622,7 @@ def main(argv=None):
     return run(train_uids, eval_uids, args.data, args.out, final=args.final, workers=args.workers,
                cache=not args.no_cache, cache_root=args.cache_dir, max_rounds=args.max_rounds,
                max_train_rows=args.max_train_rows, rows_per_user=args.rows_per_user,
-               result_dir=Path(args.result_dir))
+               result_dir=Path(args.result_dir), variants=variants)
 
 
 if __name__ == "__main__":
