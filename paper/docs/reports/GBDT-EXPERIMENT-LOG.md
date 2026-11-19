@@ -1,4 +1,4 @@
-# GBDT experiment log: everything tested since the GBDT began (as of 2026-11-18 ~19:40 IST)
+# GBDT experiment log: everything tested since the GBDT began (as of 2026-11-19 07:00 IST)
 
 Covers three places:
 
@@ -107,17 +107,17 @@ Conclusion: learning FSRS weights does not help the GBDT. Report: `paper/docs/re
 
 | Method | Result | Verdict |
 |---|---|---|
-| **Elo-style online logistic layer** (6 weights per user, one SGD step after each review; variant B, lr 0.003 chosen on 8001–8050) | **−0.0042 [−0.0063, −0.0027] vs GBDT; gap +0.0133** (held-out half +0.0118) | ✅ **best; part of the final model** |
+| **Elo-style online logistic layer** (6 weights per user, one SGD step after each review; variant B, lr 0.003 chosen on 8001–8050) | **−0.0042 [−0.0063, −0.0027] vs GBDT; gap +0.0133** (held-out half +0.0118) | **best; part of the final model** |
 | Residual GRU over the user stream (trained on users 2301–2500, 3 CPU epochs) | −0.0014 vs GBDT; gap +0.0161 | small gain, likely undertrained |
-| Per-user boosting (small LightGBM refit on each user's recent past) | log loss 0.314 → 0.369 / 0.397 | ❌ overfits each user |
-| Kalman-filter user drift (EKF, 24 settings, K1 and K2) | best 0.394 vs GBDT 0.314; some settings blew up | ❌ over-reacts after breaks |
+| Per-user boosting (small LightGBM refit on each user's recent past) | log loss 0.314 → 0.369 / 0.397 | overfits each user |
+| Kalman-filter user drift (EKF, 24 settings, K1 and K2) | best 0.394 vs GBDT 0.314; some settings blew up | over-reacts after breaks |
 
 ### D3. Other model families
 
 | Method | Result | Verdict |
 |---|---|---|
-| TAM: time-aware attention over the last 256 reviews + 32 card reviews, relation and time-decay biases (0.63M params, 300 train users, 8 GPU epochs) | weighted 0.3184; gap +0.0218 | ❌ weaker than the GBDT at this scale |
-| User-type experts (forgetful/mid/strong by past-only `u_rate`; from scratch or fine-tuned from the global model) | global +0.0170, from scratch +0.0185, fine-tuned +0.0173 | ❌ the global GBDT already covers user types |
+| TAM: time-aware attention over the last 256 reviews + 32 card reviews, relation and time-decay biases (0.63M params, 300 train users, 8 GPU epochs) | weighted 0.3184; gap +0.0218 | weaker than the GBDT at this scale |
+| User-type experts (forgetful/mid/strong by past-only `u_rate`; from scratch or fine-tuned from the global model) | global +0.0170, from scratch +0.0185, fine-tuned +0.0173 | the global GBDT already covers user types |
 | Mixture-of-experts gate (`moe.py`, cross-fit by user halves) | built and tested; not run at full size (the expert results above made it moot) | — |
 | GBDT at 1500 users + online layer | not run (its model exists only in Kaggle output) | — |
 
@@ -164,7 +164,38 @@ Conclusion: the feature approach is at its ceiling.
   | RWKV-Instant (2.76M parameters, trained on 5000 users) | 0.2966 | 0.2683 | 0.796 | 0.826 |
 
   Ours beats RWKV-Curve, GRU, LSTM and all FSRS versions.
-- **Test on users 1–1000:** running (stage 1 GBDT, then stage 2 online layer). Results will go in `results/srsb_beat/final/` and in this file.
+- **Test on users 1–1000 (one look, 32.7M test reviews):**
+
+  | Model | Log loss (weighted) | Log loss (unweighted) | AUC (weighted) | AUC (unweighted) |
+  |---|---|---|---|---|
+  | RWKV-Instant | **0.2828** | **0.2860** | **0.826** | **0.832** |
+  | **Ours: GBDT + online (final)** | **0.2999** | **0.3049** | **0.795** | **0.801** |
+  | Ours: GBDT alone | 0.3051 | 0.3088 | 0.790 | 0.800 |
+  | RWKV-Curve | 0.3143 | 0.3302 | 0.771 | 0.767 |
+  | FSRS-6 | 0.3383 | 0.3580 | 0.706 | 0.699 |
+
+  Paired differences, final model minus each (weighted, 99% intervals):
+
+  - GBDT alone: −0.0052 [−0.0067, −0.0042];
+  - RWKV-Instant: +0.0171 [+0.0154, +0.0191];
+  - RWKV-Curve: −0.0143 [−0.0195, −0.0101];
+  - FSRS-6: −0.0384 [−0.0442, −0.0333].
+
+  **2nd of all published models.** Our model is an Instant-type model, so the like-for-like rival is RWKV-Instant.
+
+### D7. Experiments after the freeze (validation only; none changes the final model)
+
+| Experiment | Result |
+|---|---|
+| FSRS ablation (retrain without FSRS features) | +0.0016 [+0.0008, +0.0025] for the GBDT, +0.0009 with online; FSRS is under 0.3% of compute; the gain is largest for low-retention users |
+| MoE gate over the type experts | tie |
+| 3×3 grid (learner form × gap) experts + soft gate | hard +0.0004, soft gate +0.0009 (worse) |
+| Elo-band analysis (5 bands) | log loss 0.549 → 0.084 from weakest to strongest; online gain 0.0085 → 0.0016; FSRS bias +9.2 points (weakest) to −5.7 (strongest) |
+| Elo-band experts (3/5 bands, scratch/fine-tuned, hard/overlapping) | best −0.00004; hard 5-band from scratch +0.0013; overlapping beats hard |
+| Elo experts without FSRS / FSRS dropped only in strong bands | from scratch worse (+0.002) / unchanged: FSRS does not add noise to bands |
+| Speed (Kaggle, 10 users × 2,000 reviews) | ours 0.09 ms per review (CPU) vs RWKV-Instant about 96 ms (CPU) and 106 ms (T4 GPU), run one review at a time |
+
+Summaries: `results/srsb_beat/elo_experts_summary.md`, `results/srsb_beat/final/online_test1000.jsonl.comparison.json`.
 
 ### D6. Infrastructure lessons (also in memory note `colab-kaggle-runbook`)
 

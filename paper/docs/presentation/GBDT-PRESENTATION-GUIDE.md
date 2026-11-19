@@ -398,7 +398,9 @@ The take-home: **FSRS is over-confident for weak learners and too pessimistic fo
 - Fine-tuned experts stopped after 1–12 extra trees in most bands: there was almost nothing band-specific left to learn.
 - The best gain, 0.00004, is about 300 times smaller than the online layer's gain.
 
-**Conclusion:** one global GBDT already handles learner strength. Elo bands, like the user-type experts and the MoE gates, add nothing. (The no-FSRS and mixed variants are still running.)
+**Without FSRS inside the experts** (testing the idea that a global FSRS adds noise to local bands): the from-scratch experts got **worse** (+0.002), and dropping FSRS only in the strong bands changed nothing. FSRS helps even inside a band.
+
+**Conclusion:** one global GBDT already handles learner strength. Elo bands, like the user-type experts and the MoE gates, add nothing.
 
 # 9. How models are scored
 
