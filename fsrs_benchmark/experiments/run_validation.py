@@ -19,7 +19,6 @@ from fsrs_benchmark import metrics
 from fsrs_benchmark.experiments.prepare_data import CACHE, build
 from fsrs_benchmark.experiments.validation import make_validation_split
 from fsrs_benchmark.models.fsrs_model import FSRSModel
-from fsrs_benchmark.models.ours_v2 import OursV2
 
 OUT = Path("results/phase6_validation")
 LOG = Path("docs/reports/phase-6-experiments.md")
@@ -43,6 +42,8 @@ def make_model(name, workers):
         return FSRSModel(optimize=False)
     if name == "fsrs_opt":
         return FSRSModel(optimize=True, n_workers=workers)
+    from fsrs_benchmark.models.ours_v2 import OursV2
+
     return OursV2(**VARIANTS[name][1])
 
 

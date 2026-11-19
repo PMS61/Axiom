@@ -6,3 +6,11 @@ polyagamma==2.0.2
 
 # Local Anki Parquet adapter
 pyarrow==26.0.0
+
+# Live benchmark runners
+fsrs==6.3.2
+pandas>=2.2,<4
+numba>=0.61,<1
+huggingface_hub>=0.30,<2
+lightgbm>=4.6,<5
+scikit-learn>=1.6,<2

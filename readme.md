@@ -1,5 +1,7 @@
 # Axiom
 
+[Presentation code and run commands](presentation/README.md)
+
 ## Bayesian scheduler demo
 
 The branch now opens directly into a research workspace at `/` and
