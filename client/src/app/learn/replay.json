@@ -1,0 +1,309 @@
+{
+  "fitLearners": 6000,
+  "historySize": 1822,
+  "target": 0.9,
+  "reviewLimit": 3,
+  "cards": [
+    {
+      "word": "blanco",
+      "meaning": "white",
+      "practice": [
+        {
+          "daysAgo": 4,
+          "recalled": true
+        },
+        {
+          "daysAgo": 4,
+          "recalled": true
+        },
+        {
+          "daysAgo": 4,
+          "recalled": true
+        },
+        {
+          "daysAgo": 4,
+          "recalled": true
+        },
+        {
+          "daysAgo": 4,
+          "recalled": true
+        },
+        {
+          "daysAgo": 3,
+          "recalled": false
+        }
+      ],
+      "forecast": [
+        0.891877, 0.90181, 0.899367, 0.896931, 0.896931, 0.896931, 0.896931,
+        0.896931, 0.896931, 0.896931, 0.896931, 0.896931, 0.896931, 0.896931,
+        0.894923, 0.894923, 0.894923, 0.894923, 0.894923, 0.894923, 0.894923
+      ],
+      "plan": {
+        "interval": 1,
+        "recall": 0.891877,
+        "missed": {
+          "interval": 1,
+          "recall": 0.883837,
+          "missed": {
+            "interval": 1,
+            "recall": 0.863735,
+            "missed": {
+              "interval": 1,
+              "recall": 0.848402
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.886115
+            }
+          },
+          "remembered": {
+            "interval": 1,
+            "recall": 0.875016,
+            "missed": {
+              "interval": 1,
+              "recall": 0.891579
+            },
+            "remembered": {
+              "interval": 4,
+              "recall": 0.900783
+            }
+          }
+        },
+        "remembered": {
+          "interval": 8,
+          "recall": 0.900934,
+          "missed": {
+            "interval": 1,
+            "recall": 0.881883,
+            "missed": {
+              "interval": 1,
+              "recall": 0.868889
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.880291
+            }
+          },
+          "remembered": {
+            "interval": 21,
+            "recall": 0.900534,
+            "missed": {
+              "interval": 1,
+              "recall": 0.88807
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.893474
+            }
+          }
+        }
+      }
+    },
+    {
+      "word": "hermano",
+      "meaning": "brother",
+      "practice": [
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": false
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 0,
+          "recalled": true
+        }
+      ],
+      "forecast": [
+        0.90598, 0.912206, 0.911774, 0.909571, 0.908671, 0.904047, 0.900583,
+        0.899364, 0.899364, 0.898045, 0.897563, 0.897563, 0.897208, 0.897208,
+        0.897208, 0.897918, 0.897918, 0.898101, 0.898101, 0.89693, 0.89693
+      ],
+      "plan": {
+        "interval": 7,
+        "recall": 0.900583,
+        "missed": {
+          "interval": 1,
+          "recall": 0.883397,
+          "missed": {
+            "interval": 1,
+            "recall": 0.8663,
+            "missed": {
+              "interval": 1,
+              "recall": 0.85771
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.886801
+            }
+          },
+          "remembered": {
+            "interval": 1,
+            "recall": 0.881421,
+            "missed": {
+              "interval": 1,
+              "recall": 0.889326
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.899153
+            }
+          }
+        },
+        "remembered": {
+          "interval": 6,
+          "recall": 0.900906,
+          "missed": {
+            "interval": 1,
+            "recall": 0.889197,
+            "missed": {
+              "interval": 1,
+              "recall": 0.869104
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.880777
+            }
+          },
+          "remembered": {
+            "interval": 1,
+            "recall": 0.8959,
+            "missed": {
+              "interval": 1,
+              "recall": 0.890518
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.887742
+            }
+          }
+        }
+      }
+    },
+    {
+      "word": "pájaro",
+      "meaning": "bird",
+      "practice": [
+        {
+          "daysAgo": 4,
+          "recalled": true
+        },
+        {
+          "daysAgo": 3,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        }
+      ],
+      "forecast": [
+        0.923235, 0.926389, 0.926105, 0.921027, 0.91749, 0.916785, 0.918088,
+        0.915028, 0.915028, 0.915028, 0.915028, 0.913969, 0.913969, 0.913969,
+        0.913969, 0.912823, 0.912823, 0.91148, 0.91148, 0.91148, 0.91148
+      ],
+      "plan": {
+        "interval": 21,
+        "recall": 0.91148,
+        "missed": {
+          "interval": 1,
+          "recall": 0.899999,
+          "missed": {
+            "interval": 1,
+            "recall": 0.868928,
+            "missed": {
+              "interval": 1,
+              "recall": 0.876636
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.893431
+            }
+          },
+          "remembered": {
+            "interval": 1,
+            "recall": 0.8878,
+            "missed": {
+              "interval": 1,
+              "recall": 0.894724
+            },
+            "remembered": {
+              "interval": 9,
+              "recall": 0.901356
+            }
+          }
+        },
+        "remembered": {
+          "interval": 1,
+          "recall": 0.898025,
+          "missed": {
+            "interval": 1,
+            "recall": 0.889447,
+            "missed": {
+              "interval": 1,
+              "recall": 0.887677
+            },
+            "remembered": {
+              "interval": 5,
+              "recall": 0.90125
+            }
+          },
+          "remembered": {
+            "interval": 1,
+            "recall": 0.897452,
+            "missed": {
+              "interval": 5,
+              "recall": 0.902647
+            },
+            "remembered": {
+              "interval": 1,
+              "recall": 0.895525
+            }
+          }
+        }
+      }
+    }
+  ]
+}

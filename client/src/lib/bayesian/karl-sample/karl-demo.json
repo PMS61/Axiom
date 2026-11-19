@@ -1,0 +1,957 @@
+{
+  "dataset": "KAR³L",
+  "learnerId": "38",
+  "datasetUrl": "https://huggingface.co/datasets/nbalepur/KARL",
+  "factsUrl": "https://github.com/Pinafore/fact-repetition/blob/master/facts.csv",
+  "paperUrl": "https://aclanthology.org/2024.emnlp-main.784/",
+  "hfRevision": "198aa632c0e8dca71c579f0647041d27d479a9e7",
+  "githubRevision": "2bdcb801232dab5362610fa8297119dc5e9876f2",
+  "sourceHashes": {
+    "reviews.parquet": "6ed0667325f2b2d21aa5c726d3c0942cdb7e77af85692d43e4a8701b14f61dca",
+    "facts.csv": "3a7812d9e475828ac79a5a0063263267c16c032c42237cdfee17f4e236dd9ef7"
+  },
+  "sourceLogCount": 123143,
+  "sourceLearnerCount": 543,
+  "selection": "Learner with most eligible cards; eight most-reviewed cards with at least four logs, prompts <=130 characters, unique timestamps, and exact normalized prompt matches. No outcome filtering.",
+  "snapshotAt": "2021-03-31T05:38:40.939585+00:00",
+  "terms": "Repository includes an MIT license; the Hugging Face dataset card does not declare a separate data license. Included for this local research demonstration; no broader content-rights claim.",
+  "cards": [
+    {
+      "cardId": "158662",
+      "question": "Ogaden War in this country",
+      "answer": "Ethiopia",
+      "lastReviewDay": -48.98710754922453,
+      "initialStabilityDays": 6.4555902777777785,
+      "events": [
+        {
+          "at": "2020-09-03T21:04:11+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-09-06T18:53:24+00:00",
+          "recalled": false,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-09-06T19:00:10+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-09-10T16:35:31+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-09-21T12:07:09+00:00",
+          "recalled": false,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-09-21T13:36:13+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-09-22T16:19:05+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-10-01T12:29:22+00:00",
+          "recalled": false,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-10-05T12:21:04+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-10-11T22:21:46+00:00",
+          "recalled": false,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-10-11T22:27:49+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-10-12T22:19:14+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-10-19T15:32:45+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-10-27T23:58:12+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-11-10T00:15:29+00:00",
+          "recalled": false,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-11-11T23:55:30+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-11-13T12:33:59+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-11-20T00:25:23+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-11-28T01:03:37+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-12-16T01:20:38+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2020-12-30T07:27:18.427721+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2021-01-18T06:39:05.348559+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        },
+        {
+          "at": "2021-02-10T05:57:14.847332+00:00",
+          "recalled": true,
+          "correctOnFirstTry": true
+        }
+      ]
+    },
+    {
+      "cardId": "176503",
+      "question": "Explorer who “discovered” Brazil for Portugal in 1500",
+      "answer": "Pedro Alvares Cabral",
+      "lastReviewDay": -30.950061389918982,
+      "initialStabilityDays": 2.7901099537037037,
+      "events": [
+        {
+          "at": "2020-10-11T22:39:25+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-11T22:43:53+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-11T22:48:42+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-13T23:58:59+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-20T10:27:54+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-22T13:32:55+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-22T13:42:17+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-26T00:32:47+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-02T00:10:07+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-10T00:30:26+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-22T01:48:02+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-12T01:52:40+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-30T07:27:48.399556+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-30T07:34:21.736625+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-31T07:15:47.985238+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-07T06:58:55.153882+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-07T07:15:44.594588+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-09T05:35:49.763844+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-18T06:33:38.103634+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-26T06:05:11.200725+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-27T07:09:06.815467+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-29T05:40:07.617076+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-02-28T06:50:35.635496+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        }
+      ]
+    },
+    {
+      "cardId": "176535",
+      "question": " Late Assyrian king whose Death was famously painted by Delacroix",
+      "answer": "Sardanapalus",
+      "lastReviewDay": -31.966766764814814,
+      "initialStabilityDays": 4.463252228396991,
+      "events": [
+        {
+          "at": "2020-10-11T22:31:37+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-11T22:35:50+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-12T10:07:42+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-12T22:18:44+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-14T00:02:19+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-15T12:37:16+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-22T13:41:17+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-30T12:35:25+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-10T00:21:19+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-11T00:00:45+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-12T00:27:52+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-20T00:22:51+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-21T02:06:45+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-23T01:02:11+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-30T00:44:10+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-16T01:28:18+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-27T05:57:57.585807+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-10T07:13:06.944909+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-11T05:41:26.880615+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-12T06:56:11.343777+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-19T06:14:55.328844+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-28T05:08:09.833717+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-02-27T06:26:32.291105+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        }
+      ]
+    },
+    {
+      "cardId": "177756",
+      "question": "King of Rome who created coins",
+      "answer": "Servius Tullius",
+      "lastReviewDay": -2.030577928668982,
+      "initialStabilityDays": 4.3078555160879635,
+      "events": [
+        {
+          "at": "2020-11-02T00:36:36+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-02T00:45:28+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-03T00:13:33+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-04T01:56:23+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-06T01:20:28+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-09T00:13:03+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-16T00:17:33+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-24T01:08:43+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-25T01:39:39+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-26T02:10:59+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-04T01:26:47+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-17T15:12:47.581497+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-22T15:26:55.320191+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-26T05:59:25.014677+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-27T05:56:50.579066+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-02T07:37:04.970633+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-10T07:14:39.581137+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-21T05:51:07.748115+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-21T05:56:57.263955+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-22T06:39:20.636868+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-29T05:39:50.563300+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-02-28T06:51:00.974016+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-03-29T04:54:39.006548+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        }
+      ]
+    },
+    {
+      "cardId": "177927",
+      "question": "A group attacking this city included a main who ate the brains of Melannipus",
+      "answer": "Thebes (Greek)",
+      "lastReviewDay": -31.95772565001157,
+      "initialStabilityDays": 3.0047657497743057,
+      "events": [
+        {
+          "at": "2020-11-02T00:49:22+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-02T00:56:29+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-04T01:56:46+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-11T00:14:34+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-23T01:17:11+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-24T01:11:03+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-26T01:51:58+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-26T02:11:10+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-27T01:52:09+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-05T01:16:46+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-05T01:34:38+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-16T01:20:00+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-22T06:44:18.941868+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-26T05:57:45.463429+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-01T07:00:47.046623+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-09T05:37:20.275017+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-10T06:58:12.786990+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-12T06:35:33.613094+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-19T05:49:18.618600+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-20T06:10:39.823686+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-22T06:31:05.821619+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-29T05:37:40.223537+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-02-27T06:39:33.443424+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        }
+      ]
+    },
+    {
+      "cardId": "158365",
+      "question": "2006 Winter Olympics",
+      "answer": "Turin",
+      "lastReviewDay": -22.98217563935185,
+      "initialStabilityDays": 9.775358301863426,
+      "events": [
+        {
+          "at": "2020-09-03T21:02:37+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-09-03T21:07:07+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-09-06T18:59:21+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-09-20T21:43:16+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-05T12:22:53+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-07T14:12:42+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-11T22:28:30+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-12T10:07:27+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-14T00:07:18+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-22T13:08:49+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-30T12:39:16+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-11T23:48:30+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-27T01:44:54+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-28T00:45:42+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-30T00:11:44+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-14T10:05:17+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-26T05:55:35.120896+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-06T06:07:06.035458+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-20T06:14:48.326568+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-02-07T04:56:00.013383+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-03-08T06:04:20.964345+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        }
+      ]
+    },
+    {
+      "cardId": "177751",
+      "question": "This King defeated Alba Longa",
+      "answer": "Tullus Hostilius",
+      "lastReviewDay": -1.0,
+      "initialStabilityDays": 6.773180595086805,
+      "events": [
+        {
+          "at": "2020-10-26T00:37:45+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-26T00:44:47+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-27T10:25:45+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-03T00:27:46+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-05T00:54:50+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-09T00:08:26+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-16T00:16:44+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-26T01:36:53+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-16T01:23:05+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-03T06:34:37.730667+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-03T06:56:43.097632+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-05T05:52:04.479200+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-12T06:35:17.873054+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-20T06:16:57.643153+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-20T06:23:34.052139+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-22T06:35:39.326191+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-29T05:40:23.933022+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-02-28T06:54:50.670471+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-03-30T05:38:40.939585+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        }
+      ]
+    },
+    {
+      "cardId": "176492",
+      "question": "Battle of Drepana during this war",
+      "answer": "First Punic War",
+      "lastReviewDay": -22.976423565127316,
+      "initialStabilityDays": 6.066655092592592,
+      "events": [
+        {
+          "at": "2020-10-26T00:43:25+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-26T10:11:43+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-27T10:22:05+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-27T10:35:36+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-28T23:36:13+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-28T23:54:41+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-10-30T12:37:40+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-08T00:35:33+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-17T01:00:30+00:00",
+          "recalled": false,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-18T00:53:37+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-20T00:34:19+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-11-26T02:10:18+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-05T01:22:32+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2020-12-22T06:39:52.440700+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-05T05:50:16.818021+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-01-23T05:28:58.983685+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-02-08T05:25:20.724420+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        },
+        {
+          "at": "2021-03-08T06:12:37.943558+00:00",
+          "recalled": true,
+          "correctOnFirstTry": false
+        }
+      ]
+    }
+  ]
+}

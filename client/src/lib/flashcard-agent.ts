@@ -50,32 +50,37 @@ function normalizeSet(
   payload: unknown,
   title: string,
   description: string,
+  requireGenerated = false,
 ): FlashcardSet {
   const fallback = fallbackSet(title, description);
-  if (!payload || typeof payload !== "object") return fallback;
+  if (!payload || typeof payload !== "object") {
+    if (requireGenerated) throw new Error("Invalid flashcard response.");
+    return fallback;
+  }
 
   const candidate = payload as Partial<FlashcardSet>;
   const rawCards = Array.isArray(candidate.cards) ? candidate.cards : [];
 
+  const seen = new Set<string>();
   const cards = rawCards
     .map((entry, index) => {
       if (!entry || typeof entry !== "object") return null;
       const item = entry as Partial<Flashcard>;
       const front = typeof item.front === "string" ? item.front.trim() : "";
       const back = typeof item.back === "string" ? item.back.trim() : "";
-      if (!front || !back) return null;
-
-      return {
-        id:
-          typeof item.id === "string" && item.id.trim()
-            ? item.id.trim()
-            : `fc-${index + 1}`,
-        front,
-        back,
-      };
+      const key = front.toLowerCase().replace(/\s+/g, " ");
+      if (!front || !back || seen.has(key)) return null;
+      if (requireGenerated && (front.length > 350 || back.length > 1200))
+        return null;
+      seen.add(key);
+      return { id: `fc-${index + 1}`, front, back };
     })
     .filter((card): card is Flashcard => Boolean(card))
     .slice(0, 24);
+
+  if (requireGenerated && cards.length < 3) {
+    throw new Error("Gemma 4 returned too few complete flashcards.");
+  }
 
   return {
     title:
@@ -90,6 +95,7 @@ export async function generateFlashcardSet(
   title: string,
   description: string,
   additionalInstructions: string,
+  options: { requireGenerated?: boolean; cardCount?: number } = {},
 ): Promise<FlashcardSet> {
   const prompt = `
 You are an expert instructional designer.
@@ -106,7 +112,7 @@ Hard rules:
 - Generate concise, clear, exam-friendly flashcards.
 - Mix concept, application, and common-mistake cards.
 - Keep card front short and back precise.
-- Generate between 10 and 18 cards.
+- Generate ${options.cardCount ? `exactly ${options.cardCount}` : "between 10 and 18"} cards.
 
 JSON format:
 {
@@ -118,12 +124,17 @@ JSON format:
 `;
 
   try {
-    const raw = await getGeminiResponse(prompt, true);
+    const raw = await getGeminiResponse(
+      prompt,
+      true,
+      undefined,
+      options.requireGenerated,
+    );
     const parsed = JSON.parse(raw);
     if (parsed?.error) {
       throw new Error(parsed.message || parsed.error);
     }
-    return normalizeSet(parsed, title, description);
+    return normalizeSet(parsed, title, description, options.requireGenerated);
   } catch (error) {
     console.error("[FlashcardAgent] generation failed:", error);
     throw error;

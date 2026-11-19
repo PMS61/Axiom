@@ -1,11 +1,12 @@
 "use server";
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 // Rate limiter configuration
 const MAX_CALLS_PER_MINUTE = 30;
 const MINUTE_IN_MS = 60 * 1000;
-const GEMMA_4_MODEL = "gemma-4-31b-it";
+const GEMMA_4_MODEL = "gemma-4-26b-a4b-it";
+const GEMMA_4_ALTERNATE = "gemma-4-31b-it";
 
 let genAI: GoogleGenAI | null = null;
 
@@ -18,14 +19,23 @@ const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 function extractJsonFromResponse(text: string): string {
-  const startIndex = text.indexOf("```json");
-  const endIndex = text.lastIndexOf("```");
-
-  if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-    return text.substring(startIndex + 7, endIndex).trim(); // 7 = length of "```json"
+  const fenced = [
+    ...text.matchAll(/```(?:json)?[ \t]*\r?\n([\s\S]*?)```/gi),
+  ].map((match) => match[1].trim());
+  const start = text.search(/[\[{]/);
+  const end =
+    start < 0 ? -1 : text.lastIndexOf(text[start] === "[" ? "]" : "}");
+  const candidates = [text, ...fenced];
+  if (start >= 0 && end > start) candidates.push(text.slice(start, end + 1));
+  for (const candidate of candidates) {
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch {
+      // Try the next complete output block.
+    }
   }
-
-  return text.trim(); // fallback: return full text
+  throw new SyntaxError("Gemma 4 did not return valid JSON.");
 }
 
 function getGeminiClient(): GoogleGenAI | null {
@@ -63,9 +73,11 @@ function isRateLimitError(error: unknown): boolean {
   if (typeof error === "object" && error !== null) {
     const candidate = error as {
       message?: unknown;
+      status?: unknown;
       response?: { status?: unknown };
     };
-    if (candidate.response?.status === 429) return true;
+    if (candidate.status === 429 || candidate.response?.status === 429)
+      return true;
     if (
       typeof candidate.message === "string" &&
       candidate.message.toLowerCase().includes("rate limit")
@@ -79,7 +91,7 @@ function isServiceUnavailableError(error: unknown): boolean {
   if (!error) return false;
   if (typeof error === "object" && error !== null) {
     const candidate = error as { message?: unknown; status?: unknown };
-    if (candidate.status === 503) return true;
+    if (candidate.status === 503 || candidate.status === 504) return true;
     if (
       typeof candidate.message === "string" &&
       candidate.message.toLowerCase().includes("overloaded")
@@ -94,15 +106,12 @@ function isServiceUnavailableError(error: unknown): boolean {
   return false;
 }
 
-/**
- * Function that takes a prompt as input and returns the output from Gemini-1.5-flash model
- * Each call creates a new chat instance, so there's no persistent memory between calls
- * Rate limited to 14 calls per minute, will wait if rate limit is reached
- */
+/** Generate with Gemma 4 through the Gemini API. Each request is independent. */
 export async function getGeminiResponse(
   prompt: string,
   isJson: boolean = true,
   model: string = GEMMA_4_MODEL,
+  fast = false,
 ): Promise<string> {
   const client = getGeminiClient();
   if (!client) {
@@ -117,64 +126,45 @@ export async function getGeminiResponse(
 
   if (model !== GEMMA_4_MODEL) {
     console.warn(
-      `Ignoring requested model "${model}". Axiom is configured to use ${GEMMA_4_MODEL} only.`,
+      `Ignoring requested model "${model}". Axiom uses the Gemma 4 family.`,
     );
   }
 
   let retryCount = 0;
   const maxRetries = 3;
 
+  let activeModel = GEMMA_4_MODEL;
   while (retryCount < maxRetries) {
     try {
       await rateLimitSafe();
 
       const response = await client.models.generateContent({
-        model: GEMMA_4_MODEL,
+        model: activeModel,
         contents: prompt,
+        config: {
+          httpOptions: { timeout: 25000 },
+          ...(fast
+            ? {
+                thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+                maxOutputTokens: 1800,
+              }
+            : {}),
+        },
       });
 
       if (!response || !response.text) {
         throw new Error("No response text received from Gemini API");
       }
 
-      let outputText = response.text.trim();
-
-      // console.log("Raw output text:", outputText);
-
-      if (isJson) {
-        try {
-          JSON.parse(outputText);
-        } catch {
-          outputText = extractJsonFromResponse(outputText);
-          // Try parsing again after extraction
-          try {
-            JSON.parse(outputText);
-          } catch {
-            throw new Error("Could not extract valid JSON from response");
-          }
-        }
-      }
-
-      // console.log("Prompt:", prompt.substring(0, 200) + "...");
-      // console.log("Response:", outputText.substring(0, 200) + "...");
-
-      return outputText;
+      const outputText = response.text.trim();
+      return isJson ? extractJsonFromResponse(outputText) : outputText;
     } catch (error) {
       retryCount++;
 
-      if (isRateLimitError(error)) {
-        console.warn("Rate limit hit, retrying in 10s...");
-        await sleep(10000);
-        retryCount--; // Don't count rate limit as a retry
-        continue;
-      }
-
-      if (isServiceUnavailableError(error)) {
-        console.warn(
-          `Service unavailable (attempt ${retryCount}/${maxRetries}), retrying in ${5 * retryCount}s...`,
-        );
+      if (isRateLimitError(error) || isServiceUnavailableError(error)) {
+        activeModel = retryCount === 1 ? GEMMA_4_ALTERNATE : GEMMA_4_MODEL;
         if (retryCount < maxRetries) {
-          await sleep(5000 * retryCount);
+          await sleep(1500 * retryCount);
           continue;
         }
       }
@@ -185,13 +175,18 @@ export async function getGeminiResponse(
       );
 
       if (retryCount >= maxRetries) {
-        console.error("Max retries exceeded, falling back to default content");
+        console.error("Gemma 4 retry limit reached");
         if (isJson) {
           // Return a basic error structure for JSON requests
+          if (error instanceof SyntaxError) {
+            return JSON.stringify({
+              error: "invalid_output",
+              message: error.message,
+            });
+          }
           return JSON.stringify({
             error: "service_unavailable",
-            message:
-              "Gemma 4 is currently unavailable. Using fallback content.",
+            message: "Gemma 4 is currently unavailable. Try again in a moment.",
           });
         } else {
           return "I apologize, but the AI service is currently unavailable. Please try again later.";

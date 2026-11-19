@@ -14,6 +14,8 @@ interface Props {
   onCancel: () => void;
   isGenerating?: boolean;
   prefillGoal?: string;
+  description?: string;
+  error?: string;
 }
 
 export default function RoadmapGoalModal({
@@ -21,6 +23,8 @@ export default function RoadmapGoalModal({
   onCancel,
   isGenerating,
   prefillGoal,
+  description,
+  error,
 }: Props) {
   const [goal, setGoal] = useState(prefillGoal ?? "");
   const [syllabus, setSyllabus] = useState("");
@@ -98,17 +102,17 @@ export default function RoadmapGoalModal({
             lineHeight: 1.7,
           }}
         >
-          The Roadmap Agent will generate a personalised DAG of topics with
-          prerequisites, difficulty scores, and study times — automatically
-          creating CogFlow tasks from each node.
+          {description ?? "The Roadmap Agent will generate a personalised DAG of topics with prerequisites, difficulty scores, and study times — automatically creating CogFlow tasks from each node."}
         </p>
 
         <form onSubmit={handleSubmit}>
+            {error && <p role="alert" style={{ color: "var(--vermillion)", marginBottom: 18 }}>{error}</p>}
             <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
               {/* Goal */}
               <div>
-                <label>Learning Goal *</label>
+                <label htmlFor="roadmap-goal">Learning Goal *</label>
                 <textarea
+                  id="roadmap-goal"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   placeholder="e.g. Master Data Structures & Algorithms for coding interviews"
@@ -131,8 +135,9 @@ export default function RoadmapGoalModal({
 
               {/* Syllabus */}
               <div>
-                <label>Syllabus / Reference Material (optional)</label>
+                <label htmlFor="roadmap-syllabus">Syllabus / Reference Material (optional)</label>
                 <textarea
+                  id="roadmap-syllabus"
                   value={syllabus}
                   onChange={(e) => setSyllabus(e.target.value)}
                   placeholder="Paste your course syllabus, topic list, or any reference material here..."
@@ -154,8 +159,9 @@ export default function RoadmapGoalModal({
 
               {/* Deadline */}
               <div>
-                <label>Target Deadline (optional)</label>
+                <label htmlFor="roadmap-deadline">Target Deadline (optional)</label>
                 <input
+                  id="roadmap-deadline"
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}

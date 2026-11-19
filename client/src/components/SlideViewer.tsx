@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -93,6 +93,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
     if (containerRef.current && chart) {
       mermaid.initialize({
         startOnLoad: false,
+        securityLevel: 'strict',
         theme: 'base',
         fontFamily: 'var(--mono)',
         themeVariables: {
@@ -182,6 +183,31 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
     </div>
   );
 };
+
+
+function SlideChecklist({ items }: { items: { text: string; checked?: boolean }[] }) {
+  const [checked, setChecked] = useState(() => items.map((item) => Boolean(item.checked)));
+
+  return (
+    <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
+      {items.map((item, index) => (
+        <div key={`${item.text}-${index}`} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <input
+            type="checkbox"
+            style={{ marginTop: 6, accentColor: "var(--vermillion)" }}
+            aria-label={item.text}
+            checked={checked[index]}
+            onChange={(event) => {
+              const value = event.target.checked;
+              setChecked((previous) => previous.map((state, i) => i === index ? value : state));
+            }}
+          />
+          <MarkdownText>{item.text}</MarkdownText>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 
 // ── Slide Viewer ─────────────────────────────────────────────
@@ -328,16 +354,7 @@ export default function SlideViewer({ slide }: { slide: any }) {
         <div style={wrapperStyle}>
           {slide.title && <h3 style={titleStyle}>{slide.title}</h3>}
           {slide.items && slide.items.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "8px" }}>
-              {slide.items.map((item: any, i: number) => (
-                <div key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                  <div style={{ ...textStyle, color: item.checked ? "var(--ink)" : "var(--muted)", paddingTop: "2px" }}>
-                    {item.checked ? "[x]" : "[ ]"}
-                  </div>
-                  <div><MarkdownText>{item.text}</MarkdownText></div>
-                </div>
-              ))}
-            </div>
+            <SlideChecklist key={JSON.stringify(slide.items)} items={slide.items} />
           )}
         </div>
       );

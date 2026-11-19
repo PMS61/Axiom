@@ -14,19 +14,21 @@ import { ENERGY_LABELS } from "@/lib/types";
 import type { EnergyLevel } from "@/lib/types";
 import { logoutUser } from "@/app/actions/auth";
 
-export default function Header() {
+export default function Header({ study = false, dashboardDemo = false }: { study?: boolean; dashboardDemo?: boolean }) {
   const pathname = usePathname();
   const { state, dispatch } = useApp();
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
 
   useEffect(() => {
+    if (dashboardDemo) return;
     const saved = localStorage.getItem("axiom-theme");
     if (saved === "light" || saved === "dark") {
       setTheme(saved);
     }
-  }, []);
+  }, [dashboardDemo]);
 
   useEffect(() => {
+    if (dashboardDemo) return;
     // Sync theme to root element on mount and change
     if (theme !== "system") {
       document.documentElement.setAttribute("data-theme", theme);
@@ -35,7 +37,7 @@ export default function Header() {
       document.documentElement.removeAttribute("data-theme");
       localStorage.removeItem("axiom-theme");
     }
-  }, [theme]);
+  }, [theme, dashboardDemo]);
 
   const toggleTheme = () => {
     if (theme === "system") {
@@ -46,6 +48,36 @@ export default function Header() {
       setTheme("system"); // cycle back
     }
   };
+
+  if (study || dashboardDemo) {
+    return (
+      <>
+        <header className="nav" data-axiom-demo={dashboardDemo ? "" : undefined}>
+          <div className="nav-inner">
+            <Link href={dashboardDemo ? "/dashboard/demo" : "/learn"} className="logo">Axiom</Link>
+            {dashboardDemo ? (
+              <nav aria-label="Dashboard">
+                <div style={{ display: "flex", gap: "8px 18px", flexWrap: "wrap" }}>
+                  <Link href="/dashboard/demo" className={`nav-link ${pathname === "/dashboard/demo" ? "active" : ""}`}>Dashboard</Link>
+                  <Link href="/dashboard/demo/roadmap" className={`nav-link ${pathname === "/dashboard/demo/roadmap" ? "active" : ""}`}>Roadmap</Link>
+                  <Link href="/dashboard/demo/discover" className={`nav-link ${pathname === "/dashboard/demo/discover" ? "active" : ""}`}>Discover</Link>
+                  <Link href="/dashboard/demo/study" className={`nav-link ${pathname === "/dashboard/demo/study" ? "active" : ""}`}>Study</Link>
+                  <Link href="/dashboard/demo#study-history" className="nav-link">Study history</Link>
+                </div>
+              </nav>
+            ) : (
+              <div style={{ display: "flex", gap: 24 }}>
+                <a href="#study" className="nav-link">Study</a>
+                <a href="#schedule" className="nav-link">Schedule</a>
+                <a href="#history" className="nav-link">History</a>
+              </div>
+            )}
+          </div>
+        </header>
+        <div className="mobile-spacer" style={{ height: 60 }} />
+      </>
+    );
+  }
 
   return (
     <>

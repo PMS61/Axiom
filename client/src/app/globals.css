@@ -30,7 +30,7 @@
   --blocked-bg: rgba(43, 45, 66, 0.04);
 }
 
-:root[data-theme='dark'] {
+:root[data-theme='dark']:not(:has([data-axiom-demo])) {
   --bg: #141414;
   --ink: #FAF7F2;
   --rule: #333333;
@@ -53,7 +53,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not(:has([data-axiom-demo])) {
     --bg: #141414;
     --ink: #FAF7F2;
     --rule: #333333;
@@ -74,6 +74,10 @@
     --low-bg: rgba(239, 68, 68, 0.1);
     --blocked-bg: rgba(255, 255, 255, 0.05);
   }
+}
+
+:root:has([data-axiom-demo]) {
+  color-scheme: light;
 }
 
 :root {

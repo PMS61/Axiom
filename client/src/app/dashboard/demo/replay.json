@@ -1,0 +1,323 @@
+{
+  "fitLearners": 538,
+  "target": 0.85,
+  "reviewLimit": 3,
+  "cards": [
+    {
+      "word": "A planet’s rings",
+      "question": "Adrastea and Amalthea help maintain the rings of which planet?",
+      "meaning": "Jupiter",
+      "practice": [
+        {
+          "daysAgo": 30,
+          "recalled": false
+        },
+        {
+          "daysAgo": 30,
+          "recalled": true
+        },
+        {
+          "daysAgo": 27,
+          "recalled": true
+        }
+      ],
+      "forecast": [
+        0.834651, 0.82949, 0.827414, 0.827414, 0.827414, 0.827414, 0.827414,
+        0.827414, 0.827414, 0.802282, 0.799914, 0.796735, 0.796874, 0.793571,
+        0.793571, 0.789858, 0.789858, 0.789858, 0.789858, 0.789858, 0.789858
+      ],
+      "plan": {
+        "interval": 1,
+        "recall": 0.834651,
+        "missed": {
+          "interval": 4,
+          "recall": 0.875363,
+          "missed": {
+            "interval": 1,
+            "recall": 0.874247,
+            "missed": {
+              "interval": 1,
+              "recall": 0.81154
+            },
+            "remembered": {
+              "interval": 8,
+              "recall": 0.855921
+            }
+          },
+          "remembered": {
+            "interval": 21,
+            "recall": 0.852625,
+            "missed": {
+              "interval": 4,
+              "recall": 0.867933
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.904676
+            }
+          }
+        },
+        "remembered": {
+          "interval": 21,
+          "recall": 0.921412,
+          "missed": {
+            "interval": 10,
+            "recall": 0.856812,
+            "missed": {
+              "interval": 3,
+              "recall": 0.885466
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.879434
+            }
+          },
+          "remembered": {
+            "interval": 21,
+            "recall": 0.949371,
+            "missed": {
+              "interval": 21,
+              "recall": 0.855183
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.956045
+            }
+          }
+        }
+      }
+    },
+    {
+      "word": "The moon Mimas",
+      "question": "Mimas orbits which planet in less than one Earth day?",
+      "meaning": "Saturn",
+      "practice": [
+        {
+          "daysAgo": 30,
+          "recalled": true
+        },
+        {
+          "daysAgo": 0,
+          "recalled": false
+        }
+      ],
+      "forecast": [
+        0.903715, 0.883621, 0.87501, 0.869564, 0.835347, 0.830018, 0.829192,
+        0.813332, 0.732592, 0.719972, 0.707438, 0.670909, 0.670775, 0.669073,
+        0.669073, 0.669073, 0.669073, 0.669073, 0.669073, 0.669073, 0.65886
+      ],
+      "plan": {
+        "interval": 4,
+        "recall": 0.869564,
+        "missed": {
+          "interval": 2,
+          "recall": 0.858051,
+          "missed": {
+            "interval": 1,
+            "recall": 0.794172,
+            "missed": {
+              "interval": 1,
+              "recall": 0.712834
+            },
+            "remembered": {
+              "interval": 5,
+              "recall": 0.856604
+            }
+          },
+          "remembered": {
+            "interval": 10,
+            "recall": 0.854399,
+            "missed": {
+              "interval": 2,
+              "recall": 0.854565
+            },
+            "remembered": {
+              "interval": 19,
+              "recall": 0.850767
+            }
+          }
+        },
+        "remembered": {
+          "interval": 21,
+          "recall": 0.887357,
+          "missed": {
+            "interval": 5,
+            "recall": 0.875123,
+            "missed": {
+              "interval": 1,
+              "recall": 0.883064
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.85409
+            }
+          },
+          "remembered": {
+            "interval": 21,
+            "recall": 0.929216,
+            "missed": {
+              "interval": 10,
+              "recall": 0.857572
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.947545
+            }
+          }
+        }
+      }
+    },
+    {
+      "word": "The Apollo landing",
+      "question": "Which celestial body did Neil Armstrong walk on?",
+      "meaning": "The Moon",
+      "practice": [
+        {
+          "daysAgo": 31,
+          "recalled": true
+        },
+        {
+          "daysAgo": 30,
+          "recalled": true
+        }
+      ],
+      "forecast": [
+        0.974916, 0.97527, 0.97527, 0.97527, 0.974533, 0.974533, 0.974533,
+        0.974453, 0.974134, 0.974156, 0.974156, 0.974144, 0.973316, 0.973316,
+        0.973316, 0.973804, 0.973804, 0.973804, 0.973804, 0.973804, 0.973804
+      ],
+      "plan": {
+        "interval": 21,
+        "recall": 0.973804,
+        "missed": {
+          "interval": 20,
+          "recall": 0.871196,
+          "missed": {
+            "interval": 6,
+            "recall": 0.857274,
+            "missed": {
+              "interval": 2,
+              "recall": 0.878899
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.919263
+            }
+          },
+          "remembered": {
+            "interval": 21,
+            "recall": 0.94852,
+            "missed": {
+              "interval": 21,
+              "recall": 0.878896
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.961384
+            }
+          }
+        },
+        "remembered": {
+          "interval": 21,
+          "recall": 0.979164,
+          "missed": {
+            "interval": 21,
+            "recall": 0.911018,
+            "missed": {
+              "interval": 10,
+              "recall": 0.850263
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.95828
+            }
+          },
+          "remembered": {
+            "interval": 21,
+            "recall": 0.981488,
+            "missed": {
+              "interval": 21,
+              "recall": 0.929136
+            },
+            "remembered": {
+              "interval": 21,
+              "recall": 0.981824
+            }
+          }
+        }
+      }
+    }
+  ],
+  "activity": [
+    {
+      "daysAgo": 0,
+      "remembered": 2,
+      "missed": 1
+    },
+    {
+      "daysAgo": 8,
+      "remembered": 12,
+      "missed": 0
+    },
+    {
+      "daysAgo": 9,
+      "remembered": 41,
+      "missed": 2
+    },
+    {
+      "daysAgo": 11,
+      "remembered": 81,
+      "missed": 1
+    },
+    {
+      "daysAgo": 19,
+      "remembered": 101,
+      "missed": 0
+    },
+    {
+      "daysAgo": 21,
+      "remembered": 61,
+      "missed": 0
+    },
+    {
+      "daysAgo": 24,
+      "remembered": 259,
+      "missed": 33
+    },
+    {
+      "daysAgo": 25,
+      "remembered": 195,
+      "missed": 14
+    },
+    {
+      "daysAgo": 26,
+      "remembered": 154,
+      "missed": 23
+    },
+    {
+      "daysAgo": 27,
+      "remembered": 469,
+      "missed": 28
+    },
+    {
+      "daysAgo": 28,
+      "remembered": 571,
+      "missed": 79
+    },
+    {
+      "daysAgo": 29,
+      "remembered": 463,
+      "missed": 77
+    },
+    {
+      "daysAgo": 30,
+      "remembered": 946,
+      "missed": 188
+    },
+    {
+      "daysAgo": 31,
+      "remembered": 634,
+      "missed": 217
+    }
+  ]
+}

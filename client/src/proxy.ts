@@ -1,7 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
 import { verify } from "jsonwebtoken";
+import { type NextRequest, NextResponse } from "next/server";
+
+const guestPages = new Set([
+  "/dashboard/demo",
+  "/dashboard/demo/roadmap",
+  "/dashboard/demo/discover",
+  "/dashboard/demo/study",
+]);
 
 export function proxy(request: NextRequest) {
+  if (guestPages.has(request.nextUrl.pathname)) return NextResponse.next();
+
   const token = request.cookies.get("token")?.value;
 
   if (!token || !process.env.JWT_SECRET) {

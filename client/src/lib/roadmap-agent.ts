@@ -1,7 +1,7 @@
 /**
  * ═══════════════════════════════════════════════════════════
  *  THE AXIOM — Adaptive Roadmap Agent
- *  Uses Gemini API (gemma-4-31b-it) to generate a
+ *  Uses Gemma 4 through Gemini API to generate a
  *  personalised DAG of learning topics based on user profile,
  *  goals, and mastery scores. Each node maps to a CogFlow task.
  * ═══════════════════════════════════════════════════════════
@@ -53,7 +53,7 @@ const NODE_SCHEMA = `
 }
 `;
 
-function buildPrompt(goal: RoadmapGoal): string {
+function buildPrompt(goal: RoadmapGoal, compact: boolean): string {
   const masteryContext =
     goal.existingMastery && goal.existingMastery.length > 0
       ? `\nCurrent Mastery Scores (skip or fast-track topics where mastery > 0.75):\n${goal.existingMastery.map((m) => `  - ${m.topic}: ${(m.score * 100).toFixed(0)}%`).join("\n")}`
@@ -71,7 +71,16 @@ function buildPrompt(goal: RoadmapGoal): string {
   - Deadline: ${goal.deadline || "flexible"}`
     : "";
 
-  return `${SYSTEM_RULES}
+  const rules = compact
+    ? SYSTEM_RULES.replace("12–18", "6–8")
+        .replace(
+          "Use exactly 1 assessement for every 3 course nodes (ratio enforcement).",
+          "Include at least one assessment after its prerequisite course nodes.",
+        )
+        .replace("2–3 sentence", "1–2 sentence")
+    : SYSTEM_RULES;
+
+  return `${rules}
 
 GOAL: ${goal.goal}
 ${profileContext}
@@ -172,16 +181,32 @@ const MAX_ROADMAP_ATTEMPTS = 2;
 
 export async function generateRoadmapDAG(
   goal: RoadmapGoal,
+  compact = false,
 ): Promise<RoadmapDAGNode[]> {
-  const prompt = buildPrompt(goal);
+  const prompt = buildPrompt(goal, compact);
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= MAX_ROADMAP_ATTEMPTS; attempt++) {
     try {
       console.log(`[RoadmapAgent] Attempt ${attempt}/${MAX_ROADMAP_ATTEMPTS}…`);
-      const raw = await getGeminiResponse(prompt, true);
+      const raw = await getGeminiResponse(prompt, true, undefined, compact);
       const parsed = parseAndValidateNodes(raw);
       const nodes = hydrateNodes(parsed);
+      if (compact) {
+        const byId = new Map(nodes.map((node) => [node.id, node]));
+        if (
+          nodes.length < 4 ||
+          nodes.length > 12 ||
+          byId.size !== nodes.length ||
+          nodes.some((node) =>
+            node.prerequisites.some(
+              (id) => (byId.get(id)?.sequence ?? Infinity) >= node.sequence,
+            ),
+          )
+        )
+          throw new Error("Gemma 4 returned an invalid prerequisite graph.");
+        return nodes.sort((a, b) => a.sequence - b.sequence);
+      }
       console.log(
         `[RoadmapAgent] Successfully generated ${nodes.length} nodes.`,
       );

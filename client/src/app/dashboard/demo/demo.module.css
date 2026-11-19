@@ -1,0 +1,297 @@
+.summary {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.summary a,
+.activityFoot a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.controls,
+.activityHead,
+.activityFoot,
+.focus,
+.dialogHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+
+.controls {
+  padding-block: 15px;
+}
+
+.focus {
+  padding: 18px 20px;
+  margin-bottom: 26px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--vermillion);
+  background: var(--card-bg);
+}
+
+.focus > div {
+  min-width: 0;
+}
+
+.focus h3 {
+  font-size: 21px;
+  margin: 4px 0 8px;
+}
+
+.focus p {
+  color: var(--muted);
+}
+
+.focus output {
+  display: block;
+  font-weight: 600;
+  color: var(--safe);
+}
+
+.focus output:not(:empty) {
+  margin-top: 7px;
+}
+
+.taskAction {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  text-align: right;
+}
+
+.taskAction > span {
+  color: var(--vermillion);
+}
+
+.completed {
+  color: var(--safe);
+}
+
+.activity {
+  scroll-margin-top: 76px;
+  padding-bottom: 42px;
+}
+
+.activityHead {
+  padding-block: 16px;
+  border-top: 1px solid var(--ink);
+}
+
+.activityHead p,
+.activityFoot,
+.history time,
+.history span {
+  color: var(--muted);
+}
+
+.historyStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 20px;
+  border-block: 1px solid var(--rule);
+  background: var(--card-bg);
+}
+
+.historyStats > div {
+  padding: 15px clamp(9px, 2vw, 22px);
+}
+
+.historyStats > div + div {
+  border-left: 1px solid var(--rule);
+}
+
+.historyStats dt {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.historyStats dd {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: clamp(22px, 3vw, 31px);
+  font-weight: 700;
+}
+
+.history,
+.historyCards {
+  list-style: none;
+}
+
+.history {
+  border-top: 1px solid var(--rule);
+}
+
+.history > li {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.historyDay {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) minmax(140px, auto);
+  gap: 2px 12px;
+  align-items: baseline;
+}
+
+.historyCards {
+  margin: 6px 0 1px 88px;
+  border-left: 1px solid var(--rule);
+  padding-left: 12px;
+  font-size: 11px;
+}
+
+.historyCards > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 13px;
+  justify-content: space-between;
+}
+
+.historyToggle {
+  margin-top: 14px;
+}
+
+.activityFoot {
+  padding-top: 18px;
+  align-items: start;
+}
+
+.activityFoot details {
+  flex: 1 1 370px;
+}
+
+.activityFoot summary {
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.activityFoot p {
+  margin: 9px 0;
+  max-width: 73ch;
+}
+
+.dialog {
+  box-sizing: border-box;
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  margin: auto;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.dialog::backdrop {
+  background: color-mix(in srgb, var(--ink), transparent 55%);
+}
+
+.dialog h2 {
+  margin: 18px 0;
+}
+
+.answerForm {
+  display: grid;
+  gap: 10px;
+}
+
+.answerForm input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+}
+
+.answerForm button {
+  justify-self: start;
+}
+
+.answerBack {
+  display: grid;
+  gap: 12px;
+  animation: reveal-answer 240ms ease-out;
+}
+
+.answerBack h2 {
+  margin: 18px 0 0;
+}
+
+.expectedAnswer {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.answerBack p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.answerBack button {
+  justify-self: start;
+}
+
+@keyframes reveal-answer {
+  from {
+    opacity: 0;
+    transform: perspective(800px) rotateY(-90deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: perspective(800px) rotateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answerBack {
+    animation: none;
+  }
+}
+
+.roadmapHead {
+  padding: 30px 0 20px;
+}
+
+.roadmapHead h1 {
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+
+.roadmapHead > a {
+  margin-top: 15px;
+}
+
+.roadmap {
+  min-height: 650px;
+  height: 78vh;
+  overflow: auto;
+  border: 1px solid var(--rule);
+  margin-bottom: 26px;
+}
+
+@media (max-width: 600px) {
+  .historyDay {
+    grid-template-columns: 57px minmax(0, 1fr);
+  }
+
+  .historyDay > span {
+    grid-column: 2;
+  }
+
+  .historyCards {
+    margin-left: 69px;
+  }
+
+  .taskAction {
+    flex-direction: column;
+    align-items: end;
+  }
+}

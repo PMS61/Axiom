@@ -1,0 +1,119 @@
+{
+  "title": "Axiom: Adaptive Learning",
+  "interests": [
+    "Spaced repetition",
+    "Recall prediction",
+    "Adaptive scheduling"
+  ],
+  "reviewLimit": 3,
+  "cards": [
+    {
+      "word": "Recall prediction with GBDT",
+      "question": "What type of model does Axiom use to predict recall from past review features?",
+      "meaning": "GBDT",
+      "acceptedAnswers": [
+        "gradient-boosted decision trees",
+        "gradient boosted decision trees",
+        "gradient boosting decision tree",
+        "gradient boosting decision trees"
+      ],
+      "practice": [
+        {
+          "daysAgo": 12,
+          "recalled": false
+        },
+        {
+          "daysAgo": 8,
+          "recalled": true
+        },
+        {
+          "daysAgo": 3,
+          "recalled": true
+        }
+      ],
+      "plan": {
+        "interval": 1,
+        "recall": 0.8
+      }
+    },
+    {
+      "word": "The FSRS baseline",
+      "question": "Which spaced-repetition algorithm is a baseline in Axiom’s recall benchmark?",
+      "meaning": "FSRS",
+      "acceptedAnswers": ["Free Spaced Repetition Scheduler"],
+      "practice": [
+        {
+          "daysAgo": 14,
+          "recalled": true
+        },
+        {
+          "daysAgo": 9,
+          "recalled": false
+        },
+        {
+          "daysAgo": 4,
+          "recalled": true
+        }
+      ],
+      "plan": {
+        "interval": 4,
+        "recall": 0.8
+      }
+    },
+    {
+      "word": "The online update",
+      "question": "How many weights per learner does Axiom’s final GBDT online layer update?",
+      "meaning": "6",
+      "acceptedAnswers": ["six", "6 weights", "six weights"],
+      "practice": [
+        {
+          "daysAgo": 10,
+          "recalled": false
+        },
+        {
+          "daysAgo": 5,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        }
+      ],
+      "plan": {
+        "interval": 7,
+        "recall": 0.8
+      }
+    },
+    {
+      "word": "Scoring recall predictions",
+      "question": "What metric penalizes confident but incorrect recall probabilities in Axiom’s benchmark?",
+      "meaning": "Log loss",
+      "acceptedAnswers": [
+        "log-loss",
+        "logarithmic loss",
+        "cross entropy",
+        "cross-entropy",
+        "binary cross entropy",
+        "binary cross-entropy"
+      ],
+      "practice": [
+        {
+          "daysAgo": 11,
+          "recalled": true
+        },
+        {
+          "daysAgo": 7,
+          "recalled": true
+        },
+        {
+          "daysAgo": 2,
+          "recalled": true
+        }
+      ],
+      "plan": {
+        "interval": 12,
+        "recall": 0.8
+      }
+    }
+  ]
+}

@@ -6,6 +6,7 @@
 
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getUserProfile } from "@/app/actions/auth";
 import {
@@ -44,11 +45,13 @@ function SectionView({
   onComplete,
   onMarkSectionDone,
   onSkip,
+  renderTaskAction,
 }: {
   section: SectionSchedule;
   tasks: Task[];
-  onComplete: (taskId: string) => Promise<void>;
-  onMarkSectionDone: () => Promise<void>;
+  onComplete?: (taskId: string) => Promise<void>;
+  onMarkSectionDone?: () => Promise<void>;
+  renderTaskAction?: (taskId: string) => ReactNode;
   onSkip?: (taskId: string) => Promise<void>;
 }) {
   const color = SECTION_COLORS[section.section] ?? "var(--ink)";
@@ -105,13 +108,15 @@ function SectionView({
                     )}
                   </div>
                   <div className="meta-text" style={{ fontSize: 10, color: "var(--muted)" }}>
+                    {item.startSlot !== undefined && renderTaskAction && `${slotToTime(item.startSlot)} · `}
                     {item.completionTime}m
                     {item.isRecreational
                       ? ` · +${item.axiomGain.toFixed(1)} axiom restore`
                       : ` · ${item.axiomCost.toFixed(2)} axioms`}
                   </div>
                 </div>
-                {!item.isRecreational && !isCompleted && (
+                {renderTaskAction?.(item.taskId)}
+                {onComplete && !item.isRecreational && !isCompleted && (
                   <div style={{ display: "flex", gap: 4 }}>
                     <button
                       type="button"
@@ -140,14 +145,14 @@ function SectionView({
         </div>
       )}
 
-      <button
+      {onMarkSectionDone && <button
         type="button"
         className="btn btn-sm"
         style={{ marginTop: 12, fontSize: 10, color: "var(--muted)", width: "100%" }}
         onClick={onMarkSectionDone}
       >
         Mark {section.section} done (record performance)
-      </button>
+      </button>}
     </div>
   );
 }
@@ -160,8 +165,25 @@ import {
   writeStoredUserProfile,
 } from "@/lib/userProfileStorage";
 
-function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[] }) {
+export type GuestDashboard = {
+  tasks: Task[];
+  days: DaySchedule[];
+  currentDate: Date;
+  summary: ReactNode;
+  controls: ReactNode;
+  focus: ReactNode;
+  activity: ReactNode;
+  renderTaskAction: (taskId: string) => ReactNode;
+};
+
+function DashboardContent({
+  initialTrends = [],
+  guest,
+}: { initialTrends?: TrendResult[]; guest?: GuestDashboard }) {
   const { state, dispatch } = useApp();
+  const tasks = guest?.tasks ?? state.tasks;
+  const scheduledDays = guest?.days ?? state.scheduledDays;
+  const isGuest = Boolean(guest);
   const [showReasoning, setShowReasoning] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isUnscheduledModalOpen, setIsUnscheduledModalOpen] = useState(false);
@@ -176,7 +198,7 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
 
   // ── Load tasks from DB on mount ────────────────────────
   useEffect(() => {
-    if (isInitializedRef.current) return;
+    if (isGuest || isInitializedRef.current) return;
     isInitializedRef.current = true;
 
     const localProfile = readStoredUserProfile();
@@ -235,11 +257,11 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
 
       dispatch({ type: "SET_USER_PROFILE", payload: user });
     });
-  }, [dispatch]);
+  }, [dispatch, isGuest]);
 
   // ── Persist changed tasks to DB ────────────────────────
   useEffect(() => {
-    if (isLoadingTasks) return;
+    if (isGuest || isLoadingTasks) return;
 
     const snap = prevTasksSnapRef.current;
     const toSave: Task[] = [];
@@ -262,7 +284,7 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
     for (const task of toSave) {
       saveTask(task); // fire-and-forget; UI already updated
     }
-  }, [state.tasks, isLoadingTasks]);
+  }, [state.tasks, isLoadingTasks, isGuest]);
 
   // ── Axiom-based section scheduler ────────────────────────
   // Delegates to the server-side deterministic scheduler via triggerReschedule,
@@ -310,7 +332,7 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
   }, [dispatch]);
 
   const todaySchedule = useMemo(() => {
-    const today = state.scheduledDays.find((d) => d.dayOffset === 0);
+    const today = scheduledDays.find((d) => d.dayOffset === 0);
 
     if (today) {
       const sectionFallbackStart = (section: string): number => {
@@ -323,7 +345,7 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
         section.tasks
           .filter((item) => !item.isRecreational)
           .map((item) => {
-            const task = state.tasks.find((t) => t.id === item.taskId);
+            const task = tasks.find((t) => t.id === item.taskId);
             const startSlot = item.startSlot ?? sectionFallbackStart(section.section);
             const endSlot = startSlot + Math.ceil(item.completionTime / 15);
 
@@ -366,7 +388,7 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
       };
     }
 
-    const fallbackEntries = state.tasks
+    const fallbackEntries = tasks
       .filter((t) => t.scheduledSlot && t.scheduledSlot.day === 0 && t.state !== "unscheduled")
       .map((task) => ({
         task,
@@ -378,12 +400,12 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
       }))
       .sort((a, b) => a.startSlot - b.startSlot);
 
-    const totalCL = state.tasks
+    const totalCL = tasks
       .filter((t) => t.etask > 0 && t.scheduledSlot && t.scheduledSlot.day === 0)
       .reduce((s, t) => s + t.etask, 0);
 
     const recoveryCL = Math.abs(
-      state.tasks
+      tasks
         .filter((t) => t.etask < 0 && t.scheduledSlot && t.scheduledSlot.day === 0)
         .reduce((s, t) => s + t.etask, 0),
     );
@@ -395,23 +417,23 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
       totalCL,
       recoveryCL,
     };
-  }, [state.scheduledDays, state.tasks]);
+  }, [scheduledDays, tasks]);
 
   const scheduled = todaySchedule.entries;
   const totalCL = todaySchedule.totalCL;
   const recoveryCL = todaySchedule.recoveryCL;
 
   // Section view helpers
-  const hasSections = state.scheduledDays.length > 0;
-  const viewDayData: DaySchedule | undefined = state.scheduledDays.find(
+  const hasSections = scheduledDays.length > 0;
+  const viewDayData: DaySchedule | undefined = scheduledDays.find(
     (d) => d.dayOffset === viewDay,
-  );
+  ) ?? (isGuest ? scheduledDays[0] : undefined);
 
   return (
     <div style={{ minHeight: "100vh" }}>
-      <Header />
+      <Header dashboardDemo={isGuest} />
 
-      {state.burnoutRisk !== "safe" && (
+      {!isGuest && state.burnoutRisk !== "safe" && (
         <div style={{
           background: state.burnoutRisk === "critical" ? "var(--vermillion)" : "var(--card-bg)",
           color: state.burnoutRisk === "critical" ? "var(--bg)" : "var(--vermillion)",
@@ -433,21 +455,22 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
       )}
 
       {/* ── Hero Section: Date + Stats ── */}
-      <section className="container section-rule" style={{ paddingTop: 60, paddingBottom: 40 }}>
-        <div className="responsive-grid-hero" style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: 60, alignItems: "start" }}>
+      <section className="container section-rule" style={{ paddingTop: isGuest ? 34 : 60, paddingBottom: isGuest ? 24 : 40 }}>
+        <div className="responsive-grid-hero" style={{ display: "grid", gridTemplateColumns: guest ? "minmax(0, 1fr)" : "1fr 1.5fr", gap: 60, alignItems: "start" }}>
           <div>
             <div className="meta-text" style={{ marginBottom: 16 }}>
-              {state.dayPhase.toUpperCase()} PHASE
+              {guest ? "Your dashboard" : `${state.dayPhase.toUpperCase()} PHASE`}
             </div>
             <h1 style={{ fontSize: 42, marginBottom: 24 }}>
-              {formatDateHeading(state.currentDate)}
+              {formatDateHeading(guest?.currentDate ?? state.currentDate)}
             </h1>
             <p style={{ color: "var(--muted)", maxWidth: 380, marginBottom: 24 }}>
               {todaySchedule.activeCount} tasks scheduled · {todaySchedule.completedCount} completed
             </p>
 
+            {guest?.summary}
             <div
-              className="meta-text responsive-grid-stats"
+              className={guest ? "meta-text" : "meta-text responsive-grid-stats"}
               style={{
                 borderTop: "0.5px solid var(--rule)",
                 paddingTop: 16,
@@ -483,18 +506,18 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
           </div>
 
           {/* Bandwidth chart */}
-          <div>
+          {!guest && <div>
             <div className="meta-text" style={{ marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
               <span>Mental Energy / Today</span>
               <span style={{ color: "var(--vermillion)" }}>CL Demand</span>
             </div>
-            <BandwidthCurve />
-          </div>
+            <BandwidthCurve tasks={tasks} days={scheduledDays} />
+          </div>}
         </div>
       </section>
 
       {/* ── Scheduler Controls ── */}
-      <section className="container section-rule" style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {guest ? guest.controls : <section className="container section-rule" style={{ padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <button
             className="btn btn-sm btn-primary"
@@ -546,23 +569,23 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
             Unscheduled Pool ({state.tasks.filter((t) => t.state === "unscheduled").length})
           </button>
         </div>
-      </section>
+      </section>}
 
       {/* ── Main content ── */}
       <section
         className={`container ${showReasoning ? 'responsive-grid-split' : ''}`}
         style={{
-          paddingTop: 40,
-          paddingBottom: 80,
+          paddingTop: isGuest ? 23 : 40,
+          paddingBottom: isGuest ? 38 : 80,
           display: "grid",
           gridTemplateColumns: showReasoning ? "1fr 1fr" : "1fr",
           gap: 60,
         }}
       >
         {/* Schedule List */}
-        <div>
+        <div style={{ minWidth: 0 }}>
           {/* Current Task Box */}
-          {(() => {
+          {guest ? guest.focus : (() => {
             const now = new Date();
             const currentSlot = Math.floor((now.getHours() * 60 + now.getMinutes()) / 15);
 
@@ -643,19 +666,20 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
             <>
               {/* Day selector */}
               <div style={{ display: "flex", gap: 8, marginBottom: 24, overflowX: "auto" }}>
-                {state.scheduledDays.filter(d => d.dayOffset <= 6).map((d) => (
+                {scheduledDays.filter(d => isGuest || d.dayOffset <= 6).map((d) => (
                   <button
                     key={d.dayOffset}
                     className="btn btn-sm"
+                    aria-pressed={viewDayData?.dayOffset === d.dayOffset}
                     onClick={() => setViewDay(d.dayOffset)}
                     style={{
-                      background: viewDay === d.dayOffset ? "var(--ink)" : "var(--card-bg)",
-                      color: viewDay === d.dayOffset ? "var(--bg)" : "var(--ink)",
+                      background: viewDayData?.dayOffset === d.dayOffset ? "var(--ink)" : "var(--card-bg)",
+                      color: viewDayData?.dayOffset === d.dayOffset ? "var(--bg)" : "var(--ink)",
                       whiteSpace: "nowrap",
                       flexShrink: 0,
                     }}
                   >
-                    {d.dayOffset === 0 ? "Today" : `+${d.dayOffset}d`} · {d.date.slice(5)}
+                    {d.dayOffset === 0 ? "Today" : guest && d.dayOffset === 1 ? "Tomorrow" : `+${d.dayOffset}d`} · {d.date.slice(5)}
                   </button>
                 ))}
               </div>
@@ -663,7 +687,7 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
               {viewDayData ? (
                 <>
                   {/* Day axiom summary */}
-                  <div style={{
+                  {!guest && <div style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(3, 1fr)",
                     gap: 12,
@@ -689,20 +713,24 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
                         {viewDayData.diversityEntropy.toFixed(3)}
                       </div>
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Section columns */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                    {viewDayData.sections.map((section) => (
+                    {guest && viewDayData.sections.every((section) => section.tasks.length === 0) && (
+                      <p style={{ color: "var(--muted)" }}>Nothing scheduled for this day.</p>
+                    )}
+                    {viewDayData.sections.filter((section) => !isGuest || section.tasks.length).map((section) => (
                       <SectionView
                         key={section.section}
                         section={section}
-                        tasks={state.tasks}
-                        onComplete={async (taskId) => {
+                        tasks={tasks}
+                        renderTaskAction={guest?.renderTaskAction}
+                        onComplete={guest ? undefined : async (taskId) => {
                           dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId, state: "completed" } });
                           await updateTaskStateAndSlot(taskId, "completed", undefined);
                         }}
-                        onMarkSectionDone={async () => {
+                        onMarkSectionDone={guest ? undefined : async () => {
                           await markSectionComplete(section.section as any, section.axiomBudget, section.axiomUsed);
                           // Compute and store calibrated multipliers based on completion rates
                           const calibrated = computeCalibratedMultipliers(state.tasks);
@@ -710,7 +738,7 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
                             dispatch({ type: "CALIBRATE_MULTIPLIERS", payload: calibrated });
                           }
                         }}
-                        onSkip={async (taskId) => {
+                        onSkip={guest ? undefined : async (taskId) => {
                           dispatch({ type: "UPDATE_TASK_STATE", payload: { taskId, state: "unscheduled" } });
                           await updateTaskStateAndSlot(taskId, "unscheduled", undefined);
                         }}
@@ -741,10 +769,11 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
       </section>
 
       {/* ── Trend Intelligence Summary ── */}
-      <TrendsSummary trends={initialTrends} />
-
-      <AddTaskModal />
-      <ConflictPanel />
+      {guest ? guest.activity : <>
+        <TrendsSummary trends={initialTrends} />
+        <AddTaskModal />
+        <ConflictPanel />
+      </>}
 
       {/* ── Unscheduled Pool Modal ── */}
       {isUnscheduledModalOpen && (
@@ -927,6 +956,6 @@ function DashboardContent({ initialTrends = [] }: { initialTrends?: TrendResult[
   );
 }
 
-export default function Dashboard({ initialTrends }: { initialTrends?: TrendResult[] }) {
-  return <DashboardContent initialTrends={initialTrends} />;
+export default function Dashboard({ initialTrends, guest }: { initialTrends?: TrendResult[]; guest?: GuestDashboard }) {
+  return <DashboardContent initialTrends={initialTrends} guest={guest} />;
 }

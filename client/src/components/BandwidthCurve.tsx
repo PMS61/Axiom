@@ -9,10 +9,12 @@
 
 import { useApp } from "@/lib/store";
 import { slotToTime } from "@/lib/engine";
+import type { DaySchedule, Task } from "@/lib/types";
 
-export default function BandwidthCurve() {
+export default function BandwidthCurve({ tasks, days }: { tasks?: Task[]; days?: DaySchedule[] } = {}) {
   const { state } = useApp();
   const curve = state.adjustedBandwidthCurve;
+  const scheduledTasks = tasks ?? state.tasks;
   const WIDTH = 1000;
   const HEIGHT = 140;
   const START = 24; // 06:00
@@ -22,7 +24,7 @@ export default function BandwidthCurve() {
 
   // Compute Etask demand per slot from section schedule (primary) with slot fallback.
   const clPerSlot = new Array(96).fill(0);
-  const today = state.scheduledDays.find((d) => d.dayOffset === 0);
+  const today = (days ?? state.scheduledDays).find((d) => d.dayOffset === 0);
 
   if (today) {
     const sectionFallbackStart = (section: string): number => {
@@ -35,7 +37,7 @@ export default function BandwidthCurve() {
       for (const item of section.tasks) {
         if (item.isRecreational) continue;
 
-        const task = state.tasks.find((t) => t.id === item.taskId);
+        const task = scheduledTasks.find((t) => t.id === item.taskId);
         if (!task || task.state === "completed" || task.state === "skipped") continue;
 
         const start = item.startSlot ?? sectionFallbackStart(section.section);
@@ -48,7 +50,7 @@ export default function BandwidthCurve() {
       }
     }
   } else {
-    for (const task of state.tasks) {
+    for (const task of scheduledTasks) {
       if (task.scheduledSlot && task.state !== "completed" && task.state !== "skipped") {
         const clPerUnit = Math.abs(task.etask) / Math.max(task.scheduledSlot.endSlot - task.scheduledSlot.startSlot, 1);
         for (let s = task.scheduledSlot.startSlot; s < task.scheduledSlot.endSlot; s++) {

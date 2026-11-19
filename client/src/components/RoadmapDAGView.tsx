@@ -304,6 +304,7 @@ function NodeCard({
 
 interface RoadmapDAGViewProps {
   nodes: RoadmapDAGNode[];
+  readOnly?: boolean;
   onNodeSelect?: (node: RoadmapDAGNode) => void;
   onMasteryUpdate?: (nodeId: string, score: number) => void;
   onConvertToTask?: (node: RoadmapDAGNode) => void;
@@ -329,6 +330,7 @@ const STORED_CONTENT_OPTIONS: Array<{
 
 export default function RoadmapDAGView({
   nodes,
+  readOnly = false,
   onNodeSelect,
   onMasteryUpdate,
   onConvertToTask,
@@ -401,7 +403,7 @@ export default function RoadmapDAGView({
   const selectedNode = selectedId
     ? nodes.find((n) => n.id === selectedId)
     : null;
-  const selectedTaskId = selectedNode?.taskId ?? null;
+  const selectedTaskId = readOnly ? null : selectedNode?.taskId ?? null;
 
   const linkedTask = useMemo(() => {
     if (!selectedTaskId) return null;
@@ -854,7 +856,7 @@ export default function RoadmapDAGView({
             </div>
 
             {/* Mark as Complete Button (for Course nodes) */}
-            {selectedNode.type === "course" && selectedNode.nodeState !== "mastered" && selectedNode.nodeState !== "locked" && (
+            {!readOnly && selectedNode.type === "course" && selectedNode.nodeState !== "mastered" && selectedNode.nodeState !== "locked" && (
             <button
             type="button"
             className="btn btn-primary"
@@ -874,7 +876,7 @@ export default function RoadmapDAGView({
 
 
           {/* Convert to Task (Now Automated, maybe Fallback) */}
-          {onConvertToTask &&
+          {!readOnly && onConvertToTask &&
             selectedNode.nodeState !== "locked" &&
             !selectedNode.taskId && (
               <button
