@@ -11,7 +11,9 @@
     "format": "biome format --write",
     "typecheck": "tsc --noEmit",
     "test:bayesian": "node --experimental-strip-types --test src/lib/bayesian/demo.test.mjs && python3 ../test_bayesian_demo.py",
-    "test:diagnostics": "cd .. && \"${AXIOM_DIAGNOSTICS_PYTHON:-.venv-diagnostics/bin/python}\" -m unittest model_diagnostics.test_diagnostics model_diagnostics.test_innovation model_diagnostics.test_coefficient_innovation model_diagnostics.test_completion -v"
+    "test:diagnostics": "cd .. && \"${AXIOM_DIAGNOSTICS_PYTHON:-.venv-diagnostics/bin/python}\" -m unittest model_diagnostics.test_diagnostics model_diagnostics.test_innovation model_diagnostics.test_coefficient_innovation model_diagnostics.test_completion -v",
+    "test:demo": "node --experimental-strip-types --test src/lib/demo/*.test.mjs",
+    "demo": "next build && next start -p 3000"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

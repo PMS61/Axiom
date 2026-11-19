@@ -1,0 +1,628 @@
+/* Demo route: editorial, projector-sized, light and dark via the global tokens. */
+
+.root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* ── Top bar ─────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 10px 40px;
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--ink);
+}
+
+.brand {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill,
+.ctrl,
+.themeBtn {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pill:hover,
+.ctrl:hover,
+.themeBtn:hover {
+  border-color: var(--ink);
+}
+
+.pill[aria-current="step"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.pill:focus-visible,
+.ctrl:focus-visible,
+.themeBtn:focus-visible,
+.taskBtn:focus-visible,
+.card:focus-visible,
+.node:focus-visible {
+  outline: 2px solid var(--vermillion);
+  outline-offset: 2px;
+}
+
+.controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--muted);
+  margin-right: 8px;
+}
+
+.ctrl:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Stage (fades between steps) ─────────────────────── */
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 40px 24px;
+  animation: stageIn 380ms ease both;
+}
+
+@keyframes stageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.kicker {
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--vermillion);
+  margin: 0;
+}
+
+.headline {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.caption {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.formula {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border: 1px solid var(--ink);
+}
+
+/* ── Draw-in helpers ─────────────────────────────────── */
+
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 600ms ease;
+}
+
+.fade {
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.on.draw {
+  stroke-dashoffset: 0;
+}
+
+.on.fade {
+  opacity: 1;
+}
+
+.barFill {
+  width: 0;
+  transition: width 600ms ease;
+}
+
+.drawn .barFill {
+  width: var(--w);
+}
+
+/* ── Step 1: trend cards ─────────────────────────────── */
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--rule);
+  cursor: pointer;
+  transition: border-color 200ms ease;
+}
+
+.card:hover {
+  border-color: var(--ink);
+}
+
+.cardOn,
+.cardOn:hover {
+  border-color: var(--ink);
+  border-top: 3px solid var(--vermillion);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tag {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.score {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.topicName {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 96px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.barTrack {
+  height: 3px;
+  background: var(--rule);
+  position: relative;
+}
+
+.barTrack > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ink);
+}
+
+.barVal {
+  text-align: right;
+  color: var(--muted);
+}
+
+.spark {
+  width: 100%;
+  height: 34px;
+  display: block;
+  overflow: visible;
+}
+
+.sparkLine {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sparkLineOn {
+  stroke: var(--vermillion);
+}
+
+/* ── Step 2: roadmap ─────────────────────────────────── */
+
+.roadmap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 32px;
+  align-items: start;
+}
+
+.dag {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.dagLabel {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  fill: var(--muted);
+}
+
+.node {
+  cursor: pointer;
+}
+
+.nodeBox {
+  fill: var(--card-bg);
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.nodeOn .nodeBox {
+  fill: var(--ink);
+}
+
+.nodeText {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  font-size: 14px;
+  fill: var(--ink);
+}
+
+.nodeOn .nodeText {
+  fill: var(--bg);
+}
+
+.edge {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+}
+
+.edgeOn {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.panel {
+  border-top: 1px solid var(--ink);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panelKicker {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+
+.panelTitle {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.agents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.agent {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 0.5px solid var(--rule);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.agentName {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vermillion);
+  padding-top: 2px;
+}
+
+/* ── Step 3: scheduler ───────────────────────────────── */
+
+.timeline {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.tlLabel,
+.tlTick {
+  font-size: 13px;
+  fill: var(--muted);
+}
+
+.tlCommit {
+  fill: var(--ink);
+}
+
+.tlText {
+  font-size: 13px;
+  fill: var(--ink);
+}
+
+.tlExcl {
+  fill: var(--rule);
+  fill-opacity: 0.6;
+  stroke: var(--muted);
+  stroke-width: 0.5;
+}
+
+.tlTask {
+  fill: var(--ink);
+  cursor: pointer;
+}
+
+.tlTaskMemory {
+  fill: var(--vermillion);
+}
+
+.tlTaskNum {
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--bg);
+  pointer-events: none;
+}
+
+.tlSelected {
+  stroke: var(--vermillion);
+  stroke-width: 2.5;
+  fill: none;
+}
+
+.tlPeak {
+  fill: var(--ink);
+  fill-opacity: 0.07;
+}
+
+.tlLow {
+  fill: var(--rule);
+  fill-opacity: 0.5;
+}
+
+.tlArea {
+  fill: var(--ink);
+  fill-opacity: 0.1;
+}
+
+.tlCurve {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.lower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.taskList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.taskBtn {
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  text-align: left;
+  padding: 6px 8px;
+  background: transparent;
+  border: 0;
+  border-top: 0.5px solid var(--rule);
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.taskBtnOn {
+  background: var(--card-bg);
+  box-shadow: inset 3px 0 0 var(--vermillion);
+}
+
+.taskTime {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.badge {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vermillion);
+  border: 1px solid var(--vermillion);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.reason {
+  border-top: 1px solid var(--ink);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reasonSteps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reasonSteps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.reasonSteps li::before {
+  content: counter(step, decimal-leading-zero);
+  color: var(--vermillion);
+  font-size: 14px;
+  padding-top: 2px;
+}
+
+/* ── Placeholders (steps 4 and 5) ────────────────────── */
+
+.placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  border: 1px dashed var(--rule);
+  color: var(--muted);
+  font-size: 18px;
+  background: var(--card-bg);
+}
+
+/* ── Small screens and reduced motion ────────────────── */
+
+@media (max-width: 900px) {
+  .topbar {
+    padding: 10px 16px;
+  }
+  .stage {
+    padding: 16px;
+  }
+  .headline {
+    font-size: 32px;
+  }
+  .cardGrid,
+  .roadmap,
+  .lower {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .draw,
+  .fade,
+  .barFill {
+    animation: none;
+    transition: none;
+  }
+}

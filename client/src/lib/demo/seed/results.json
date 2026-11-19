@@ -1,0 +1,514 @@
+{
+  "overall": {
+    "fsrs_default": {
+      "logLoss": 0.396,
+      "auc": 0.7449,
+      "ece": 0.0117,
+      "brier": 0.1208
+    },
+    "fsrs_opt": {
+      "logLoss": 0.3794,
+      "auc": 0.7766,
+      "ece": 0.0091,
+      "brier": 0.1169
+    },
+    "hlr": { "logLoss": 0.6805, "auc": 0.5554, "ece": 0.1464, "brier": 0.1698 },
+    "ours": {
+      "logLoss": 0.4221,
+      "auc": 0.6921,
+      "ece": 0.0252,
+      "brier": 0.1313
+    },
+    "ours_v3": {
+      "logLoss": 0.378,
+      "auc": 0.7789,
+      "ece": 0.0103,
+      "brier": 0.1165
+    },
+    "gbdt": { "logLoss": 0.3584, "auc": 0.8051, "ece": 0.0049, "brier": 0.1109 }
+  },
+  "gapBins": {
+    "fsrs_opt": [
+      { "bin": "1d", "n": 16983, "logLoss": 0.3959 },
+      { "bin": "2-3d", "n": 16080, "logLoss": 0.3894 },
+      { "bin": "4-14d", "n": 29204, "logLoss": 0.3613 },
+      { "bin": "15-60d", "n": 15626, "logLoss": 0.3737 },
+      { "bin": "61d+", "n": 17507, "logLoss": 0.3893 }
+    ],
+    "gbdt": [
+      { "bin": "1d", "n": 16983, "logLoss": 0.3717 },
+      { "bin": "2-3d", "n": 16080, "logLoss": 0.3723 },
+      { "bin": "4-14d", "n": 29204, "logLoss": 0.3442 },
+      { "bin": "15-60d", "n": 15626, "logLoss": 0.36 },
+      { "bin": "61d+", "n": 17507, "logLoss": 0.355 }
+    ]
+  },
+  "reliability": {
+    "fsrs_opt": [
+      {
+        "binLow": 0.0,
+        "binHigh": 0.1,
+        "meanPred": 0.0672,
+        "meanObs": 0.1707,
+        "n": 164
+      },
+      {
+        "binLow": 0.1,
+        "binHigh": 0.2,
+        "meanPred": 0.1534,
+        "meanObs": 0.1745,
+        "n": 619
+      },
+      {
+        "binLow": 0.2,
+        "binHigh": 0.3,
+        "meanPred": 0.2505,
+        "meanObs": 0.243,
+        "n": 716
+      },
+      {
+        "binLow": 0.3,
+        "binHigh": 0.4,
+        "meanPred": 0.3542,
+        "meanObs": 0.3913,
+        "n": 1316
+      },
+      {
+        "binLow": 0.4,
+        "binHigh": 0.5,
+        "meanPred": 0.4563,
+        "meanObs": 0.4972,
+        "n": 2458
+      },
+      {
+        "binLow": 0.5,
+        "binHigh": 0.6,
+        "meanPred": 0.5542,
+        "meanObs": 0.5658,
+        "n": 3839
+      },
+      {
+        "binLow": 0.6,
+        "binHigh": 0.7,
+        "meanPred": 0.6553,
+        "meanObs": 0.66,
+        "n": 6952
+      },
+      {
+        "binLow": 0.7,
+        "binHigh": 0.8,
+        "meanPred": 0.7541,
+        "meanObs": 0.7728,
+        "n": 13543
+      },
+      {
+        "binLow": 0.8,
+        "binHigh": 0.9,
+        "meanPred": 0.8543,
+        "meanObs": 0.855,
+        "n": 24077
+      },
+      {
+        "binLow": 0.9,
+        "binHigh": 1.0,
+        "meanPred": 0.9529,
+        "meanObs": 0.9449,
+        "n": 41716
+      }
+    ],
+    "gbdt": [
+      {
+        "binLow": 0.0,
+        "binHigh": 0.1,
+        "meanPred": 0.0794,
+        "meanObs": 0.0187,
+        "n": 107
+      },
+      {
+        "binLow": 0.1,
+        "binHigh": 0.2,
+        "meanPred": 0.1564,
+        "meanObs": 0.1055,
+        "n": 635
+      },
+      {
+        "binLow": 0.2,
+        "binHigh": 0.3,
+        "meanPred": 0.252,
+        "meanObs": 0.2028,
+        "n": 1055
+      },
+      {
+        "binLow": 0.3,
+        "binHigh": 0.4,
+        "meanPred": 0.353,
+        "meanObs": 0.3407,
+        "n": 1409
+      },
+      {
+        "binLow": 0.4,
+        "binHigh": 0.5,
+        "meanPred": 0.4532,
+        "meanObs": 0.4355,
+        "n": 2241
+      },
+      {
+        "binLow": 0.5,
+        "binHigh": 0.6,
+        "meanPred": 0.5544,
+        "meanObs": 0.5407,
+        "n": 3719
+      },
+      {
+        "binLow": 0.6,
+        "binHigh": 0.7,
+        "meanPred": 0.6554,
+        "meanObs": 0.6639,
+        "n": 6543
+      },
+      {
+        "binLow": 0.7,
+        "binHigh": 0.8,
+        "meanPred": 0.7558,
+        "meanObs": 0.7604,
+        "n": 13108
+      },
+      {
+        "binLow": 0.8,
+        "binHigh": 0.9,
+        "meanPred": 0.8545,
+        "meanObs": 0.8562,
+        "n": 23769
+      },
+      {
+        "binLow": 0.9,
+        "binHigh": 1.0,
+        "meanPred": 0.9571,
+        "meanObs": 0.9544,
+        "n": 42814
+      }
+    ]
+  },
+  "userWins": {
+    "count": 82,
+    "total": 100,
+    "diffs": [
+      -0.2656, -0.197, -0.1771, -0.1695, -0.1628, -0.1277, -0.1035, -0.1034,
+      -0.0918, -0.0838, -0.0721, -0.0699, -0.0652, -0.0645, -0.0639, -0.0631,
+      -0.0627, -0.0615, -0.0612, -0.0587, -0.0531, -0.0488, -0.0464, -0.0421,
+      -0.0419, -0.0404, -0.0397, -0.0386, -0.0363, -0.0357, -0.0352, -0.0348,
+      -0.0339, -0.0333, -0.0326, -0.0274, -0.0271, -0.0266, -0.0264, -0.0263,
+      -0.025, -0.0218, -0.0216, -0.0207, -0.0201, -0.0192, -0.019, -0.0181,
+      -0.018, -0.017, -0.0159, -0.015, -0.0148, -0.0135, -0.0131, -0.0129,
+      -0.0125, -0.0123, -0.0122, -0.0119, -0.0119, -0.0103, -0.0099, -0.0094,
+      -0.0092, -0.0084, -0.0071, -0.007, -0.007, -0.0069, -0.0058, -0.0056,
+      -0.0046, -0.0045, -0.0037, -0.0028, -0.002, -0.0018, -0.0016, -0.001,
+      -0.0004, -0.0002, 0.0014, 0.0019, 0.0019, 0.0022, 0.0023, 0.0027, 0.0032,
+      0.0035, 0.0042, 0.0053, 0.0067, 0.0074, 0.0086, 0.0098, 0.0098, 0.0128,
+      0.0156, 0.0201
+    ]
+  },
+  "cards": [
+    {
+      "label": "Card A",
+      "nScored": 7,
+      "pickedFor": "top",
+      "reviews": [
+        { "review": 2511, "day": 22, "rating": 3, "y": 1, "scored": false },
+        { "review": 2532, "day": 22, "rating": 3, "y": 1, "scored": false },
+        { "review": 2629, "day": 23, "rating": 1, "y": 0, "scored": false },
+        { "review": 2660, "day": 23, "rating": 3, "y": 1, "scored": false },
+        { "review": 2820, "day": 24, "rating": 1, "y": 0, "scored": false },
+        { "review": 2834, "day": 24, "rating": 1, "y": 0, "scored": false },
+        { "review": 2839, "day": 25, "rating": 1, "y": 0, "scored": false },
+        { "review": 2874, "day": 27, "rating": 3, "y": 1, "scored": false },
+        { "review": 3138, "day": 28, "rating": 3, "y": 1, "scored": false },
+        { "review": 3371, "day": 30, "rating": 3, "y": 1, "scored": false },
+        { "review": 3836, "day": 33, "rating": 3, "y": 1, "scored": false },
+        { "review": 4718, "day": 38, "rating": 3, "y": 1, "scored": false },
+        { "review": 6764, "day": 49, "rating": 3, "y": 1, "scored": false },
+        { "review": 10958, "day": 72, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 21827,
+          "day": 120,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.7459,
+          "pOurs": 0.7546
+        },
+        { "review": 21905, "day": 120, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 22060,
+          "day": 121,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.9819,
+          "pOurs": 0.8601
+        },
+        { "review": 22127, "day": 121, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 22327,
+          "day": 122,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.9678,
+          "pOurs": 0.8871
+        },
+        { "review": 22338, "day": 122, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 22702,
+          "day": 124,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.9183,
+          "pOurs": 0.7015
+        },
+        { "review": 22748, "day": 124, "rating": 1, "y": 0, "scored": false },
+        { "review": 22799, "day": 124, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 23252,
+          "day": 125,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.7438,
+          "pOurs": 0.8257
+        },
+        { "review": 23341, "day": 125, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 23632,
+          "day": 129,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.6202,
+          "pOurs": 0.6409
+        },
+        {
+          "review": 25105,
+          "day": 133,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.8018,
+          "pOurs": 0.5445
+        },
+        { "review": 25177, "day": 133, "rating": 3, "y": 1, "scored": false }
+      ]
+    },
+    {
+      "label": "Card B",
+      "nScored": 7,
+      "pickedFor": "top",
+      "reviews": [
+        { "review": 1968, "day": 337, "rating": 3, "y": 1, "scored": false },
+        { "review": 2439, "day": 349, "rating": 3, "y": 1, "scored": false },
+        { "review": 2986, "day": 350, "rating": 3, "y": 1, "scored": false },
+        { "review": 3311, "day": 351, "rating": 3, "y": 1, "scored": false },
+        { "review": 3994, "day": 573, "rating": 3, "y": 1, "scored": false },
+        { "review": 5424, "day": 888, "rating": 3, "y": 1, "scored": false },
+        { "review": 5468, "day": 892, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 5519,
+          "day": 895,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.9999,
+          "pOurs": 0.992
+        },
+        { "review": 5565, "day": 895, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 5612,
+          "day": 897,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9982,
+          "pOurs": 0.9902
+        },
+        {
+          "review": 5907,
+          "day": 945,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9698,
+          "pOurs": 0.9759
+        },
+        {
+          "review": 6074,
+          "day": 964,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9969,
+          "pOurs": 0.9925
+        },
+        {
+          "review": 6708,
+          "day": 993,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9965,
+          "pOurs": 0.9967
+        },
+        {
+          "review": 6932,
+          "day": 995,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9998,
+          "pOurs": 0.9986
+        },
+        {
+          "review": 6960,
+          "day": 1049,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9955,
+          "pOurs": 0.998
+        }
+      ]
+    },
+    {
+      "label": "Card C",
+      "nScored": 6,
+      "pickedFor": "top",
+      "reviews": [
+        { "review": 12686, "day": 307, "rating": 3, "y": 1, "scored": false },
+        { "review": 12744, "day": 307, "rating": 3, "y": 1, "scored": false },
+        { "review": 13042, "day": 308, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 14411,
+          "day": 323,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.8708,
+          "pOurs": 0.9091
+        },
+        {
+          "review": 15413,
+          "day": 507,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.8491,
+          "pOurs": 0.6427
+        },
+        {
+          "review": 15421,
+          "day": 508,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.9877,
+          "pOurs": 0.8081
+        },
+        { "review": 15426, "day": 508, "rating": 3, "y": 1, "scored": false },
+        {
+          "review": 15943,
+          "day": 514,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.8771,
+          "pOurs": 0.9174
+        },
+        {
+          "review": 16335,
+          "day": 530,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9137,
+          "pOurs": 0.9487
+        },
+        {
+          "review": 16966,
+          "day": 569,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.9415,
+          "pOurs": 0.9448
+        }
+      ]
+    },
+    {
+      "label": "Card D",
+      "nScored": 6,
+      "pickedFor": "fsrs_wins",
+      "reviews": [
+        { "review": 15996, "day": 498, "rating": 1, "y": 0, "scored": false },
+        { "review": 16001, "day": 498, "rating": 3, "y": 1, "scored": false },
+        { "review": 16053, "day": 498, "rating": 3, "y": 1, "scored": false },
+        { "review": 16472, "day": 517, "rating": 3, "y": 1, "scored": false },
+        { "review": 17147, "day": 541, "rating": 2, "y": 1, "scored": false },
+        { "review": 19357, "day": 633, "rating": 2, "y": 1, "scored": false },
+        {
+          "review": 24926,
+          "day": 1532,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.2834,
+          "pOurs": 0.749
+        },
+        {
+          "review": 25086,
+          "day": 1545,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.8684,
+          "pOurs": 0.8878
+        },
+        {
+          "review": 25115,
+          "day": 1553,
+          "rating": 3,
+          "y": 1,
+          "scored": true,
+          "pFsrs": 0.7766,
+          "pOurs": 0.7738
+        },
+        {
+          "review": 26041,
+          "day": 1707,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.372,
+          "pOurs": 0.7207
+        },
+        {
+          "review": 27610,
+          "day": 2309,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.2043,
+          "pOurs": 0.5365
+        },
+        {
+          "review": 27639,
+          "day": 2324,
+          "rating": 1,
+          "y": 0,
+          "scored": true,
+          "pFsrs": 0.7219,
+          "pOurs": 0.693
+        }
+      ]
+    }
+  ]
+}

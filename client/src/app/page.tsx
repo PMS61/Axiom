@@ -1,1 +1,1 @@
-export { default, metadata } from "./bayesian-demo/page";
+export { default } from "./demo/page";

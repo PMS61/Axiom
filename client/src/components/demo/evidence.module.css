@@ -1,0 +1,294 @@
+/* Step 5: Evidence. Ours = vermillion, FSRS-6 = muted grey, others = ink outline. */
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kicker {
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--vermillion);
+  margin: 0;
+}
+
+.headline {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1.1;
+  margin: 2px 0 4px;
+}
+
+.caption {
+  font-size: 16px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 18px 36px;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel {
+  border-top: 1px solid var(--ink);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panelKicker {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0;
+}
+
+.svg {
+  width: 100%;
+  max-height: 230px;
+}
+
+.svgSquare {
+  width: 240px;
+  height: 240px;
+  flex: none;
+}
+
+.svgSmall {
+  width: 180px;
+  height: 180px;
+  flex: none;
+}
+
+.label,
+.labelOurs {
+  font-size: 14px;
+  fill: var(--ink);
+}
+
+.labelOurs {
+  font-weight: 700;
+  fill: var(--vermillion);
+}
+
+.val,
+.valOurs {
+  font-size: 14px;
+  fill: var(--muted);
+  transition: x 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.valOurs {
+  fill: var(--vermillion);
+  font-weight: 700;
+}
+
+.axis {
+  font-size: 12px;
+  fill: var(--muted);
+}
+
+.zoneLabel {
+  font-size: 12px;
+  fill: var(--vermillion);
+  font-weight: 600;
+}
+
+.barOurs,
+.barFsrs,
+.barOther {
+  transition: width 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.barOurs {
+  fill: var(--vermillion);
+}
+
+.barFsrs {
+  fill: var(--muted);
+}
+
+.barOther {
+  fill: transparent;
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.note {
+  font-size: 15px;
+  margin: 0;
+}
+
+.small {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.scatterRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.frame {
+  fill: none;
+  stroke: var(--rule);
+}
+
+.diag {
+  stroke: var(--ink);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+
+.winZone {
+  fill: var(--vermillion);
+  opacity: 0.06;
+}
+
+.dots,
+.dotsOn {
+  transition: opacity 900ms ease 200ms;
+}
+
+.dots {
+  opacity: 0;
+}
+
+.dotsOn {
+  opacity: 1;
+}
+
+.dotWin {
+  fill: var(--vermillion);
+  opacity: 0.55;
+}
+
+.dotLose {
+  fill: var(--ink);
+  stroke: var(--bg);
+  stroke-width: 0.6;
+}
+
+.bigStat p {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.bigNum {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 72px;
+  line-height: 1;
+  color: var(--vermillion);
+}
+
+.bigOf {
+  font-size: 22px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--rule);
+}
+
+.tileNum {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--vermillion);
+  line-height: 1.1;
+}
+
+.tileVs {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.tileLabel {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.relFsrs,
+.relOurs {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  transition: stroke-dashoffset 900ms ease;
+}
+
+.relOn {
+  stroke-dashoffset: 0;
+}
+
+.relFsrs {
+  stroke: var(--muted);
+}
+
+.relOurs {
+  stroke: var(--vermillion);
+}
+
+.relDot {
+  fill: var(--vermillion);
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swOurs,
+.swFsrs {
+  display: inline-block;
+  width: 16px;
+  height: 4px;
+}
+
+.swOurs {
+  background: var(--vermillion);
+}
+
+.swFsrs {
+  background: var(--muted);
+}
