@@ -1130,7 +1130,7 @@ layer by a useful amount, which suggests that the hand-made features are close t
 For the Elo-band experts, overlapping bands, where each band's model also trains on a margin of its neighbours' reviews and
 predictions in the overlap blend the two models, were better than hard bands in every setting, because hard bands lose data at
 their edges. Experts fine-tuned from the global GBDT stopped after 1 to 12 extra trees in most bands, so there was almost
-nothing band-specific left to learn.
+nothing band-specific left to learn. Removing the FSRS features from the experts, to test whether a global forgetting curve adds noise inside a band, made the experts trained from scratch worse by about 0.002, and removing them only in the stronger bands changed nothing, so the FSRS features help inside the bands as well.
 
 \subsection{Size and speed}
 \label{sec:results-exp6-cost}
